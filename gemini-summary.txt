@@ -1,0 +1,70 @@
+Project: kas-rt (Laravel)
+Tujuan: menambahkan fitur tagihan iuran RT dengan admin confirm dan pembayaran transfer/offline.
+
+Perubahan utama:
+- Model baru:
+  - app/Models/IuranBulanan.php
+  - app/Models/Tagihan.php
+- Controller baru:
+  - app/Http/Controllers/TagihanController.php
+  - app/Http/Controllers/IuranBulananController.php
+- View baru:
+  - resources/views/tagihan/index.blade.php
+  - resources/views/tagihan/admin.blade.php
+  - resources/views/iuran_bulanan/index.blade.php
+  - resources/views/iuran_bulanan/create.blade.php
+- Routes:
+  - /tagihan
+  - /tagihan/pay
+  - /admin/tagihan
+  - /admin/tagihan/confirm
+  - /admin/iuran-bulanan
+  - /admin/iuran-bulanan/create
+- Layout:
+  - resources/views/layouts/app.blade.php
+  - ditambahkan sidebar link Tagihan dan admin billing
+- KasMasuk update:
+  - app/Models/KasMasuk.php ditambahkan fillable `tagihan_id` dan `bukti`
+- Database:
+  - migration `2026_05_02_000000_create_iuran_bulanans_table.php`
+  - migration `2026_05_02_000001_create_tagihans_table.php`
+  - migration `2026_05_02_000002_add_tagihan_fields_to_kas_masuks_table.php`
+- Status:
+  - migrasi sudah dijalankan, tabel `iuran_bulanans`, `tagihans`, dan kolom `tagihan_id` tersedia
+
+Prompt khusus untuk akun Gemini kedua:
+---
+Saya sedang mengerjakan proyek Laravel bernama `kas-rt` untuk aplikasi kas RT. Tujuan utamanya adalah menambahkan fitur iuran bulanan otomatis dengan: 1) admin membuat komponen iuran bulanan, 2) sistem membangkitkan tagihan per warga untuk bulan itu, 3) warga dapat bayar transfer atau offline, dan 4) admin dapat memverifikasi/mengonfirmasi pembayaran.
+
+Yang sudah dibuat:
+- Model `IuranBulanan` dan `Tagihan`
+- Controller `TagihanController` dengan fungsi `index`, `pay`, `adminIndex`, dan `confirm`
+- Controller `IuranBulananController` untuk admin buat/lihat iuran bulanan
+- View halaman warga tagihan dan admin verifikasi tagihan
+- Route: `/tagihan`, `/tagihan/pay`, `/admin/tagihan`, `/admin/tagihan/confirm`, `/admin/iuran-bulanan`, `/admin/iuran-bulanan/create`
+- Sidebar sudah ditambahkan menu Tagihan dan admin billing
+- Database migrasi sudah dijalankan, tabel `iuran_bulanans`, `tagihans`, dan kolom `tagihan_id` di `kas_masuks` sudah ada
+
+Flow pembayaran:
+1. Admin buat `IuranBulanan` untuk bulan berjalan.
+2. Sistem otomatis membuat `Tagihan` untuk semua warga jika ada item iuran bulan ini.
+3. Warga buka `/tagihan`, pilih tagihan, lalu bayar dengan `transfer` (upload bukti) atau `offline` (catatan).
+4. Sistem menyimpan status `pending_transfer` atau `pending_offline`.
+5. Admin buka `/admin/tagihan` dan konfirmasi apakah tagihan sudah `lunas`.
+
+Tolong bantu review kode dan lanjutkan fitur ini dengan prioritas:
+- memperbaiki tampilan/tagihan detail jika perlu
+- menambahkan breakdown iuran per bulan
+- menambahkan notifikasi untuk admin saat ada pembayaran baru
+- memperkuat validasi pembayaran transfer/offline
+---
+
+Cara ganti akun Gemini di VS Code:
+1. Buka `Ctrl+Shift+P`.
+2. Ketik `Gemini` atau `Copilot`.
+3. Pilih opsi `Sign Out` / `Logout` dari akun yang sekarang.
+4. Login kembali dengan akun kedua yang sudah punya Gemini Pro.
+5. Buka settings extension dan pastikan model diarahkan ke `Gemini Pro` atau model premium yang tersedia.
+6. Jika diminta pilih akun Google, pilih akun kedua.
+
+Catatan: History chat di extension biasanya terikat akun, jadi kalau kamu ganti akun, chat lama mungkin tidak muncul lagi. Jadi simpan ringkasan penting dulu jika perlu.

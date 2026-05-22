@@ -26,6 +26,12 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'no_kk' => ['required', 'string', 'max:50'],
+            'is_kepala_keluarga' => ['nullable', 'boolean'],
+            'jumlah_anggota_keluarga' => ['required', 'integer', 'min:1', 'max:20'],
+            'phone' => ['required', 'string', 'max:20'],
+            'rt' => ['required', 'string', 'max:10'],
+            'rw' => ['required', 'string', 'max:10'],
         ];
     }
 }

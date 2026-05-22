@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('kas_masuks', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('keterangan');
             $table->integer('jumlah');
             $table->date('tanggal');

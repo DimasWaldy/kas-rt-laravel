@@ -104,13 +104,35 @@
                         <i class="fa-solid fa-envelope absolute left-4 top-4 text-slate-400 text-xs"></i>
                         <input type="email" name="email" placeholder="Email Aktif" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('email') }}" required>
                     </div>
+                    <div class="relative">
+                        <i class="fa-solid fa-id-card absolute left-4 top-4 text-slate-400 text-xs"></i>
+                        <input type="text" name="no_kk" placeholder="Nomor Kartu Keluarga" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('no_kk') }}" required>
+                    </div>
+                    <div class="relative">
+                        <i class="fa-solid fa-phone absolute left-4 top-4 text-slate-400 text-xs"></i>
+                        <input type="text" name="phone" placeholder="Nomor HP Kepala Keluarga" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('phone') }}" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" name="rt" placeholder="RT" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('rt') }}" required>
+                        <input type="text" name="rw" placeholder="RW" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('rw') }}" required>
+                    </div>
                     <div class="grid grid-cols-2 gap-3">
                         <input type="password" name="password" placeholder="Password" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" required>
                         <input type="password" name="password_confirmation" placeholder="Konfirmasi" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" required>
                     </div>
+                    <div class="relative">
+                        <i class="fa-solid fa-users absolute left-4 top-4 text-slate-400 text-xs"></i>
+                        <input type="number" min="1" max="20" name="jumlah_anggota_keluarga" placeholder="Jumlah Anggota Keluarga" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('jumlah_anggota_keluarga') ?? 1 }}" required>
+                    </div>
+                    <div class="flex items-center justify-center gap-3 mt-3">
+                        <label class="inline-flex items-center gap-2 text-slate-600 text-sm">
+                            <input type="checkbox" name="is_kepala_keluarga" value="1" class="h-4 w-4 text-green-600 rounded" {{ old('is_kepala_keluarga') ? 'checked' : '' }}>
+                            Saya Kepala Keluarga
+                        </label>
+                    </div>
                 </div>
 
-                @if ($errors->any() && (old('name') || request()->is('register')))
+                @if (isset($errors) && $errors->any() && (old('name') || request()->is('register')))
                     <p class="text-rose-500 text-[10px] mt-3 font-bold uppercase tracking-wider">{{ $errors->first() }}</p>
                 @endif
 
@@ -132,23 +154,23 @@
                 <div class="w-full space-y-4">
                     <div class="relative">
                         <i class="fa-solid fa-at absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="email" name="email" placeholder="Email" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold text-slate-700" required>
+                        <input type="email" name="email" placeholder="Email" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-green-500 transition-all font-semibold text-slate-700" required>
                     </div>
                     <div class="relative">
                         <i class="fa-solid fa-lock absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="password" name="password" placeholder="Password" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold text-slate-700" required>
+                        <input type="password" name="password" placeholder="Password" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-green-500 transition-all font-semibold text-slate-700" required>
                     </div>
                 </div>
 
-                @if ($errors->any() && !old('name') && !request()->is('register'))
+                @if (isset($errors) && $errors->any() && !old('name') && !request()->is('register'))
                     <p class="text-rose-500 text-[10px] mt-3 font-bold uppercase tracking-wider">{{ $errors->first() }}</p>
                 @endif
 
                 <div class="w-full text-right mt-3">
-                    <a href="#" class="text-[10px] font-bold text-slate-400 hover:text-blue-600 uppercase tracking-widest transition-colors">Lupa Password?</a>
+                    <a href="#" class="text-[10px] font-bold text-slate-400 hover:text-green-600 uppercase tracking-widest transition-colors">Lupa Password?</a>
                 </div>
 
-                <button type="submit" id="loginBtn" class="w-full bg-slate-900 text-white text-xs py-4 rounded-2xl font-black tracking-[0.15em] uppercase mt-8 hover:bg-slate-800 hover:shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
+                <button type="submit" id="loginBtn" class="w-full bg-green-600 text-white text-xs py-4 rounded-2xl font-black tracking-[0.15em] uppercase mt-8 hover:bg-green-700 hover:shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
                     <span id="loginText">Masuk Ke Sistem</span>
                     <span id="loginLoading" class="hidden"><i class="fa-solid fa-circle-notch animate-spin"></i></span>
                 </button>
@@ -156,12 +178,12 @@
         </div>
 
         <div class="toggle-container absolute top-0 left-1/2 w-1/2 h-full overflow-hidden transition-all duration-700 ease-in-out z-[100] rounded-l-[150px]">
-    <div class="toggle bg-gradient-to-br from-[#4f46e5] via-[#3b82f6] to-[#2563eb] text-white relative -left-full h-full w-[200%] transform transition-all duration-700 ease-in-out">
+<div class="toggle bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-400 text-white relative -left-full h-full w-[200%] transform transition-all duration-700 ease-in-out">
         
         <div class="toggle-panel toggle-left absolute w-1/2 h-full flex flex-col items-center justify-center px-12 text-center top-0 transition-all duration-700 ease-in-out">
             <h1 class="text-3xl font-black mb-4 tracking-tighter uppercase">Sudah Terdaftar?</h1>
             <p class="text-sm leading-relaxed mb-8 opacity-80">Kembali masuk untuk memantau saldo kas.</p>
-            <button class="bg-transparent border-2 border-white/50 text-white text-xs py-3 px-12 rounded-2xl font-black uppercase hover:bg-white hover:text-blue-600 transition-all" id="login">Login Disini</button>
+            <button class="bg-transparent border-2 border-white/50 text-white text-xs py-3 px-12 rounded-2xl font-black uppercase hover:bg-white hover:text-emerald-600 transition-all" id="login">Login Disini</button>
         </div>
 
         <div class="toggle-panel toggle-right absolute w-1/2 h-full flex flex-col items-center justify-center px-12 text-center top-0 right-0 transition-all duration-700 ease-in-out">

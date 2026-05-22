@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -34,13 +35,30 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'no_kk' => ['required', 'string', 'max:50'],
+            'is_kepala_keluarga' => ['nullable', 'boolean'],
+            'jumlah_anggota_keluarga' => ['required', 'integer', 'min:1', 'max:20'],
+            'phone' => ['required', 'string', 'max:20'],
+            'rt' => ['required', 'string', 'max:10'],
+            'rw' => ['required', 'string', 'max:10'],
         ]);
+
+        $role = Role::firstOrCreate(
+            ['name' => 'warga'],
+            ['description' => 'Warga']
+        );
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'warga', // Set role default sebagai 'warga'
+            'role_id' => $role->id,
+            'no_kk' => $request->no_kk,
+            'is_kepala_keluarga' => $request->boolean('is_kepala_keluarga'),
+            'jumlah_anggota_keluarga' => $request->jumlah_anggota_keluarga,
+            'phone' => $request->phone,
+            'rt' => $request->rt,
+            'rw' => $request->rw,
         ]);
 
         event(new Registered($user));

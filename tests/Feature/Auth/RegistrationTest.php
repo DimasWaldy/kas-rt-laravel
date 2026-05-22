@@ -7,12 +7,25 @@ test('registration screen can be rendered', function () {
 });
 
 test('new users can register', function () {
+    $this->get('/register');
+
     $response = $this->post('/register', [
         'name' => 'Test User',
         'email' => 'test@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
+        'no_kk' => '1234567890',
+        'is_kepala_keluarga' => true,
+        'jumlah_anggota_keluarga' => 4,
+        'phone' => '081234567890',
+        'rt' => '001',
+        'rw' => '002',
+        '_token' => csrf_token(),
     ]);
+
+    dump('status', $response->status());
+    dump('headers', $response->headers->all());
+    dump('content', $response->getContent());
 
     $this->assertAuthenticated();
     $response->assertRedirect(route('dashboard', absolute: false));

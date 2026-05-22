@@ -33,6 +33,12 @@
                             <span class="font-medium">Dashboard</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ route('profile.edit') }}" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('profile') ? 'active-menu' : '' }}">
+                            <i class="fa-solid fa-user w-5 text-center"></i>
+                            <span class="font-medium">Edit Profil</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
 
@@ -51,8 +57,39 @@
                             <span class="font-medium">Kas Keluar</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="/tagihan" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('tagihan*') ? 'active-menu' : '' }}">
+                            <i class="fa-solid fa-receipt w-5 text-center text-yellow-400"></i>
+                            <span class="font-medium">Tagihan</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
+            @if(auth()->user()->role_name === 'admin')
+            <div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 px-2">Admin</p>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="/admin/iuran-bulanan" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('admin/iuran-bulanan*') ? 'active-menu' : '' }}">
+                            <i class="fa-solid fa-list-check w-5 text-center text-cyan-400"></i>
+                            <span class="font-medium">Iuran Bulanan</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/admin/tagihan" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('admin/tagihan*') ? 'active-menu' : '' }}">
+                            <i class="fa-solid fa-clipboard-list w-5 text-center text-amber-400"></i>
+                            <span class="font-medium">Verifikasi Tagihan</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.warga.index') }}" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('admin/warga*') ? 'active-menu' : '' }}">
+                            <i class="fa-solid fa-users w-5 text-center text-cyan-400"></i>
+                            <span class="font-medium">Data Warga</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            @endif
 
             <div>
                 <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 px-2">Laporan</p>
@@ -74,7 +111,7 @@
                 </div>
                 <div class="overflow-hidden">
                     <p class="text-xs font-bold text-white truncate">{{ auth()->user()->name }}</p>
-                    <p class="text-[10px] text-slate-500 capitalize">{{ auth()->user()->role }}</p>
+                    <p class="text-[10px] text-slate-500 capitalize">{{ auth()->user()->role_name ?? 'No role' }}</p>
                 </div>
             </div>
         </div>
@@ -89,10 +126,22 @@
                 </h3>
             </div>
 
-            <div class="flex items-center space-x-6">
+            <div class="flex items-center space-x-4">
+                @if(auth()->user()->role_name === 'admin')
+                    @php $unreadNotifications = auth()->user()->unreadNotifications; @endphp
+                    <a href="{{ route('tagihan.admin') }}" class="relative flex items-center justify-center w-11 h-11 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                        <i class="fa-solid fa-bell"></i>
+                        @if($unreadNotifications->count())
+                            <span class="absolute top-0 right-0 inline-flex items-center justify-center rounded-full bg-red-500 text-[10px] text-white font-bold w-5 h-5 border-2 border-white">
+                                {{ $unreadNotifications->count() }}
+                            </span>
+                        @endif
+                    </a>
+                @endif
+
                 <div class="flex items-center space-x-3 bg-gray-100 py-1.5 px-3 rounded-full">
                     <span class="text-sm font-semibold text-slate-700">
-                        {{ auth()->user()->role == 'admin' ? '🛠️ Admin' : (auth()->user()->role == 'bendahara' ? '💸 Bendahara' : '👥 Warga') }}
+                        {{ auth()->user()->role_name === 'admin' ? '🛠️ Admin' : (auth()->user()->role_name === 'bendahara' ? '💸 Bendahara' : '👥 Warga') }}
                     </span>
                 </div>
 
@@ -105,6 +154,15 @@
                 </form>
             </div>
         </header>
+
+        @if(auth()->user()->role_name === 'admin' && auth()->user()->unreadNotifications->count())
+            <div class="bg-amber-50 border-b border-amber-100 px-8 py-3 text-amber-800">
+                <p class="text-sm font-semibold">
+                    Ada {{ auth()->user()->unreadNotifications->count() }} notifikasi pembayaran baru.
+                    <a href="{{ route('tagihan.admin') }}" class="underline">Klik untuk verifikasi</a>.
+                </p>
+            </div>
+        @endif
 
         @if(session('success') || session('error'))
             <div id="notif" class="fixed top-5 right-5 z-50 flex items-center p-4 mb-4 w-full max-w-xs text-white {{ session('success') ? 'bg-green-600' : 'bg-red-600' }} rounded-2xl shadow-2xl animate-bounce">

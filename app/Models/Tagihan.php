@@ -1,0 +1,169 @@
+<?php
+
+namespace App\Models;
+
+use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
+
+use App\Models\AuditLog;
+use App\Models\IuranBulanan;
+use App\Models\User;
+use App\Notifications\TagihanCreated;
+use Illuminate\Support\Facades\Notification;
+
+class Tagihan extends Model
+{
+    use Auditable;
+    protected $fillable = [
+        'user_id',
+        'bulan',
+        'tahun',
+        'total',
+        'status',
+        'payment_method',
+        'bukti',
+        'note',
+        'paid_at',
+    ];
+
+    protected $casts = [
+        'paid_at' => 'datetime',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function scopeForMonth($query, int $bulan, int $tahun)
+    {
+        return $query->where('bulan', $bulan)->where('tahun', $tahun);
+    }
+
+    public function getDueDateAttribute(): Carbon
+    {
+        return Carbon::create($this->tahun, $this->bulan, 1)->endOfMonth();
+    }
+
+    public function isOverdue(): bool
+    {
+        if ($this->status === 'lunas') {
+            return false;
+        }
+
+        return now()->startOfDay()->gt($this->due_date);
+    }
+
+    public function isDueSoon(): bool
+    {
+        if ($this->status === 'lunas') {
+            return false;
+        }
+
+        $now = now()->startOfDay();
+        return $now->lte($this->due_date) && $now->diffInDays($this->due_date) <= 5;
+    }
+
+    public function getDueStatusLabelAttribute(): string
+    {
+        if ($this->status === 'lunas') {
+            return 'Lunas';
+        }
+
+        if ($this->isOverdue()) {
+            return 'Overdue';
+        }
+
+        if ($this->isDueSoon()) {
+            return 'Due Soon';
+        }
+
+        return 'Jatuh Tempo';
+    }
+
+    public function getDueStatusClassAttribute(): string
+    {
+        if ($this->status === 'lunas') {
+            return 'bg-emerald-100 text-emerald-700';
+        }
+
+        if ($this->isOverdue()) {
+            return 'bg-rose-100 text-rose-700';
+        }
+
+        if ($this->isDueSoon()) {
+            return 'bg-amber-100 text-amber-700';
+        }
+
+        return 'bg-slate-100 text-slate-700';
+    }
+
+    public static function generateForMonth(int $bulan, int $tahun): void
+    {
+        $total = IuranBulanan::totalForMonth($bulan, $tahun);
+        if ($total === 0) {
+            return;
+        }
+
+        User::whereRelation('role', 'name', 'warga')
+            ->where('is_kepala_keluarga', true)
+            ->whereNotNull('no_kk')
+            ->get()
+            ->each(function (User $user) use ($bulan, $tahun, $total) {
+                $tagihan = self::firstOrNew([
+                    'user_id' => $user->id,
+                    'bulan' => $bulan,
+                    'tahun' => $tahun,
+                ]);
+
+                $wasNew = !$tagihan->exists;
+                $oldValues = $tagihan->getOriginal();
+
+                $tagihan->total = $total;
+                if ($tagihan->status !== 'lunas') {
+                    $tagihan->status = 'belum_bayar';
+                    $tagihan->payment_method = 'none';
+                    $tagihan->note = null;
+                    $tagihan->paid_at = null;
+                }
+
+                $tagihan->save();
+
+                if ($wasNew || $tagihan->wasChanged()) {
+                    AuditLog::create([
+                        'user_id' => null,
+                        'auditable_type' => self::class,
+                        'auditable_id' => $tagihan->id,
+                        'event' => 'tagihan_generated',
+                        'old_values' => $wasNew ? null : $oldValues,
+                        'new_values' => $tagihan->getAttributes(),
+                        'notes' => 'Tagihan bulanan otomatis dibuat untuk bulan ' . $bulan . ' tahun ' . $tahun,
+                    ]);
+                }
+
+                if ($wasNew && filled($user->phone)) {
+                    Notification::send($user, new TagihanCreated($tagihan));
+                }
+            });
+    }
+
+    /**
+     * Helper untuk mendapatkan komponen iuran (breakdown)
+     */
+    public function getIuranComponents()
+    {
+        return IuranBulanan::where('bulan', $this->bulan)->where('tahun', $this->tahun)->get();
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'pending_transfer' => 'Menunggu Konfirmasi',
+            'pending_offline' => 'Bayar Offline',
+            'lunas' => 'Lunas',
+            default => 'Belum Bayar',
+        };
+    }
+}

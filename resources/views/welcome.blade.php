@@ -34,28 +34,67 @@
             </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
-                <div class="absolute -right-4 -top-4 bg-green-50 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-                <i class="fa-solid fa-arrow-trend-up text-green-500 text-2xl mb-4 relative"></i>
-                <h2 class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2 relative">Total Kas Masuk</h2>
-                <p class="text-3xl font-black text-slate-800 relative">Rp {{ number_format($kasMasuk, 0, ',', '.') }}</p>
-            </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+    
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 bg-green-50 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+        <i class="fa-solid fa-arrow-trend-up text-green-500 text-2xl mb-4 relative"></i>
+        <h2 class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2 relative">Total Kas Masuk</h2>
+        <p class="text-3xl font-black text-slate-800 relative">Rp {{ number_format($kasMasuk, 0, ',', '.') }}</p>
+    </div>
 
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
-                <div class="absolute -right-4 -top-4 bg-red-50 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-                <i class="fa-solid fa-arrow-trend-down text-red-500 text-2xl mb-4 relative"></i>
-                <h2 class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2 relative">Total Kas Keluar</h2>
-                <p class="text-3xl font-black text-slate-800 relative">Rp {{ number_format($kasKeluar, 0, ',', '.') }}</p>
-            </div>
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 bg-red-50 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+        <i class="fa-solid fa-arrow-trend-down text-red-500 text-2xl mb-4 relative"></i>
+        <h2 class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2 relative">Total Kas Keluar</h2>
+        <p class="text-3xl font-black text-slate-800 relative">Rp {{ number_format($kasKeluar, 0, ',', '.') }}</p>
+    </div>
 
-            <div class="bg-blue-600 p-8 rounded-[2.5rem] shadow-xl shadow-blue-100 relative overflow-hidden group">
-                <div class="absolute -right-4 -top-4 bg-white/10 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-                <i class="fa-solid fa-vault text-blue-200 text-2xl mb-4 relative"></i>
-                <h2 class="text-blue-100/70 font-bold text-xs uppercase tracking-[0.2em] mb-2 relative">Saldo Saat Ini</h2>
-                <p class="text-3xl font-black text-white relative">Rp {{ number_format($saldo, 0, ',', '.') }}</p>
-            </div>
-        </div>
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 bg-indigo-50 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+        <i class="fa-solid fa-users text-indigo-500 text-2xl mb-4 relative"></i>
+        <h2 class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2 relative">Warga Terdaftar</h2>
+        <p class="text-3xl font-black text-slate-800 relative">{{ $totalWarga }} <span class="text-sm text-slate-400 font-bold">Jiwa</span></p>
+    </div>
+
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 bg-amber-50 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+        <i class="fa-solid fa-house-chimney text-amber-500 text-2xl mb-4 relative"></i>
+        <h2 class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2 relative">Kepala Keluarga</h2>
+        <p class="text-3xl font-black text-slate-800 relative">{{ $totalKepalaKeluarga }} <span class="text-sm text-slate-400 font-bold">KK</span></p>
+    </div>
+</div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 bg-emerald-50 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+        <i class="fa-solid fa-users-medical text-emerald-500 text-2xl mb-4 relative"></i>
+        <h2 class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2 relative">Warga Terdaftar (KK)</h2>
+        <p class="text-3xl font-black text-slate-800 relative">{{ $totalWargaByKK }} <span class="text-sm text-slate-400 font-bold">Jiwa</span></p>
+    </div>
+
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 bg-sky-50 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+        <i class="fa-solid fa-user-check text-sky-500 text-2xl mb-4 relative"></i>
+        <h2 class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2 relative">Kepala Keluarga Aktif</h2>
+        <p class="text-3xl font-black text-slate-800 relative">{{ $kepalaKeluargaAktif }}</p>
+    </div>
+
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 bg-rose-50 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+        <i class="fa-solid fa-bell-slash text-rose-500 text-2xl mb-4 relative"></i>
+        <h2 class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2 relative">Keluarga Belum Bayar</h2>
+        <p class="text-3xl font-black text-slate-800 relative">{{ $keluargaBelumBayar }}</p>
+    </div>
+
+    <div class="bg-blue-600 p-8 rounded-[2.5rem] shadow-xl shadow-blue-100 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 bg-white/10 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+        <i class="fa-solid fa-wallet text-blue-200 text-2xl mb-4 relative"></i>
+        <h2 class="text-blue-100/70 font-bold text-xs uppercase tracking-[0.2em] mb-2 relative">Saldo Saat Ini</h2>
+        <p class="text-3xl font-black text-white relative">Rp {{ number_format($saldo, 0, ',', '.') }}</p>
+    </div>
+</div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
             

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\KasMasuk;
+use Carbon\Carbon;
 
 class KasMasukController extends Controller
 {
@@ -42,10 +43,10 @@ class KasMasukController extends Controller
     public function store(Request $request)
     {
         KasMasuk::create([
-            'user_id' => auth()->id(), // 🔥 INI YANG KEMARIN KURANG
+            'user_id' => auth()->id(),
             'keterangan' => $request->keterangan,
             'jumlah' => $request->jumlah,
-            'tanggal' => $request->tanggal,
+            'tanggal' => now(), // 🔥 PAKSA ISI
         ]);
 
         return redirect('/kas-masuk');

@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Hash;
 test('password can be updated', function () {
     $user = User::factory()->create();
 
+    $this->actingAs($user)->get('/profile');
+
     $response = $this
         ->actingAs($user)
         ->from('/profile')
@@ -13,6 +15,7 @@ test('password can be updated', function () {
             'current_password' => 'password',
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
+            '_token' => csrf_token(),
         ]);
 
     $response
@@ -25,6 +28,8 @@ test('password can be updated', function () {
 test('correct password must be provided to update password', function () {
     $user = User::factory()->create();
 
+    $this->actingAs($user)->get('/profile');
+
     $response = $this
         ->actingAs($user)
         ->from('/profile')
@@ -32,6 +37,7 @@ test('correct password must be provided to update password', function () {
             'current_password' => 'wrong-password',
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
+            '_token' => csrf_token(),
         ]);
 
     $response

@@ -16,11 +16,6 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
-        // 🔥 BATASIN AKSES (CUMA ADMIN)
-        if (auth()->user()->role !== 'admin') {
-            abort(403);
-        }
-
         return view('profile.edit', [
             'user' => auth()->user(),
         ]);
@@ -31,14 +26,12 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        // 🔥 BATASIN AKSES
-        if (auth()->user()->role !== 'admin') {
-            abort(403);
-        }
-
         $user = auth()->user();
 
-        $user->fill($request->validated());
+        $validated = $request->validated();
+        $validated['is_kepala_keluarga'] = $request->boolean('is_kepala_keluarga');
+
+        $user->fill($validated);
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
@@ -54,11 +47,6 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        // 🔥 BATASIN AKSES
-        if (auth()->user()->role !== 'admin') {
-            abort(403);
-        }
-
         $user = auth()->user();
 
         Auth::logout();
