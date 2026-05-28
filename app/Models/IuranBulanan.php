@@ -12,6 +12,11 @@ class IuranBulanan extends Model
         'jumlah',
         'bulan',
         'tahun',
+        'is_wajib',
+    ];
+
+    protected $casts = [
+        'is_wajib' => 'boolean',
     ];
 
     public static function totalForMonth(int $bulan, int $tahun): int

@@ -1,11 +1,11 @@
 <section>
     <header>
-        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-            {{ __('Profile Information') }}
+        <h2 class="text-lg font-bold text-slate-900">
+            Informasi Profil
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {{ __("Update your account's profile information and email address.") }}
+        <p class="mt-1 text-sm text-slate-500">
+            Perbarui data pribadi, rumah/unit hunian, dan penanggung jawab iuran rumah.
         </p>
     </header>
 
@@ -17,74 +17,124 @@
         @csrf
         @method('patch')
 
-        <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name', $user->name)" required autofocus autocomplete="name" />
-            <x-input-error class="mt-2" :messages="$errors->get('name')" />
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+                <x-input-label for="name" value="Nama" />
+                <x-text-input id="name" name="name" type="text" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('name', $user->name)" required autofocus autocomplete="name" />
+                <x-input-error class="mt-2" :messages="$errors->get('name')" />
+            </div>
+
+            <div>
+                <x-input-label for="email" value="Email" />
+                <x-text-input id="email" name="email" type="email" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('email', $user->email)" required autocomplete="username" />
+                <x-input-error class="mt-2" :messages="$errors->get('email')" />
+            </div>
+        </div>
+
+        <div class="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5">
+            <h3 class="text-sm font-bold text-emerald-900">Data Rumah / Unit Hunian</h3>
+            <p class="mt-1 text-xs leading-5 text-emerald-700">
+                Tagihan iuran dibuat per rumah. Jika rumah belum ada di daftar, isi kode dan alamat rumah baru.
+            </p>
+
+            <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                    <x-input-label for="rumah_id" value="Pilih Rumah yang Sudah Ada" />
+                    <select id="rumah_id" name="rumah_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                        <option value="">Buat rumah baru / belum ditentukan</option>
+                        @foreach($rumahs as $rumah)
+                            <option value="{{ $rumah->id }}" {{ old('rumah_id', $user->rumah_id) == $rumah->id ? 'selected' : '' }}>
+                                {{ $rumah->label }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-input-error class="mt-2" :messages="$errors->get('rumah_id')" />
+                </div>
+
+                <div>
+                    <x-input-label for="rumah_kode" value="Kode Rumah Baru" />
+                    <x-text-input id="rumah_kode" name="rumah_kode" type="text" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('rumah_kode')" placeholder="Contoh: A-01" />
+                    <x-input-error class="mt-2" :messages="$errors->get('rumah_kode')" />
+                </div>
+
+                <div class="md:col-span-2">
+                    <x-input-label for="rumah_alamat" value="Alamat Rumah Baru" />
+                    <x-text-input id="rumah_alamat" name="rumah_alamat" type="text" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('rumah_alamat')" placeholder="Contoh: Jl. Melati No. 1" />
+                    <x-input-error class="mt-2" :messages="$errors->get('rumah_alamat')" />
+                </div>
+            </div>
         </div>
 
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
-            <x-input-error class="mt-2" :messages="$errors->get('email')" />
-        </div>
-
-        <div>
-            <x-input-label for="no_kk" :value="__('Nomor KK')" />
-            <x-text-input id="no_kk" name="no_kk" type="text" class="mt-1 block w-full" :value="old('no_kk', $user->no_kk)" required autocomplete="off" />
+            <x-input-label for="no_kk" value="Nomor KK" />
+            <x-text-input id="no_kk" name="no_kk" type="text" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('no_kk', $user->no_kk)" required autocomplete="off" />
             <x-input-error class="mt-2" :messages="$errors->get('no_kk')" />
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
-                <x-input-label for="phone" :value="__('Nomor HP Kepala Keluarga')" />
-                <x-text-input id="phone" name="phone" type="text" class="mt-1 block w-full" :value="old('phone', $user->phone)" required autocomplete="tel" />
+                <x-input-label for="phone" value="Nomor HP" />
+                <x-text-input id="phone" name="phone" type="text" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('phone', $user->phone)" required autocomplete="tel" />
                 <x-input-error class="mt-2" :messages="$errors->get('phone')" />
             </div>
             <div>
-                <x-input-label for="rt" :value="__('RT')" />
-                <x-text-input id="rt" name="rt" type="text" class="mt-1 block w-full" :value="old('rt', $user->rt)" required autocomplete="off" />
+                <x-input-label for="rt" value="RT" />
+                <x-text-input id="rt" name="rt" type="text" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('rt', $user->rt)" required autocomplete="off" />
                 <x-input-error class="mt-2" :messages="$errors->get('rt')" />
             </div>
             <div>
-                <x-input-label for="rw" :value="__('RW')" />
-                <x-text-input id="rw" name="rw" type="text" class="mt-1 block w-full" :value="old('rw', $user->rw)" required autocomplete="off" />
+                <x-input-label for="rw" value="RW" />
+                <x-text-input id="rw" name="rw" type="text" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('rw', $user->rw)" required autocomplete="off" />
                 <x-input-error class="mt-2" :messages="$errors->get('rw')" />
             </div>
         </div>
 
         <div>
-            <x-input-label for="jumlah_anggota_keluarga" :value="__('Jumlah Anggota Keluarga')" />
-            <x-text-input id="jumlah_anggota_keluarga" name="jumlah_anggota_keluarga" type="number" min="1" max="20" class="mt-1 block w-full" :value="old('jumlah_anggota_keluarga', $user->jumlah_anggota_keluarga)" required />
+            <x-input-label for="jumlah_anggota_keluarga" value="Jumlah Anggota Keluarga" />
+            <x-text-input id="jumlah_anggota_keluarga" name="jumlah_anggota_keluarga" type="number" min="1" max="20" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('jumlah_anggota_keluarga', $user->jumlah_anggota_keluarga)" required />
             <x-input-error class="mt-2" :messages="$errors->get('jumlah_anggota_keluarga')" />
         </div>
 
-        <div class="flex items-center gap-2">
-            <input id="is_kepala_keluarga" name="is_kepala_keluarga" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" value="1" {{ old('is_kepala_keluarga', $user->is_kepala_keluarga) ? 'checked' : '' }}>
-            <label for="is_kepala_keluarga" class="text-sm text-gray-700">{{ __('Saya Kepala Keluarga') }}</label>
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700">
+                <input id="is_kepala_keluarga" name="is_kepala_keluarga" type="checkbox" class="mt-0.5 rounded border-gray-300 text-emerald-600 shadow-sm focus:ring-emerald-500" value="1" {{ old('is_kepala_keluarga', $user->is_kepala_keluarga) ? 'checked' : '' }}>
+                <span>
+                    Saya Kepala Keluarga
+                    <span class="block text-xs font-normal text-slate-500">Untuk data kependudukan/KK, bukan dasar tagihan.</span>
+                </span>
+            </label>
+
+            <label class="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-900">
+                <input id="is_penanggung_jawab_rumah" name="is_penanggung_jawab_rumah" type="checkbox" class="mt-0.5 rounded border-emerald-300 text-emerald-600 shadow-sm focus:ring-emerald-500" value="1" {{ old('is_penanggung_jawab_rumah', $user->is_penanggung_jawab_rumah) ? 'checked' : '' }}>
+                <span>
+                    Saya Penanggung Jawab Iuran Rumah
+                    <span class="block text-xs font-normal text-emerald-700">Akun ini yang bisa membayar tagihan rumah.</span>
+                </span>
+            </label>
         </div>
 
         @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-                <div>
-                    <p class="text-sm mt-2 text-gray-800 dark:text-gray-200">
-                        {{ __('Your email address is unverified.') }}
+            <div>
+                <p class="mt-2 text-sm text-slate-700">
+                    Email Anda belum diverifikasi.
 
-                        <button form="send-verification" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
-                            {{ __('Click here to re-send the verification email.') }}
-                        </button>
+                    <button form="send-verification" class="rounded-md text-sm text-emerald-700 underline hover:text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                        Kirim ulang email verifikasi.
+                    </button>
+                </p>
+
+                @if (session('status') === 'verification-link-sent')
+                    <p class="mt-2 text-sm font-medium text-emerald-600">
+                        Link verifikasi baru telah dikirim ke email Anda.
                     </p>
-
-                    @if (session('status') === 'verification-link-sent')
-                        <p class="mt-2 font-medium text-sm text-green-600 dark:text-green-400">
-                            {{ __('A new verification link has been sent to your email address.') }}
-                        </p>
-                    @endif
-                </div>
-            @endif
-        </div>
+                @endif
+            </div>
+        @endif
 
         <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
+            <button type="submit" class="inline-flex items-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                Simpan Profil
+            </button>
 
             @if (session('status') === 'profile-updated')
                 <p
@@ -92,8 +142,8 @@
                     x-show="show"
                     x-transition
                     x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-gray-600 dark:text-gray-400"
-                >{{ __('Saved.') }}</p>
+                    class="text-sm text-slate-500"
+                >Tersimpan.</p>
             @endif
         </div>
     </form>

@@ -106,11 +106,11 @@
                     </div>
                     <div class="relative">
                         <i class="fa-solid fa-id-card absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="text" name="no_kk" placeholder="Nomor Kartu Keluarga" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('no_kk') }}" required>
+                        <input type="text" name="no_kk" placeholder="Nomor Kartu Keluarga (16 digit)" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" autocomplete="off" class="numeric-only w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('no_kk') }}" required>
                     </div>
                     <div class="relative">
                         <i class="fa-solid fa-phone absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="text" name="phone" placeholder="Nomor HP Kepala Keluarga" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('phone') }}" required>
+                        <input type="text" name="phone" placeholder="Nomor HP Kepala Keluarga (maks. 13 digit)" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" class="numeric-only w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('phone') }}" required>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <input type="text" name="rt" placeholder="RT" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('rt') }}" required>
@@ -229,6 +229,12 @@
             document.getElementById('loginText').innerText = "Memproses...";
             document.getElementById('loginLoading').classList.remove('hidden');
             document.getElementById('loginBtn').classList.add('opacity-50', 'pointer-events-none');
+        });
+
+        document.querySelectorAll('.numeric-only').forEach((input) => {
+            input.addEventListener('input', () => {
+                input.value = input.value.replace(/\D/g, '').slice(0, input.maxLength || undefined);
+            });
         });
     </script>
 </body>

@@ -3,236 +3,211 @@
 @section('title', 'Data Kas Keluar')
 
 @section('content')
+@php
+    $totalKeluar = $data->sum('jumlah');
+    $jumlahTransaksi = $data->count();
+    $tahunAktif = request('tahun', date('Y'));
+@endphp
 
-<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-    <div>
-        <h1 class="text-2xl font-extrabold text-slate-800 flex items-center">
-            <span class="bg-red-100 text-red-600 p-2 rounded-lg mr-3 shadow-sm">
-                <i class="fa-solid fa-money-bill-transfer"></i>
-            </span>
-            Pengeluaran Kas RT
-        </h1>
-        <p class="text-sm text-slate-500 mt-1 italic">
-            <i class="fa-solid fa-circle-info text-xs mr-1"></i> Klik baris untuk melihat detail bukti pengeluaran.
-        </p>
-    </div>
-
-    <a href="/kas-keluar/create" 
-       class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-100 active:scale-95">
-        <i class="fa-solid fa-plus text-xs"></i>
-        Input Pengeluaran
-    </a>
-</div>
-<div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 mb-6">
-    <form action="{{ route('kas-keluar.index') }}" method="GET" class="flex flex-col md:flex-row gap-4 items-end">
-        <div class="flex-1 w-full">
-            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Cari Keperluan</label>
-            <div class="relative">
-                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Contoh: Lampu, Perbaikan, Konsumsi..." 
-                    class="w-full bg-slate-50 border-none pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-red-500 text-sm font-bold text-slate-700 transition-all">
+<div class="space-y-6">
+    <div class="rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-800 to-green-700 p-6 text-white shadow-lg shadow-emerald-100">
+        <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">Transaksi Keluar</p>
+                <h1 class="mt-2 text-2xl font-black md:text-3xl">Data Kas Keluar</h1>
+                <p class="mt-2 max-w-2xl text-sm font-medium leading-6 text-emerald-50">
+                    Pantau setiap pengeluaran RT lengkap dengan nominal, tanggal, dan bukti nota bila tersedia.
+                </p>
             </div>
-        </div>
 
-        <div class="w-full md:w-48">
-            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Bulan</label>
-            <select name="bulan" class="w-full bg-slate-50 border-none px-4 py-3 rounded-xl focus:ring-2 focus:ring-red-500 text-sm font-bold text-slate-700 appearance-none cursor-pointer">
-                <option value="">Semua Bulan</option>
-                @foreach(range(1, 12) as $m)
-                    <option value="{{ $m }}" {{ request('bulan') == $m ? 'selected' : '' }}>
-                        {{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-
-        <div class="w-full md:w-32">
-            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Tahun</label>
-            <select name="tahun" class="w-full bg-slate-50 border-none px-4 py-3 rounded-xl focus:ring-2 focus:ring-red-500 text-sm font-bold text-slate-700 appearance-none cursor-pointer">
-                @php $currentYear = date('Y'); @endphp
-                @for($y = $currentYear; $y >= $currentYear - 3; $y--)
-                    <option value="{{ $y }}" {{ request('tahun', $currentYear) == $y ? 'selected' : '' }}>{{ $y }}</option>
-                @endfor
-            </select>
-        </div>
-
-        <div class="flex gap-2 w-full md:w-auto">
-            <button type="submit" class="flex-1 md:flex-none bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95">
-                <i class="fa-solid fa-filter mr-2"></i> Filter
-            </button>
-            @if(request()->anyFilled(['search', 'bulan']))
-                <a href="{{ route('kas-keluar.index') }}" class="bg-slate-100 text-slate-500 px-4 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center">
-                    <i class="fa-solid fa-rotate-left"></i>
+            @can('manage-finance')
+                <a href="{{ route('kas-keluar.create') }}" class="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-50">
+                    <i class="fa-solid fa-plus mr-2"></i>
+                    Tambah Kas Keluar
                 </a>
-            @endif
+            @endcan
         </div>
-    </form>
-</div>
-<div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-slate-50/50 border-b border-slate-100">
-                    <th class="px-6 py-5 text-[10px] uppercase tracking-[0.2em] font-extrabold text-slate-400">Keperluan / Keterangan</th>
-                    <th class="px-6 py-5 text-[10px] uppercase tracking-[0.2em] font-extrabold text-slate-400 text-center">Nominal</th>
-                    <th class="px-6 py-5 text-[10px] uppercase tracking-[0.2em] font-extrabold text-slate-400 text-center">Tanggal</th>
-                    <th class="px-6 py-5 text-[10px] uppercase tracking-[0.2em] font-extrabold text-slate-400 text-center">Bukti Nota</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-                @forelse($data as $item)
-                <tr class="hover:bg-red-50/30 transition-all cursor-pointer group"
-                    onclick="openModal('{{ $item->keterangan }}', '{{ number_format($item->jumlah,0,',','.') }}', '{{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d F Y') }}', '{{ $item->bukti }}')">
-                    
-                    <td class="px-6 py-5">
-                        <span class="font-bold text-slate-700 text-sm group-hover:text-red-600 transition-colors">{{ $item->keterangan }}</span>
-                    </td>
-                    
-                    <td class="px-6 py-5 text-center">
-                        <span class="text-sm font-black text-red-500">
-                            - Rp {{ number_format($item->jumlah, 0, ',', '.') }}
-                        </span>
-                    </td>
+    </div>
 
-                    <td class="px-6 py-5 text-center">
-                        <div class="inline-flex items-center gap-2 text-slate-500 text-xs font-bold bg-slate-100 px-3 py-1.5 rounded-lg">
-                            {{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y') }}
-                        </div>
-                    </td>
+    <div class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Total Pengeluaran</p>
+            <p class="mt-3 text-2xl font-black text-slate-900">Rp {{ number_format($totalKeluar, 0, ',', '.') }}</p>
+            <p class="mt-1 text-sm text-slate-500">Berdasarkan filter aktif.</p>
+        </div>
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Transaksi</p>
+            <p class="mt-3 text-2xl font-black text-slate-900">{{ $jumlahTransaksi }}</p>
+            <p class="mt-1 text-sm text-slate-500">Catatan pengeluaran ditemukan.</p>
+        </div>
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Tahun</p>
+            <p class="mt-3 text-2xl font-black text-slate-900">{{ $tahunAktif }}</p>
+            <p class="mt-1 text-sm text-slate-500">Periode laporan saat ini.</p>
+        </div>
+    </div>
 
-                    <td class="px-6 py-5 text-center">
-                        @if($item->bukti)
-                            <div class="relative inline-block group/img">
-                                <img src="{{ asset('storage/'.$item->bukti) }}" class="w-12 h-12 object-cover rounded-xl shadow-sm border-2 border-white group-hover/img:scale-110 transition-transform">
-                                <div class="absolute inset-0 bg-black/20 rounded-xl opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity text-white text-[10px]">
-                                    <i class="fa-solid fa-eye"></i>
+    <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <form action="{{ route('kas-keluar.index') }}" method="GET" class="grid gap-4 lg:grid-cols-[1.5fr_1fr_1fr_auto] lg:items-end">
+            <div>
+                <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Cari Keperluan</label>
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Lampu, perbaikan, konsumsi"
+                        class="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-700 focus:border-emerald-600 focus:ring-emerald-200">
+                </div>
+            </div>
+
+            <div>
+                <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Bulan</label>
+                <select name="bulan" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 focus:border-emerald-600 focus:ring-emerald-200">
+                    <option value="">Semua Bulan</option>
+                    @foreach(range(1, 12) as $m)
+                        <option value="{{ $m }}" {{ request('bulan') == $m ? 'selected' : '' }}>
+                            {{ \Carbon\Carbon::create(null, $m)->translatedFormat('F') }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Tahun</label>
+                <select name="tahun" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 focus:border-emerald-600 focus:ring-emerald-200">
+                    @php $currentYear = date('Y'); @endphp
+                    @for($y = $currentYear; $y >= $currentYear - 3; $y--)
+                        <option value="{{ $y }}" {{ request('tahun', $currentYear) == $y ? 'selected' : '' }}>{{ $y }}</option>
+                    @endfor
+                </select>
+            </div>
+
+            <div class="flex gap-2">
+                <button type="submit" class="inline-flex flex-1 items-center justify-center rounded-2xl bg-emerald-800 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-900 lg:flex-none">
+                    <i class="fa-solid fa-filter mr-2"></i>
+                    Filter
+                </button>
+                @if(request()->anyFilled(['search', 'bulan']))
+                    <a href="{{ route('kas-keluar.index') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-slate-500 transition hover:bg-slate-50">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                @endif
+            </div>
+        </form>
+    </div>
+
+    <div class="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100 text-sm">
+                <thead class="bg-emerald-50">
+                    <tr>
+                        <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Keperluan</th>
+                        <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Tanggal</th>
+                        <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Bukti</th>
+                        <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Jumlah</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($data as $item)
+                        <tr class="transition hover:bg-emerald-50/60">
+                            <td class="px-5 py-4">
+                                <p class="font-bold text-slate-800">{{ $item->keterangan }}</p>
+                                <p class="mt-1 text-xs text-slate-400">Pengeluaran RT</p>
+                            </td>
+                            <td class="px-5 py-4">
+                                <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                                    <i class="fa-regular fa-calendar mr-2 text-emerald-600"></i>
+                                    {{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y') }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-4">
+                                @if($item->bukti)
+                                    <button type="button"
+                                        class="inline-flex items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100"
+                                        data-keterangan="{{ $item->keterangan }}"
+                                        data-jumlah="{{ number_format($item->jumlah, 0, ',', '.') }}"
+                                        data-tanggal="{{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d F Y') }}"
+                                        data-bukti="{{ asset('storage/'.$item->bukti) }}"
+                                        onclick="openExpenseModal(this)">
+                                        <i class="fa-solid fa-eye mr-2"></i>
+                                        Lihat Bukti
+                                    </button>
+                                @else
+                                    <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-400">Tidak ada bukti</span>
+                                @endif
+                            </td>
+                            <td class="px-5 py-4 text-right">
+                                <span class="font-black text-rose-600">- Rp {{ number_format($item->jumlah, 0, ',', '.') }}</span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="px-5 py-16 text-center">
+                                <div class="mx-auto flex max-w-sm flex-col items-center">
+                                    <div class="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-300">
+                                        <i class="fa-solid fa-receipt"></i>
+                                    </div>
+                                    <p class="mt-4 font-bold text-slate-500">Belum ada catatan pengeluaran.</p>
+                                    <a href="{{ route('kas-keluar.index') }}" class="mt-2 text-sm font-bold text-emerald-700 hover:underline">Reset filter</a>
                                 </div>
-                            </div>
-                        @else
-                            <span class="text-[10px] font-bold text-slate-300 italic">No Image</span>
-                        @endif
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="4" class="px-6 py-20 text-center">
-                        <div class="flex flex-col items-center">
-                            <div class="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mb-4">
-                                <i class="fa-solid fa-receipt text-red-200 text-3xl"></i>
-                            </div>
-                            <p class="text-slate-400 font-bold">Belum ada catatan pengeluaran.</p>
-                        </div>
-                    </td>
-                </tr>
-                @endforelse
-            </tbody>
-            <tfoot class="bg-slate-50/80 border-t-2 border-slate-200">
-                <tr>
-                    <td class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Total Pengeluaran Periode Ini
-                    </td>
-                    <td class="px-6 py-5 text-center">
-                        <div class="inline-block">
-                            <span class="text-[9px] font-bold text-slate-400 block text-left uppercase tracking-tighter mb-1">
-                                <i class="fa-solid fa-calculator mr-1"></i> Akumulasi Nominal
-                            </span>
-                            <span class="text-xl font-black text-red-600 flex items-center justify-center gap-1">
-                                <span class="text-sm">-</span> Rp {{ number_format($data->sum('jumlah'), 0, ',', '.') }}
-                            </span>
-                        </div>
-                    </td>
-                    <td colspan="2" class="px-6 py-5 text-right">
-                        <div class="flex flex-col items-end">
-                            <span class="text-[10px] font-bold text-slate-400 italic">
-                                *Data berdasarkan filter aktif
-                            </span>
-                            <span class="bg-red-100 text-red-600 text-[10px] font-black px-3 py-1 rounded-full mt-1">
-                                {{ $data->count() }} Transaksi
-                            </span>
-                        </div>
-                    </td>
-                </tr>
-            </tfoot>
-        </table>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<div id="modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex justify-center items-center z-[999] p-4">
-    <div class="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
-        <div class="bg-red-600 p-6 text-white relative">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-white/70 hover:text-white transition-colors">
-                <i class="fa-solid fa-circle-xmark text-2xl"></i>
+<div id="expense-modal" class="fixed inset-0 z-[999] hidden items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div class="flex items-start justify-between bg-emerald-800 p-6 text-white">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-100">Detail Pengeluaran</p>
+                <h2 id="modal-keterangan" class="mt-2 text-xl font-black"></h2>
+                <p id="modal-tanggal" class="mt-1 text-sm text-emerald-100"></p>
+            </div>
+            <button type="button" onclick="closeExpenseModal()" class="rounded-xl p-2 text-white/80 transition hover:bg-white/10 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
             </button>
-            <h2 class="text-xl font-bold flex items-center gap-2">
-                <i class="fa-solid fa-receipt"></i> Detail Pengeluaran
-            </h2>
         </div>
 
-        <div class="p-8">
-            <div class="space-y-4 border-b border-dashed border-slate-200 pb-6 mb-6 text-sm">
-                <div class="flex justify-between">
-                    <span class="text-slate-400 font-medium">Keperluan:</span>
-                    <span id="modal-keterangan" class="text-slate-800 font-extrabold text-right"></span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-slate-400 font-medium">Tanggal:</span>
-                    <span id="modal-tanggal" class="text-slate-800 font-bold"></span>
-                </div>
-                <div class="flex justify-between items-center pt-2">
-                    <span class="text-slate-400 font-medium">Total Nominal:</span>
-                    <span class="text-2xl font-black text-red-600">Rp <span id="modal-jumlah"></span></span>
-                </div>
+        <div class="p-6">
+            <div class="mb-5 rounded-2xl bg-emerald-50 p-4">
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Nominal</p>
+                <p class="mt-1 text-2xl font-black text-emerald-900">Rp <span id="modal-jumlah"></span></p>
             </div>
-
-            <div class="text-center">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 text-left px-1">Lampiran Bukti / Nota:</p>
-                <div id="modal-gambar" class="rounded-2xl overflow-hidden border-4 border-slate-50 shadow-inner"></div>
-            </div>
-            
-            <button onclick="closeModal()" class="w-full mt-8 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold transition-all uppercase tracking-widest text-xs">
-                Tutup Detail
+            <div id="modal-gambar" class="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50"></div>
+            <button type="button" onclick="closeExpenseModal()" class="mt-6 w-full rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200">
+                Tutup
             </button>
         </div>
     </div>
 </div>
 
 <script>
-function openModal(keterangan, jumlah, tanggal, bukti) {
-    const modal = document.getElementById('modal');
+function openExpenseModal(button) {
+    const modal = document.getElementById('expense-modal');
+    const imageUrl = button.dataset.bukti;
+
+    document.getElementById('modal-keterangan').innerText = button.dataset.keterangan;
+    document.getElementById('modal-jumlah').innerText = button.dataset.jumlah;
+    document.getElementById('modal-tanggal').innerText = button.dataset.tanggal;
+    document.getElementById('modal-gambar').innerHTML = `<img src="${imageUrl}" class="max-h-[420px] w-full object-contain" alt="Bukti pengeluaran">`;
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-
-    document.getElementById('modal-keterangan').innerText = keterangan;
-    document.getElementById('modal-jumlah').innerText = jumlah;
-    document.getElementById('modal-tanggal').innerText = tanggal;
-
-    let gambar = '';
-    if (bukti) {
-        gambar = `<img src="/storage/${bukti}" class="w-full h-auto max-h-[300px] object-contain cursor-zoom-in" onclick="zoomImage(this.src)">`;
-    } else {
-        gambar = `<div class="py-10 bg-slate-50 text-slate-300 text-xs italic font-bold uppercase tracking-widest text-center">Tidak ada lampiran gambar</div>`;
-    }
-
-    document.getElementById('modal-gambar').innerHTML = gambar;
 }
 
-function closeModal() {
-    const modal = document.getElementById('modal');
+function closeExpenseModal() {
+    const modal = document.getElementById('expense-modal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
 }
 
-function zoomImage(src) {
-    window.open(src, '_blank');
-}
-
-// Close modal when clicking outside
-window.onclick = function(event) {
-    const modal = document.getElementById('modal');
-    if (event.target == modal) {
-        closeModal();
+document.getElementById('expense-modal')?.addEventListener('click', function (event) {
+    if (event.target === this) {
+        closeExpenseModal();
     }
-}
+});
 </script>
 
 @endsection

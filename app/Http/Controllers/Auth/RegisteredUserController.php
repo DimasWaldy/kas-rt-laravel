@@ -35,12 +35,15 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'no_kk' => ['required', 'string', 'max:50'],
+            'no_kk' => ['required', 'digits:16'],
             'is_kepala_keluarga' => ['nullable', 'boolean'],
             'jumlah_anggota_keluarga' => ['required', 'integer', 'min:1', 'max:20'],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['required', 'regex:/^[0-9]{10,13}$/'],
             'rt' => ['required', 'string', 'max:10'],
             'rw' => ['required', 'string', 'max:10'],
+        ], [
+            'no_kk.digits' => 'Nomor KK harus berisi 16 digit angka.',
+            'phone.regex' => 'Nomor HP harus berisi angka saja, minimal 10 digit dan maksimal 13 digit.',
         ]);
 
         $role = Role::firstOrCreate(

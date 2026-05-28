@@ -25,14 +25,22 @@ class TagihanController extends Controller
         $tahun = now()->year;
 
         $iuranItems = IuranBulanan::forMonth($bulan, $tahun)->get();
-        if ($iuranItems->isNotEmpty()) {
-            Tagihan::generateForMonth($bulan, $tahun);
-        }
+        // Generate otomatis di sini dihapus karena sudah dipindah ke saat Admin input Iuran Bulanan
 
         $headUser = null;
+        $rumah = $user->rumah;
         $showHeadNotice = false;
+        $canPayTagihan = true;
 
-        if ($user->is_kepala_keluarga) {
+        if ($rumah) {
+            $headUser = $rumah->penanggungJawab;
+            $showHeadNotice = ! $user->is_penanggung_jawab_rumah;
+            $canPayTagihan = $user->is_penanggung_jawab_rumah;
+            $tagihan = Tagihan::where('rumah_id', $rumah->id)
+                ->orderByDesc('tahun')
+                ->orderByDesc('bulan')
+                ->get();
+        } elseif ($user->is_kepala_keluarga) {
             $headUser = $user;
             $tagihan = Tagihan::where('user_id', $user->id)
                 ->orderByDesc('tahun')
@@ -64,30 +72,54 @@ class TagihanController extends Controller
             });
         });
 
-        return view('tagihan.index', compact('tagihan', 'iuranItems', 'bulan', 'tahun', 'headUser', 'showHeadNotice'));
+        return view('tagihan.index', compact('tagihan', 'iuranItems', 'bulan', 'tahun', 'headUser', 'showHeadNotice', 'rumah', 'canPayTagihan'));
     }
 
     public function pay(Request $request)
     {
-        $rules = [
+        $paymentMethod = $request->input('payment_method');
+
+        $request->validate([
             'tagihan_id' => ['required', 'integer'],
             'payment_method' => ['required', 'in:transfer,offline'],
-            'bukti' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:4096'],
-            'note' => ['nullable', 'string', 'max:255'],
-        ];
+            'bukti' => [
+                $paymentMethod === 'transfer' ? 'required' : 'nullable',
+                'file',
+                'mimes:jpeg,png,jpg,pdf',
+                'max:3072'
+            ],
+            'note' => [
+                $paymentMethod === 'offline' ? 'required' : 'nullable',
+                'string',
+                'min:5',
+                'max:255'
+            ],
+        ], [
+            'tagihan_id.required' => 'ID tagihan wajib ditentukan.',
+            'payment_method.required' => 'Metode pembayaran wajib dipilih.',
+            'payment_method.in' => 'Metode pembayaran harus berupa transfer atau offline.',
+            'bukti.required' => 'Bukti pembayaran wajib diunggah untuk metode transfer.',
+            'bukti.file' => 'Berkas bukti pembayaran tidak valid.',
+            'bukti.mimes' => 'Format bukti pembayaran harus berupa gambar (jpeg, png, jpg) atau PDF.',
+            'bukti.max' => 'Ukuran berkas bukti pembayaran maksimal adalah 3 MB (3072 KB).',
+            'note.required' => 'Catatan wajib diisi untuk pembayaran offline (misal: diserahkan ke siapa & tanggal).',
+            'note.min' => 'Catatan pembayaran offline minimal harus terdiri dari 5 karakter.',
+            'note.max' => 'Catatan pembayaran maksimal berisi 255 karakter.',
+        ]);
 
-        if ($request->input('payment_method') === 'transfer') {
-            $rules['bukti'] = ['required', 'image', 'mimes:jpeg,png,jpg', 'max:4096'];
+        $user = Auth::user();
+
+        if ($user->rumah_id && ! $user->is_penanggung_jawab_rumah) {
+            return redirect()->route('tagihan.index')->with('error', 'Hanya penanggung jawab rumah yang dapat membayar tagihan iuran.');
         }
 
-        $request->validate($rules);
-
-        if (!Auth::user()->is_kepala_keluarga) {
+        if (! $user->rumah_id && ! $user->is_kepala_keluarga) {
             return redirect()->route('tagihan.index')->with('error', 'Hanya kepala keluarga yang dapat membayar tagihan KK.');
         }
 
         $tagihan = Tagihan::where('id', $request->tagihan_id)
-            ->where('user_id', Auth::id())
+            ->when($user->rumah_id, fn($query) => $query->where('rumah_id', $user->rumah_id))
+            ->when(! $user->rumah_id, fn($query) => $query->where('user_id', Auth::id()))
             ->firstOrFail();
 
         // Pastikan nominal tagihan valid
@@ -102,12 +134,14 @@ class TagihanController extends Controller
 
         $oldValues = $tagihan->getOriginal();
 
-        if ($request->payment_method === 'transfer') {
+        if ($paymentMethod === 'transfer') {
             $path = $request->file('bukti')->store('uploads', 'public');
             $tagihan->bukti = $path;
             $tagihan->status = 'pending_transfer';
             $tagihan->payment_method = 'transfer';
+            $tagihan->note = $request->note;
         } else {
+            $tagihan->bukti = null;
             $tagihan->status = 'pending_offline';
             $tagihan->payment_method = 'offline';
             $tagihan->note = $request->note;
@@ -136,13 +170,13 @@ class TagihanController extends Controller
 
     public function adminIndex()
     {
-        if (!Auth::user()->isAdmin()) {
+        if (!Auth::user()->canManageFinance()) {
             abort(403);
         }
 
         Auth::user()->unreadNotifications->markAsRead();
 
-        $tagihans = Tagihan::with('user')
+        $tagihans = Tagihan::with(['user', 'rumah'])
             ->orderByDesc('tahun')
             ->orderByDesc('bulan')
             ->get();
@@ -152,7 +186,7 @@ class TagihanController extends Controller
 
     public function confirm(Request $request)
     {
-        if (!Auth::user()->isAdmin()) {
+        if (!Auth::user()->canManageFinance()) {
             abort(403);
         }
 
@@ -202,7 +236,7 @@ class TagihanController extends Controller
 
     public function create(): View
     {
-        if (!Auth::user()->isAdmin()) {
+        if (!Auth::user()->canManageFinance()) {
             abort(403);
         }
 
@@ -218,7 +252,7 @@ class TagihanController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        if (!Auth::user()->isAdmin()) {
+        if (!Auth::user()->canManageFinance()) {
             abort(403);
         }
 
@@ -271,7 +305,7 @@ class TagihanController extends Controller
 
     public function edit(Tagihan $tagihan): View
     {
-        if (!Auth::user()->isAdmin()) {
+        if (!Auth::user()->canManageFinance()) {
             abort(403);
         }
 
@@ -287,7 +321,7 @@ class TagihanController extends Controller
 
     public function update(Request $request, Tagihan $tagihan): RedirectResponse
     {
-        if (!Auth::user()->isAdmin()) {
+        if (!Auth::user()->canManageFinance()) {
             abort(403);
         }
 
@@ -320,7 +354,7 @@ class TagihanController extends Controller
 
     public function destroy(Tagihan $tagihan): RedirectResponse
     {
-        if (! Auth::user()->isAdmin()) {
+        if (! Auth::user()->canManageFinance()) {
             abort(403);
         }
 

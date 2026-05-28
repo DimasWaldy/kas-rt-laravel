@@ -26,12 +26,16 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
-            'no_kk' => ['required', 'string', 'max:50'],
+            'rumah_id' => ['nullable', 'integer', 'exists:rumahs,id'],
+            'rumah_kode' => ['nullable', 'string', 'max:50'],
+            'rumah_alamat' => ['nullable', 'string', 'max:500'],
+            'no_kk' => ['sometimes', 'required', 'string', 'max:50'],
             'is_kepala_keluarga' => ['nullable', 'boolean'],
-            'jumlah_anggota_keluarga' => ['required', 'integer', 'min:1', 'max:20'],
-            'phone' => ['required', 'string', 'max:20'],
-            'rt' => ['required', 'string', 'max:10'],
-            'rw' => ['required', 'string', 'max:10'],
+            'is_penanggung_jawab_rumah' => ['nullable', 'boolean'],
+            'jumlah_anggota_keluarga' => ['sometimes', 'required', 'integer', 'min:1', 'max:20'],
+            'phone' => ['sometimes', 'required', 'string', 'max:20'],
+            'rt' => ['sometimes', 'required', 'string', 'max:10'],
+            'rw' => ['sometimes', 'required', 'string', 'max:10'],
         ];
     }
 }

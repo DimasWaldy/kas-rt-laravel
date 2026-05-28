@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role_id', 'no_kk', 'is_kepala_keluarga', 'jumlah_anggota_keluarga', 'phone', 'rt', 'rw'])]
+#[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'no_kk', 'is_kepala_keluarga', 'is_penanggung_jawab_rumah', 'jumlah_anggota_keluarga', 'phone', 'rt', 'rw'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -39,14 +40,21 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_kepala_keluarga' => 'boolean',
+            'is_penanggung_jawab_rumah' => 'boolean',
             'jumlah_anggota_keluarga' => 'integer',
             'role_id' => 'integer',
+            'rumah_id' => 'integer',
         ];
     }
 
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
+    }
+
+    public function rumah(): BelongsTo
+    {
+        return $this->belongsTo(Rumah::class);
     }
 
     public function getRoleNameAttribute(): ?string
@@ -57,6 +65,17 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role_name === 'admin';
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if (! $this->role) {
+            return false;
+        }
+
+        return $this->role->permissions()
+            ->where('name', $permission)
+            ->exists();
     }
 
     public function getProfileStatusAttribute(): string
@@ -72,5 +91,43 @@ class User extends Authenticatable
         return collect($required)->every(fn($value) => filled($value))
             ? 'Lengkap'
             : 'Belum Lengkap';
+    }
+
+    public function pengaduans(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Pengaduan::class);
+    }
+
+    public function kas(): HasMany
+    {
+        return $this->hasMany(Kas::class);
+    }
+
+    public function isSekretaris(): bool
+    {
+        return $this->role_name === 'sekretaris';
+    }
+
+    public function isBendahara(): bool
+    {
+        return $this->role_name === 'bendahara';
+    }
+
+    public function canManageFinance(): bool
+    {
+        return $this->hasPermission('manage-finance')
+            || in_array($this->role_name, ['admin', 'bendahara']);
+    }
+
+    public function canManageWarga(): bool
+    {
+        return $this->hasPermission('manage-warga')
+            || in_array($this->role_name, ['admin', 'sekretaris']);
+    }
+
+    public function canManagePengaduan(): bool
+    {
+        return $this->hasPermission('manage-pengaduan')
+            || in_array($this->role_name, ['admin', 'sekretaris']);
     }
 }

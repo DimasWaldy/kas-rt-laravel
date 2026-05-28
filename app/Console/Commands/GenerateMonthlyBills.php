@@ -35,14 +35,15 @@ class GenerateMonthlyBills extends Command
                         'jumlah' => $item->jumlah,
                         'bulan' => $bulan,
                         'tahun' => $tahun,
+                        'is_wajib' => $item->is_wajib,
                     ]);
                 }
             } else {
                 $this->info("Data bulan lalu kosong. Menggunakan setelan default RT...");
                 $defaults = [
-                    ['nama' => 'Iuran Kebersihan', 'jumlah' => 20000, 'ket' => 'Iuran rutin kebersihan lingkungan'],
-                    ['nama' => 'Iuran Keamanan', 'jumlah' => 20000, 'ket' => 'Iuran rutin keamanan/satpam'],
-                    ['nama' => 'Tabungan RT', 'jumlah' => 10000, 'ket' => 'Tabungan dana darurat warga'],
+                    ['nama' => 'Iuran Kebersihan', 'jumlah' => 20000, 'ket' => 'Iuran rutin kebersihan lingkungan', 'wajib' => true],
+                    ['nama' => 'Iuran Keamanan', 'jumlah' => 15000, 'ket' => 'Iuran rutin keamanan/satpam', 'wajib' => true],
+                    ['nama' => 'Dana Sosial', 'jumlah' => 5000, 'ket' => 'Dana sumbangan sukarela', 'wajib' => false],
                 ];
 
                 foreach ($defaults as $d) {
@@ -52,6 +53,7 @@ class GenerateMonthlyBills extends Command
                         'jumlah' => $d['jumlah'],
                         'bulan' => $bulan,
                         'tahun' => $tahun,
+                        'is_wajib' => $d['wajib'],
                     ]);
                 }
             }

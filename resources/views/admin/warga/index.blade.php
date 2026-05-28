@@ -8,7 +8,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800">Data Warga</h1>
-                <p class="mt-2 text-sm text-slate-500">Kelola profil warga dan perbarui informasi keluarga.</p>
+                <p class="mt-2 text-sm text-slate-500">Kelola profil warga, rumah/unit hunian, dan penanggung jawab iuran.</p>
             </div>
             <a href="{{ route('admin.warga.create') }}" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition">+ Tambah Warga</a>
         </div>
@@ -17,12 +17,12 @@
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-600">Cari Warga</label>
-                    <input type="search" name="search" value="{{ request('search') }}" placeholder="Nama, No. KK, RT, RW, Telepon" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm focus:border-blue-500 focus:ring-blue-200 focus:ring-2" />
+                    <input type="search" name="search" value="{{ request('search') }}" placeholder="Nama, No. KK, kode rumah, alamat, telepon" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-200 focus:ring-2" />
                 </div>
 
                 <div class="sm:col-span-1 xl:col-span-2">
                     <label class="block text-sm font-medium text-slate-600">Filter Kepala Keluarga</label>
-                    <select name="filter_head" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm focus:border-blue-500 focus:ring-blue-200 focus:ring-2">
+                    <select name="filter_head" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-200 focus:ring-2">
                         <option value="" {{ request('filter_head') === null ? 'selected' : '' }}>Semua</option>
                         <option value="kepala" {{ request('filter_head') === 'kepala' ? 'selected' : '' }}>Kepala Keluarga</option>
                         <option value="warga" {{ request('filter_head') === 'warga' ? 'selected' : '' }}>Warga Biasa</option>
@@ -31,7 +31,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">Cari</button>
+                <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition">Cari</button>
                 <a href="{{ route('admin.warga.index') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">Reset</a>
             </div>
         </form>
@@ -42,11 +42,13 @@
                     <tr>
                         <th class="px-4 py-3 text-left">Nama</th>
                         <th class="px-4 py-3 text-left">Email</th>
+                        <th class="px-4 py-3 text-left">Rumah</th>
                         <th class="px-4 py-3 text-left">No. KK</th>
                         <th class="px-4 py-3 text-left">Telepon</th>
                         <th class="px-4 py-3 text-left">RT/RW</th>
                         <th class="px-4 py-3 text-left">Jumlah Keluarga</th>
                         <th class="px-4 py-3 text-left">Kepala KK</th>
+                        <th class="px-4 py-3 text-left">PJ Iuran</th>
                         <th class="px-4 py-3 text-left">Status Profil</th>
                         <th class="px-4 py-3 text-left">Aksi</th>
                     </tr>
@@ -56,6 +58,7 @@
                         <tr>
                             <td class="px-4 py-4 text-slate-700">{{ $user->name }}</td>
                             <td class="px-4 py-4 text-slate-500">{{ $user->email }}</td>
+                            <td class="px-4 py-4 text-slate-700">{{ $user->rumah?->kode_rumah ?? '-' }}</td>
                             <td class="px-4 py-4 text-slate-700">{{ $user->no_kk ?? '-' }}</td>
                             <td class="px-4 py-4 text-slate-700">{{ $user->phone ?? '-' }}</td>
                             <td class="px-4 py-4 text-slate-700">{{ trim(($user->rt ?? '-') . '/' . ($user->rw ?? '-'), '/') }}</td>
@@ -66,13 +69,18 @@
                                 </span>
                             </td>
                             <td class="px-4 py-4">
+                                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $user->is_penanggung_jawab_rumah ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600' }}">
+                                    {{ $user->is_penanggung_jawab_rumah ? 'Ya' : 'Tidak' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-4">
                                 <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $user->profile_status === 'Lengkap' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800' }}">
                                     {{ $user->profile_status }}
                                 </span>
                             </td>
                             <td class="px-4 py-4">
                                 <div class="flex items-center gap-2">
-                                    <a href="{{ route('admin.warga.edit', $user) }}" class="inline-flex items-center px-3 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition">
+                                    <a href="{{ route('admin.warga.edit', $user) }}" class="inline-flex items-center px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 transition">
                                         Edit
                                     </a>
                                     <button type="button" onclick="confirmDelete('{{ $user->id }}', '{{ addslashes($user->name) }}')" class="inline-flex items-center px-3 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700 transition">
@@ -83,7 +91,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-4 py-6 text-center text-slate-500">Tidak ada warga terdaftar.</td>
+                            <td colspan="11" class="px-4 py-6 text-center text-slate-500">Tidak ada warga terdaftar.</td>
                         </tr>
                     @endforelse
                 </tbody>

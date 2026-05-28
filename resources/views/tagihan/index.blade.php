@@ -6,13 +6,20 @@
 <div class="flex flex-col gap-6">
     <div class="bg-white rounded-3xl shadow-sm p-6 border-l-8 border-yellow-500">
         <h2 class="text-xl font-bold text-slate-800">Tagihan Bulanan</h2>
-        <p class="text-slate-500 mt-2">Berikut tagihan iuran Anda untuk bulan ini dan riwayat tagihan sebelumnya.</p>
+        <p class="text-slate-500 mt-2">Berikut tagihan iuran rumah Anda untuk bulan ini dan riwayat tagihan sebelumnya.</p>
+        @if($rumah)
+            <p class="mt-2 text-sm font-semibold text-emerald-700">Rumah: {{ $rumah->label }}</p>
+        @endif
+        <div class="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+            <p class="text-sm font-semibold text-emerald-900">Tagihan dihitung per rumah/unit hunian, bukan per KK.</p>
+            <p class="mt-1 text-xs leading-5 text-emerald-700">Jika satu rumah berisi lebih dari satu KK, tagihan iuran tetap dibuat satu kali untuk rumah tersebut dan dibayarkan oleh penanggung jawab rumah.</p>
+        </div>
     </div>
 
     @if($showHeadNotice)
         <div class="bg-amber-50 rounded-3xl shadow-sm p-4 border border-amber-200 text-amber-900">
-            <p class="text-sm font-semibold">Tagihan keluarga ini dikelola oleh Kepala Keluarga <strong>{{ $headUser->name }}</strong>.</p>
-            <p class="text-sm text-slate-600 mt-1">Hanya Kepala Keluarga yang dapat melakukan pembayaran tagihan KK.</p>
+            <p class="text-sm font-semibold">Tagihan rumah ini dikelola oleh penanggung jawab <strong>{{ $headUser?->name ?? 'yang belum ditentukan' }}</strong>.</p>
+            <p class="text-sm text-slate-600 mt-1">Hanya penanggung jawab rumah yang dapat mengajukan pembayaran iuran.</p>
         </div>
     @endif
 
@@ -27,8 +34,13 @@
                 <div class="bg-white rounded-3xl shadow-sm p-6 border border-slate-200">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                            <h3 class="text-lg font-bold text-slate-900">Tagihan Bulanan</h3>
-                            <p class="text-slate-500">Bulan {{ $item->bulan }}/{{ $item->tahun }}</p>
+                            <h3 class="text-lg font-bold text-slate-900">Tagihan Iuran RT</h3>
+                            <p class="text-slate-500">
+                                @php
+                                    $namaBulan = \Carbon\Carbon::create(null, $item->bulan)->translatedFormat('F');
+                                @endphp
+                                Periode: <span class="font-bold text-slate-800">Bulan ke-{{ $item->bulan }} ({{ $namaBulan }}) {{ $item->tahun }}</span>
+                            </p>
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="px-3 py-2 rounded-full text-sm font-semibold {{ $item->status === 'lunas' ? 'bg-emerald-100 text-emerald-700' : ($item->status === 'pending_transfer' ? 'bg-amber-100 text-amber-700' : ($item->status === 'pending_offline' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-700')) }}">
@@ -47,7 +59,12 @@
                             <div class="space-y-2 mb-4 border-b border-slate-200 pb-4">
                                 @forelse($item->details as $detail)
                                     <div class="flex justify-between text-sm">
-                                        <span class="text-slate-600">{{ $detail->nama }}</span>
+                                        <span class="text-slate-600">
+                                            {{ $detail->nama }}
+                                            <span class="ml-1 text-[10px] px-2 py-0.5 rounded-full {{ $detail->is_wajib ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600' }}">
+                                                {{ $detail->is_wajib ? 'Wajib' : 'Opsional' }}
+                                            </span>
+                                        </span>
                                         <span class="font-medium text-slate-900">Rp {{ number_format($detail->jumlah, 0, ',', '.') }}</span>
                                     </div>
                                 @empty
@@ -71,31 +88,57 @@
 
                         <div class="p-4 rounded-3xl border border-slate-200 bg-white">
                             @if($item->status === 'belum_bayar')
-                                <form action="{{ route('tagihan.pay') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                                @if($canPayTagihan)
+                                <form action="{{ route('tagihan.pay') }}" method="POST" enctype="multipart/form-data" class="space-y-4" x-data="{ paymentMethod: '{{ old('tagihan_id') == $item->id ? old('payment_method', 'transfer') : 'transfer' }}' }">
                                     @csrf
                                     <input type="hidden" name="tagihan_id" value="{{ $item->id }}">
 
                                     <div>
                                         <label class="block text-sm font-semibold text-slate-700">Metode Pembayaran</label>
-                                        <select name="payment_method" class="mt-2 w-full rounded-2xl border border-slate-300 p-3 text-sm">
-                                            <option value="transfer">Transfer</option>
-                                            <option value="offline">Offline</option>
+                                        <select name="payment_method" x-model="paymentMethod" class="mt-2 w-full rounded-2xl border border-slate-300 p-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                            <option value="transfer">Transfer Bank</option>
+                                            <option value="offline">Bayar Tunai / Offline</option>
                                         </select>
+                                        @if(old('tagihan_id') == $item->id)
+                                            @error('payment_method')
+                                                <p class="text-xs font-semibold text-rose-500 mt-1">{{ $message }}</p>
+                                            @enderror
+                                        @endif
                                     </div>
 
-                                    <div>
-                                        <label class="block text-sm font-semibold text-slate-700">Bukti Transfer</label>
-                                        <input type="file" name="bukti" accept="image/*" class="mt-2 w-full text-sm" />
-                                        <p class="text-xs text-slate-400 mt-1">Unggah bukti jika bayar transfer.</p>
+                                    <div x-show="paymentMethod === 'transfer'" x-transition class="space-y-1">
+                                        <label class="block text-sm font-semibold text-slate-700">
+                                            Bukti Transfer <span class="text-rose-500">*</span>
+                                        </label>
+                                        <input type="file" name="bukti" accept="image/*,application/pdf" class="mt-2 w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                                        <p class="text-xs text-slate-400 mt-1">Unggah bukti transfer (format: JPG, PNG, JPEG, PDF. Maksimal 3MB).</p>
+                                        @if(old('tagihan_id') == $item->id)
+                                            @error('bukti')
+                                                <p class="text-xs font-semibold text-rose-500 mt-1">{{ $message }}</p>
+                                            @enderror
+                                        @endif
                                     </div>
 
-                                    <div>
-                                        <label class="block text-sm font-semibold text-slate-700">Catatan</label>
-                                        <textarea name="note" rows="3" class="mt-2 w-full rounded-2xl border border-slate-300 p-3 text-sm" placeholder="Contoh: Bayar via ATM BCA"></textarea>
+                                    <div class="space-y-1">
+                                        <label class="block text-sm font-semibold text-slate-700">
+                                            Catatan <span class="text-rose-500" x-show="paymentMethod === 'offline'">*</span>
+                                        </label>
+                                        <textarea name="note" rows="3" class="mt-2 w-full rounded-2xl border p-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 @if(old('tagihan_id') == $item->id) @error('note') border-rose-300 @else border-slate-300 @enderror @else border-slate-300 @endif" :placeholder="paymentMethod === 'offline' ? 'Wajib diisi. Tuliskan detail penyerahan (misal: Diserahkan langsung ke Pak RT di rumah)' : 'Tuliskan catatan tambahan jika ada (opsional)'">{{ old('tagihan_id') == $item->id ? old('note') : '' }}</textarea>
+                                        @if(old('tagihan_id') == $item->id)
+                                            @error('note')
+                                                <p class="text-xs font-semibold text-rose-500 mt-1">{{ $message }}</p>
+                                            @enderror
+                                        @endif
                                     </div>
 
-                                    <button type="submit" class="w-full rounded-2xl bg-green-600 px-5 py-3 text-sm font-bold text-white hover:bg-green-700 transition">Bayar / Ajukan Pembayaran</button>
+                                    <button type="submit" class="w-full rounded-2xl bg-green-600 px-5 py-3 text-sm font-bold text-white hover:bg-green-700 transition shadow-sm hover:shadow-md">Bayar / Ajukan Pembayaran</button>
                                 </form>
+                                @else
+                                    <div class="rounded-3xl bg-amber-50 p-4">
+                                        <p class="text-sm font-semibold text-amber-800">Pembayaran hanya dapat diajukan oleh penanggung jawab rumah.</p>
+                                        <p class="text-sm text-slate-600 mt-2">Silakan koordinasikan pembayaran dengan penanggung jawab iuran rumah.</p>
+                                    </div>
+                                @endif
                             @elseif($item->status === 'pending_transfer')
                                 <div class="rounded-3xl bg-amber-50 p-4">
                                     <p class="text-sm font-semibold text-amber-800">Transaksi transfer sedang menunggu konfirmasi RT.</p>

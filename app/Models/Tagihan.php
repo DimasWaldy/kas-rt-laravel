@@ -18,6 +18,7 @@ class Tagihan extends Model
     use Auditable;
     protected $fillable = [
         'user_id',
+        'rumah_id',
         'bulan',
         'tahun',
         'total',
@@ -35,6 +36,11 @@ class Tagihan extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function rumah(): BelongsTo
+    {
+        return $this->belongsTo(Rumah::class);
     }
 
     public function scopeForMonth($query, int $bulan, int $tahun)
@@ -107,13 +113,18 @@ class Tagihan extends Model
             return;
         }
 
-        User::whereRelation('role', 'name', 'warga')
-            ->where('is_kepala_keluarga', true)
-            ->whereNotNull('no_kk')
+        Rumah::with('penanggungJawab')
+            ->where('status', 'aktif')
+            ->whereNotNull('penanggung_jawab_id')
             ->get()
-            ->each(function (User $user) use ($bulan, $tahun, $total) {
+            ->each(function (Rumah $rumah) use ($bulan, $tahun, $total) {
+                $user = $rumah->penanggungJawab;
+                if (! $user) {
+                    return;
+                }
+
                 $tagihan = self::firstOrNew([
-                    'user_id' => $user->id,
+                    'rumah_id' => $rumah->id,
                     'bulan' => $bulan,
                     'tahun' => $tahun,
                 ]);
@@ -121,6 +132,7 @@ class Tagihan extends Model
                 $wasNew = !$tagihan->exists;
                 $oldValues = $tagihan->getOriginal();
 
+                $tagihan->user_id = $user->id;
                 $tagihan->total = $total;
                 if ($tagihan->status !== 'lunas') {
                     $tagihan->status = 'belum_bayar';

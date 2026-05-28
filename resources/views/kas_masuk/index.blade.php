@@ -3,117 +3,159 @@
 @section('title', 'Data Kas Masuk')
 
 @section('content')
+@php
+    $totalMasuk = $data->sum('jumlah');
+    $jumlahTransaksi = $data->count();
+    $tahunAktif = request('tahun', date('Y'));
+@endphp
 
-<div class="mb-8">
-    <h1 class="text-2xl font-extrabold text-slate-800 flex items-center">
-        <span class="bg-green-100 text-green-600 p-2 rounded-lg mr-3">
-            <i class="fa-solid fa-shield-check"></i>
-        </span>
-        Transparansi Kas Masuk
-    </h1>
-    <p class="text-sm text-slate-500 mt-1 italic group">
-        <i class="fa-solid fa-lock text-xs mr-1"></i> Data yang sudah masuk tidak dapat diubah/dihapus demi menjaga kepercayaan warga.
-    </p>
-</div>
+<div class="space-y-6">
+    <div class="rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-100">
+        <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">Transaksi Masuk</p>
+                <h1 class="mt-2 text-2xl font-black md:text-3xl">Data Kas Masuk</h1>
+                <p class="mt-2 max-w-2xl text-sm font-medium leading-6 text-emerald-50">
+                    Semua pemasukan RT tercatat sebagai riwayat transparan. Data yang sudah masuk tidak diedit agar laporan tetap aman.
+                </p>
+            </div>
 
-<div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-6">
-    <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="flex flex-col gap-1">
-            <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">Tahun</label>
-            <select name="tahun" class="bg-slate-50 border-none text-slate-700 py-3 px-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                <option value="">Semua Tahun</option>
-                @for($i = date('Y'); $i >= 2024; $i--)
-                    <option value="{{ $i }}" {{ request('tahun') == $i ? 'selected' : '' }}>{{ $i }}</option>
-                @endfor
-            </select>
+            @can('manage-finance')
+                <a href="{{ route('kas-masuk.create') }}" class="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-50">
+                    <i class="fa-solid fa-plus mr-2"></i>
+                    Tambah Kas Masuk
+                </a>
+            @endcan
         </div>
+    </div>
 
-        <div class="flex flex-col gap-1">
-            <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">Bulan</label>
-            <select name="bulan" class="bg-slate-50 border-none text-slate-700 py-3 px-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                <option value="">Semua Bulan</option>
-                @foreach(range(1, 12) as $m)
-                    <option value="{{ $m }}" {{ request('bulan') == $m ? 'selected' : '' }}>
-                        {{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}
-                    </option>
-                @endforeach
-            </select>
+    <div class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Total Pemasukan</p>
+            <p class="mt-3 text-2xl font-black text-slate-900">Rp {{ number_format($totalMasuk, 0, ',', '.') }}</p>
+            <p class="mt-1 text-sm text-slate-500">Berdasarkan filter aktif.</p>
         </div>
-
-        <div class="flex flex-col gap-1">
-            <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">Urutan</label>
-            <select name="filter" class="bg-slate-50 border-none text-slate-700 py-3 px-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                <option value="terbaru" {{ request('filter') == 'terbaru' ? 'selected' : '' }}>📅 Terbaru</option>
-                <option value="terlama" {{ request('filter') == 'terlama' ? 'selected' : '' }}>⏳ Terlama</option>
-                <option value="terbesar" {{ request('filter') == 'terbesar' ? 'selected' : '' }}>💰 Terbesar</option>
-            </select>
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Transaksi</p>
+            <p class="mt-3 text-2xl font-black text-slate-900">{{ $jumlahTransaksi }}</p>
+            <p class="mt-1 text-sm text-slate-500">Catatan pemasukan ditemukan.</p>
         </div>
-
-        <div class="flex items-end gap-2">
-            <button type="submit" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg active:scale-95">
-                <i class="fa-solid fa-magnifying-glass mr-2"></i> Cari
-            </button>
-            <a href="/kas-masuk/create" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl transition-all shadow-lg shadow-blue-200 active:scale-95" title="Tambah Data">
-                <i class="fa-solid fa-plus"></i>
-            </a>
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Tahun</p>
+            <p class="mt-3 text-2xl font-black text-slate-900">{{ $tahunAktif }}</p>
+            <p class="mt-1 text-sm text-slate-500">Periode laporan saat ini.</p>
         </div>
-    </form>
-</div>
+    </div>
 
-<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-slate-50/50 border-b border-slate-100">
-                    <th class="px-6 py-5 text-[10px] uppercase tracking-[0.2em] font-extrabold text-slate-400">Penyetor</th>
-                    <th class="px-6 py-5 text-[10px] uppercase tracking-[0.2em] font-extrabold text-slate-400 text-center">Keterangan</th>
-                    <th class="px-6 py-5 text-[10px] uppercase tracking-[0.2em] font-extrabold text-slate-400 text-center">Jumlah Pemasukan</th>
-                    <th class="px-6 py-5 text-[10px] uppercase tracking-[0.2em] font-extrabold text-slate-400 text-center">Tanggal Transaksi</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-                @forelse($data as $item)
-                <tr class="hover:bg-slate-50/80 transition-colors group">
-                    <td class="px-6 py-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-md shadow-blue-100">
-                                {{ substr($item->user->name ?? '?', 0, 1) }}
-                            </div>
-                            <span class="font-bold text-slate-700 text-sm">{{ $item->user->name ?? 'Anonim' }}</span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 text-center">
-                        <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full uppercase tracking-tighter">
-                            {{ $item->keterangan }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-center">
-                        <span class="text-sm font-extrabold text-green-600">
-                            Rp {{ number_format($item->jumlah, 0, ',', '.') }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-center">
-                        <div class="inline-flex items-center gap-2 text-slate-500 text-xs font-bold bg-gray-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                            <i class="fa-regular fa-calendar text-blue-500"></i>
-                            {{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y') }}
-                        </div>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="4" class="px-6 py-20 text-center">
-                        <div class="flex flex-col items-center">
-                            <div class="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mb-4">
-                                <i class="fa-solid fa-box-open text-slate-300 text-3xl"></i>
-                            </div>
-                            <p class="text-slate-400 font-bold">Data tidak ditemukan untuk periode ini.</p>
-                            <a href="/kas-masuk" class="text-blue-500 text-xs mt-2 font-bold hover:underline">Reset Filter</a>
-                        </div>
-                    </td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
+    <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <form method="GET" class="grid gap-4 lg:grid-cols-[1.5fr_1fr_1fr_1fr_auto] lg:items-end">
+            <div>
+                <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Cari</label>
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Penyetor atau keterangan"
+                        class="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-700 focus:border-emerald-600 focus:ring-emerald-200">
+                </div>
+            </div>
+
+            <div>
+                <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Bulan</label>
+                <select name="bulan" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 focus:border-emerald-600 focus:ring-emerald-200">
+                    <option value="">Semua Bulan</option>
+                    @foreach(range(1, 12) as $m)
+                        <option value="{{ $m }}" {{ request('bulan') == $m ? 'selected' : '' }}>
+                            {{ \Carbon\Carbon::create(null, $m)->translatedFormat('F') }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Tahun</label>
+                <select name="tahun" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 focus:border-emerald-600 focus:ring-emerald-200">
+                    @for($i = date('Y'); $i >= 2024; $i--)
+                        <option value="{{ $i }}" {{ request('tahun', date('Y')) == $i ? 'selected' : '' }}>{{ $i }}</option>
+                    @endfor
+                </select>
+            </div>
+
+            <div>
+                <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Urutan</label>
+                <select name="filter" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 focus:border-emerald-600 focus:ring-emerald-200">
+                    <option value="terbaru" {{ request('filter', 'terbaru') == 'terbaru' ? 'selected' : '' }}>Terbaru</option>
+                    <option value="terlama" {{ request('filter') == 'terlama' ? 'selected' : '' }}>Terlama</option>
+                    <option value="terbesar" {{ request('filter') == 'terbesar' ? 'selected' : '' }}>Nominal terbesar</option>
+                </select>
+            </div>
+
+            <div class="flex gap-2">
+                <button type="submit" class="inline-flex flex-1 items-center justify-center rounded-2xl bg-emerald-800 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-900 lg:flex-none">
+                    <i class="fa-solid fa-filter mr-2"></i>
+                    Filter
+                </button>
+                @if(request()->anyFilled(['search', 'bulan', 'filter']))
+                    <a href="{{ route('kas-masuk.index') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-slate-500 transition hover:bg-slate-50">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                @endif
+            </div>
+        </form>
+    </div>
+
+    <div class="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100 text-sm">
+                <thead class="bg-emerald-50">
+                    <tr>
+                        <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Penyetor</th>
+                        <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Keterangan</th>
+                        <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Tanggal</th>
+                        <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Jumlah</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($data as $item)
+                        <tr class="transition hover:bg-emerald-50/60">
+                            <td class="px-5 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-sm font-black text-emerald-700">
+                                        {{ substr($item->user->name ?? '?', 0, 1) }}
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-slate-800">{{ $item->user->name ?? 'Anonim' }}</p>
+                                        <p class="text-xs text-slate-400">Pemasukan RT</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-5 py-4">
+                                <p class="font-semibold text-slate-700">{{ $item->keterangan }}</p>
+                            </td>
+                            <td class="px-5 py-4">
+                                <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                                    <i class="fa-regular fa-calendar mr-2 text-emerald-600"></i>
+                                    {{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y') }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-4 text-right">
+                                <span class="font-black text-emerald-600">+ Rp {{ number_format($item->jumlah, 0, ',', '.') }}</span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="px-5 py-16 text-center">
+                                <div class="mx-auto flex max-w-sm flex-col items-center">
+                                    <div class="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-300">
+                                        <i class="fa-solid fa-box-open"></i>
+                                    </div>
+                                    <p class="mt-4 font-bold text-slate-500">Data kas masuk tidak ditemukan.</p>
+                                    <a href="{{ route('kas-masuk.index') }}" class="mt-2 text-sm font-bold text-emerald-700 hover:underline">Reset filter</a>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

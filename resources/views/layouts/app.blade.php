@@ -7,147 +7,280 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        /* Smooth transition untuk sidebar */
-        .sidebar-item { transition: all 0.3s ease; }
-        .active-menu { @apply bg-blue-600 text-white shadow-md; }
+        [x-cloak] { display: none !important; }
+        .sidebar-item { transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease; }
+        .active-menu { background-color: #16a34a; color: #fff; box-shadow: 0 10px 18px -12px rgb(22 163 74 / 0.65); }
+        .sidebar-scroll { scrollbar-width: thin; scrollbar-color: #86efac #ecfdf5; }
+        .sidebar-scroll::-webkit-scrollbar { width: 8px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: #ecfdf5; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #86efac; border-radius: 999px; border: 2px solid #ecfdf5; }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #4ade80; }
     </style>
 </head>
-<body class="bg-gray-50 flex font-sans">
+@php
+    $user = auth()->user();
+    $roleLabel = match($user->role_name) {
+        'admin' => 'Admin RT',
+        'bendahara' => 'Bendahara RT',
+        'sekretaris' => 'Sekretaris RT',
+        default => 'Warga',
+    };
 
-    <aside class="w-72 bg-[#0f172a] text-slate-300 min-h-screen flex flex-col shadow-xl">
-        <div class="p-6 border-b border-slate-800 flex items-center space-x-3">
-            <div class="bg-blue-600 p-2 rounded-lg">
-                <i class="fa-solid fa-wallet text-white text-xl"></i>
-            </div>
-            <h2 class="text-xl font-extrabold text-white tracking-wider">KAS RT</h2>
+    $menuGroups = [
+        [
+            'label' => 'Menu Utama',
+            'items' => [
+                [
+                    'label' => 'Dashboard',
+                    'route' => 'dashboard',
+                    'active' => 'dashboard',
+                    'icon' => 'fa-house',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => true,
+                ],
+                [
+                    'label' => 'Admin Dashboard',
+                    'route' => 'admin.dashboard',
+                    'active' => 'admin/dashboard',
+                    'icon' => 'fa-chart-line',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->isAdmin(),
+                ],
+                [
+                    'label' => 'Edit Profil',
+                    'route' => 'profile.edit',
+                    'active' => 'profile',
+                    'icon' => 'fa-user',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => true,
+                ],
+            ],
+        ],
+        [
+            'label' => 'Transaksi',
+            'items' => [
+                [
+                    'label' => 'Kas Masuk',
+                    'route' => 'kas-masuk.index',
+                    'active' => 'kas-masuk*',
+                    'icon' => 'fa-money-bill-trend-up',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => true,
+                ],
+                [
+                    'label' => 'Kas Keluar',
+                    'route' => 'kas-keluar.index',
+                    'active' => 'kas-keluar*',
+                    'icon' => 'fa-money-bill-transfer',
+                    'iconClass' => 'text-green-600',
+                    'visible' => true,
+                ],
+                [
+                    'label' => 'Tagihan',
+                    'route' => 'tagihan.index',
+                    'active' => 'tagihan*',
+                    'icon' => 'fa-receipt',
+                    'iconClass' => 'text-lime-600',
+                    'visible' => true,
+                ],
+                [
+                    'label' => 'Laporan Kas',
+                    'route' => 'laporan-kas.index',
+                    'active' => 'admin/laporan-kas*',
+                    'icon' => 'fa-chart-pie',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->canManageFinance(),
+                ],
+            ],
+        ],
+        [
+            'label' => 'Pengurus RT',
+            'items' => [
+                [
+                    'label' => 'Iuran Bulanan',
+                    'route' => 'iuran-bulanan.index',
+                    'active' => 'admin/iuran-bulanan*',
+                    'icon' => 'fa-list-check',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->canManageFinance(),
+                ],
+                [
+                    'label' => 'Verifikasi Tagihan',
+                    'route' => 'tagihan.admin',
+                    'active' => 'admin/tagihan*',
+                    'icon' => 'fa-clipboard-list',
+                    'iconClass' => 'text-green-600',
+                    'visible' => $user->canManageFinance(),
+                ],
+                [
+                    'label' => 'Demo UTS',
+                    'route' => 'demo-uts.index',
+                    'active' => 'admin/demo-uts*',
+                    'icon' => 'fa-chalkboard-user',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->canManageFinance(),
+                ],
+                [
+                    'label' => 'Data Rumah',
+                    'route' => 'admin.rumah.index',
+                    'active' => 'admin/rumah*',
+                    'icon' => 'fa-house-user',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->canManageWarga(),
+                ],
+                [
+                    'label' => 'Data Warga',
+                    'route' => 'admin.warga.index',
+                    'active' => 'admin/warga*',
+                    'icon' => 'fa-users',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->canManageWarga(),
+                ],
+            ],
+        ],
+        [
+            'label' => 'Layanan',
+            'items' => [
+                [
+                    'label' => 'Pengaduan (Tambahan)',
+                    'route' => 'pengaduan.index',
+                    'active' => 'pengaduan*',
+                    'icon' => 'fa-bullhorn',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => true,
+                ],
+            ],
+        ],
+    ];
+
+    $visibleMenuGroups = collect($menuGroups)
+        ->map(function ($group) {
+            $group['items'] = collect($group['items'])->filter(fn($item) => $item['visible'])->values()->all();
+            return $group;
+        })
+        ->filter(fn($group) => count($group['items']) > 0)
+        ->values();
+
+    $unreadNotifications = $user->canManageFinance() ? $user->unreadNotifications : collect();
+@endphp
+<body class="bg-gray-50 font-sans text-slate-900" x-data="{ mobileMenuOpen: false }" x-on:keydown.escape.window="mobileMenuOpen = false">
+
+    <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-40 bg-emerald-950/35 lg:hidden" x-transition.opacity x-on:click="mobileMenuOpen = false"></div>
+
+    <aside
+        class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] -translate-x-full flex-col border-r border-emerald-100 bg-gradient-to-b from-emerald-50 via-green-50 to-white text-slate-700 shadow-2xl shadow-emerald-950/10 transition-transform duration-300 lg:translate-x-0"
+        :class="{ 'translate-x-0': mobileMenuOpen, '-translate-x-full': !mobileMenuOpen }"
+        aria-label="Navigasi utama"
+    >
+        <div class="flex items-center justify-between border-b border-emerald-100 bg-white/70 p-5 lg:p-6">
+            <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-3">
+                <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500 shadow-sm shadow-emerald-500/30">
+                    <i class="fa-solid fa-wallet text-lg text-white"></i>
+                </span>
+                <span class="truncate text-xl font-extrabold tracking-wider text-emerald-950">KAS RT</span>
+            </a>
+
+            <button type="button" class="flex h-10 w-10 items-center justify-center rounded-lg text-emerald-700 hover:bg-emerald-100 hover:text-emerald-950 lg:hidden" x-on:click="mobileMenuOpen = false" aria-label="Tutup menu">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
         </div>
 
-        <nav class="flex-1 p-4 mt-4 space-y-6">
-            
-            <div>
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 px-2">Menu Utama</p>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="/dashboard" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('dashboard') ? 'active-menu' : '' }}">
-                            <i class="fa-solid fa-house w-5 text-center"></i>
-                            <span class="font-medium">Dashboard</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('profile.edit') }}" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('profile') ? 'active-menu' : '' }}">
-                            <i class="fa-solid fa-user w-5 text-center"></i>
-                            <span class="font-medium">Edit Profil</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div>
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 px-2">Transaksi</p>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="/kas-masuk" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('kas-masuk*') ? 'active-menu' : '' }}">
-                            <i class="fa-solid fa-money-bill-trend-up w-5 text-center text-green-400"></i>
-                            <span class="font-medium">Kas Masuk</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/kas-keluar" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('kas-keluar*') ? 'active-menu' : '' }}">
-                            <i class="fa-solid fa-money-bill-transfer w-5 text-center text-red-400"></i>
-                            <span class="font-medium">Kas Keluar</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/tagihan" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('tagihan*') ? 'active-menu' : '' }}">
-                            <i class="fa-solid fa-receipt w-5 text-center text-yellow-400"></i>
-                            <span class="font-medium">Tagihan</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            @if(auth()->user()->role_name === 'admin')
-            <div>
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 px-2">Admin</p>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="/admin/iuran-bulanan" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('admin/iuran-bulanan*') ? 'active-menu' : '' }}">
-                            <i class="fa-solid fa-list-check w-5 text-center text-cyan-400"></i>
-                            <span class="font-medium">Iuran Bulanan</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/admin/tagihan" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('admin/tagihan*') ? 'active-menu' : '' }}">
-                            <i class="fa-solid fa-clipboard-list w-5 text-center text-amber-400"></i>
-                            <span class="font-medium">Verifikasi Tagihan</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('admin.warga.index') }}" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('admin/warga*') ? 'active-menu' : '' }}">
-                            <i class="fa-solid fa-users w-5 text-center text-cyan-400"></i>
-                            <span class="font-medium">Data Warga</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            @endif
-
-            <div>
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 px-2">Laporan</p>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="/laporan-warga" class="sidebar-item flex items-center space-x-3 p-3 rounded-xl hover:bg-slate-800 hover:text-white {{ request()->is('laporan-warga*') ? 'active-menu' : '' }}">
-                            <i class="fa-solid fa-file-lines w-5 text-center text-blue-400"></i>
-                            <span class="font-medium">Laporan Warga</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
+        <nav class="sidebar-scroll flex-1 space-y-6 overflow-y-auto p-4">
+            @foreach($visibleMenuGroups as $group)
+                <div>
+                    <p class="mb-3 px-2 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-700/70">{{ $group['label'] }}</p>
+                    <ul class="space-y-1">
+                        @foreach($group['items'] as $item)
+                            <li>
+                                <a
+                                    href="{{ route($item['route']) }}"
+                                    x-on:click="mobileMenuOpen = false"
+                                    class="sidebar-item flex min-h-12 items-center gap-3 rounded-xl p-3 text-sm font-semibold hover:bg-emerald-100 hover:text-emerald-950 {{ request()->is($item['active']) ? 'active-menu' : '' }}"
+                                >
+                                    <i class="fa-solid {{ $item['icon'] }} w-5 flex-shrink-0 text-center {{ request()->is($item['active']) ? 'text-white' : $item['iconClass'] }}"></i>
+                                    <span class="min-w-0 truncate font-medium">{{ $item['label'] }}</span>
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endforeach
         </nav>
 
-        <div class="p-4 border-t border-slate-800">
-            <div class="bg-slate-800/50 rounded-2xl p-4 flex items-center space-x-3">
-                <div class="bg-blue-500/20 text-blue-400 w-10 h-10 rounded-full flex items-center justify-center font-bold">
-                    {{ substr(auth()->user()->name, 0, 1) }}
-                </div>
-                <div class="overflow-hidden">
-                    <p class="text-xs font-bold text-white truncate">{{ auth()->user()->name }}</p>
-                    <p class="text-[10px] text-slate-500 capitalize">{{ auth()->user()->role_name ?? 'No role' }}</p>
+        <div class="border-t border-emerald-100 bg-white/70 p-4">
+            <div class="mb-3 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
+                        {{ substr($user->name, 0, 1) }}
+                    </div>
+                    <div class="min-w-0">
+                        <p class="truncate text-xs font-bold text-slate-900">{{ $user->name }}</p>
+                        <p class="truncate text-[10px] capitalize text-emerald-700">{{ $roleLabel }}</p>
+                    </div>
                 </div>
             </div>
+
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button class="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Logout</span>
+                </button>
+            </form>
         </div>
     </aside>
 
-    <div class="flex-1 flex flex-col">
+    <div class="min-h-screen lg:pl-72">
+        <header class="sticky top-0 z-30 border-b bg-white/95 px-4 py-3 shadow-sm backdrop-blur lg:hidden">
+            <div class="flex items-center justify-between gap-3">
+                <button type="button" class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/30" x-on:click="mobileMenuOpen = true" aria-label="Buka menu">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
 
-        <header class="bg-white h-20 border-b flex justify-between items-center px-8 shadow-sm">
-            <div class="flex items-center space-x-2">
-                <h3 class="text-lg font-bold text-slate-700 capitalize">
+                <div class="min-w-0 flex-1">
+                    <p class="truncate text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">KAS RT</p>
+                    <h1 class="truncate text-base font-bold text-slate-800">@yield('title', 'Dashboard')</h1>
+                </div>
+
+                @if($user->canManageFinance())
+                    <a href="{{ route('tagihan.admin') }}" class="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700" aria-label="Notifikasi pembayaran">
+                        <i class="fa-solid fa-bell"></i>
+                        @if($unreadNotifications->count())
+                            <span class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-bold text-white">
+                                {{ $unreadNotifications->count() }}
+                            </span>
+                        @endif
+                    </a>
+                @endif
+            </div>
+        </header>
+
+        <header class="hidden h-20 items-center justify-between border-b bg-white px-8 shadow-sm lg:flex">
+            <div class="flex min-w-0 items-center gap-2">
+                <h3 class="truncate text-lg font-bold capitalize text-slate-700">
                     @yield('title', 'Dashboard')
                 </h3>
             </div>
 
-            <div class="flex items-center space-x-4">
-                @if(auth()->user()->role_name === 'admin')
-                    @php $unreadNotifications = auth()->user()->unreadNotifications; @endphp
-                    <a href="{{ route('tagihan.admin') }}" class="relative flex items-center justify-center w-11 h-11 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+            <div class="flex items-center gap-4">
+                @if($user->canManageFinance())
+                    <a href="{{ route('tagihan.admin') }}" class="relative flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100" aria-label="Notifikasi pembayaran">
                         <i class="fa-solid fa-bell"></i>
                         @if($unreadNotifications->count())
-                            <span class="absolute top-0 right-0 inline-flex items-center justify-center rounded-full bg-red-500 text-[10px] text-white font-bold w-5 h-5 border-2 border-white">
+                            <span class="absolute right-0 top-0 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 text-[10px] font-bold text-white">
                                 {{ $unreadNotifications->count() }}
                             </span>
                         @endif
                     </a>
                 @endif
 
-                <div class="flex items-center space-x-3 bg-gray-100 py-1.5 px-3 rounded-full">
-                    <span class="text-sm font-semibold text-slate-700">
-                        {{ auth()->user()->role_name === 'admin' ? '🛠️ Admin' : (auth()->user()->role_name === 'bendahara' ? '💸 Bendahara' : '👥 Warga') }}
-                    </span>
+                <div class="flex items-center gap-3 rounded-full bg-emerald-50 px-3 py-1.5">
+                    <span class="text-sm font-semibold text-emerald-800">{{ $roleLabel }}</span>
                 </div>
 
-                <form method="POST" action="/logout">
+                <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button class="flex items-center space-x-2 text-red-500 hover:text-red-700 font-bold text-sm transition-colors">
+                    <button class="flex items-center gap-2 text-sm font-bold text-red-500 transition-colors hover:text-red-700">
                         <i class="fa-solid fa-right-from-bracket"></i>
                         <span>Logout</span>
                     </button>
@@ -155,35 +288,33 @@
             </div>
         </header>
 
-        @if(auth()->user()->role_name === 'admin' && auth()->user()->unreadNotifications->count())
-            <div class="bg-amber-50 border-b border-amber-100 px-8 py-3 text-amber-800">
+        @if($user->canManageFinance() && $unreadNotifications->count())
+            <div class="border-b border-amber-100 bg-amber-50 px-4 py-3 text-amber-800 md:px-8">
                 <p class="text-sm font-semibold">
-                    Ada {{ auth()->user()->unreadNotifications->count() }} notifikasi pembayaran baru.
+                    Ada {{ $unreadNotifications->count() }} notifikasi pembayaran baru.
                     <a href="{{ route('tagihan.admin') }}" class="underline">Klik untuk verifikasi</a>.
                 </p>
             </div>
         @endif
 
         @if(session('success') || session('error'))
-            <div id="notif" class="fixed top-5 right-5 z-50 flex items-center p-4 mb-4 w-full max-w-xs text-white {{ session('success') ? 'bg-green-600' : 'bg-red-600' }} rounded-2xl shadow-2xl animate-bounce">
-                <div class="ml-3 text-sm font-bold">{{ session('success') ?? session('error') }}</div>
+            <div id="notif" class="fixed left-4 right-4 top-20 z-50 mx-auto flex max-w-sm items-center rounded-2xl p-4 text-white shadow-2xl {{ session('success') ? 'bg-green-600' : 'bg-red-600' }} md:left-auto md:right-5 md:top-5">
+                <div class="text-sm font-bold">{{ session('success') ?? session('error') }}</div>
             </div>
         @endif
 
-        <main class="p-8 flex-1 overflow-y-auto">
+        <main class="min-w-0 p-4 md:p-6 lg:p-8">
             @yield('content')
         </main>
-
     </div>
 
     <script>
-        // Logic Notif
         setTimeout(() => {
             const notif = document.getElementById('notif');
             if (notif) {
                 notif.style.transition = 'all 0.5s ease';
                 notif.style.opacity = '0';
-                notif.style.transform = 'translateX(20px)';
+                notif.style.transform = 'translateY(-8px)';
                 setTimeout(() => notif.remove(), 500);
             }
         }, 3000);

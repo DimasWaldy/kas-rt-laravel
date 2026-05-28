@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('keterangan');
             $table->integer('jumlah');
             $table->date('tanggal');
-            $table->string('bukti')->nullable(); // 🔥 upload struk
+            $table->string('bukti')->nullable();
             $table->timestamps();
         });
     }

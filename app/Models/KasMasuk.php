@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class KasMasuk extends Model
 {
@@ -17,8 +18,13 @@ class KasMasuk extends Model
         'bukti',
     ];
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function tagihan(): BelongsTo
+    {
+        return $this->belongsTo(Tagihan::class);
     }
 }
