@@ -1,7 +1,8 @@
 # 💸 Sistem Kas RT Laravel
-<img width="1918" height="917" alt="image" src="https://github.com/user-attachments/assets/2f6a6829-b6a2-4607-8e02-7ad3be01b990" />
-<img width="1918" height="910" alt="image" src="https://github.com/user-attachments/assets/ff673ce0-3781-40de-b71f-af8d34b00e21" />
-<img width="1918" height="913" alt="image" src="https://github.com/user-attachments/assets/c1c0f22a-11d5-4196-87f5-958a81aed7e7" />
+<img width="1918" height="915" alt="image" src="https://github.com/user-attachments/assets/e168e83f-5966-4f48-a6ad-a53016145b4a" />
+<img width="1918" height="908" alt="image" src="https://github.com/user-attachments/assets/05541fba-1136-4c6f-8957-05b3f807ecde" />
+<img width="1918" height="912" alt="image" src="https://github.com/user-attachments/assets/e872fecc-4fa8-44db-a44d-1eb36651631d" />
+
 
 Aplikasi manajemen kas RT berbasis web menggunakan Laravel + MySQL.
 
