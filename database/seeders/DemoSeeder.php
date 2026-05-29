@@ -149,9 +149,9 @@ class DemoSeeder extends Seeder
             );
         }
 
-        $total = IuranBulanan::totalForMonth($bulan, $tahun);
+        Tagihan::generateForMonth($bulan, $tahun);
 
-        Rumah::with('penanggungJawab')->where('status', 'aktif')->get()->each(function (Rumah $rumah, int $index) use ($bulan, $tahun, $total) {
+        Rumah::with('penanggungJawab')->where('status', 'aktif')->get()->each(function (Rumah $rumah, int $index) use ($bulan, $tahun) {
             if (! $rumah->penanggungJawab) {
                 return;
             }
@@ -163,25 +163,30 @@ class DemoSeeder extends Seeder
                 default => 'belum_bayar',
             };
 
-            $tagihan = Tagihan::updateOrCreate(
-                ['rumah_id' => $rumah->id, 'bulan' => $bulan, 'tahun' => $tahun],
-                [
-                    'user_id' => $rumah->penanggungJawab->id,
-                    'total' => $total,
-                    'status' => $status,
-                    'payment_method' => $status === 'pending_transfer' ? 'transfer' : ($status === 'pending_offline' ? 'offline' : ($status === 'lunas' ? 'offline' : 'none')),
-                    'note' => $status === 'pending_offline' ? 'Akan diserahkan ke bendahara.' : null,
-                    'paid_at' => $status === 'lunas' ? now()->subDays(fake()->numberBetween(1, 12)) : null,
-                ]
-            );
+            $tagihan = Tagihan::where('rumah_id', $rumah->id)
+                ->where('bulan', $bulan)
+                ->where('tahun', $tahun)
+                ->where('billing_group', 'iuran_rutin')
+                ->first();
+
+            if (! $tagihan) {
+                return;
+            }
+
+            $tagihan->update([
+                'status' => $status,
+                'payment_method' => $status === 'pending_transfer' ? 'transfer' : ($status === 'pending_offline' ? 'offline' : ($status === 'lunas' ? 'offline' : 'none')),
+                'note' => $status === 'pending_offline' ? 'Akan diserahkan ke bendahara.' : null,
+                'paid_at' => $status === 'lunas' ? now()->subDays(fake()->numberBetween(1, 12)) : null,
+            ]);
 
             if ($status === 'lunas') {
                 KasMasuk::updateOrCreate(
                     ['tagihan_id' => $tagihan->id],
                     [
                         'user_id' => $rumah->penanggungJawab->id,
-                        'keterangan' => 'Pembayaran Iuran Rumah ' . $rumah->kode_rumah,
-                        'jumlah' => $total,
+                        'keterangan' => 'Pembayaran ' . $tagihan->display_title . ' Rumah ' . $rumah->kode_rumah,
+                        'jumlah' => $tagihan->total,
                         'tanggal' => $tagihan->paid_at ?? now(),
                     ]
                 );

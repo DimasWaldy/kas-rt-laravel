@@ -68,8 +68,10 @@ class TagihanController extends Controller
 
         $tagihan->each(function ($item) use ($allIuranItems) {
             $item->details = $allIuranItems->filter(function ($iuran) use ($item) {
-                return $iuran->bulan == $item->bulan && $iuran->tahun == $item->tahun;
-            });
+                return $iuran->bulan == $item->bulan
+                    && $iuran->tahun == $item->tahun
+                    && Tagihan::billingGroupForIuran($iuran) === $item->billing_group;
+            })->values();
         });
 
         return view('tagihan.index', compact('tagihan', 'iuranItems', 'bulan', 'tahun', 'headUser', 'showHeadNotice', 'rumah', 'canPayTagihan'));
@@ -222,7 +224,7 @@ class TagihanController extends Controller
                     ['tagihan_id' => $tagihan->id],
                     [
                         'user_id' => $tagihan->user_id,
-                        'keterangan' => "Pembayaran Iuran " . \Carbon\Carbon::create(null, $tagihan->bulan)->translatedFormat('F') . " " . $tagihan->tahun,
+                        'keterangan' => "Pembayaran " . $tagihan->display_title . " " . \Carbon\Carbon::create(null, $tagihan->bulan)->translatedFormat('F') . " " . $tagihan->tahun,
                         'jumlah' => $tagihan->total,
                         'tanggal' => now(),
                         'bukti' => $tagihan->bukti,
@@ -283,6 +285,8 @@ class TagihanController extends Controller
             'user_id' => $request->user_id,
             'bulan' => $request->bulan,
             'tahun' => $request->tahun,
+            'billing_group' => 'manual_' . now()->timestamp,
+            'judul' => 'Tagihan Manual',
             'total' => $request->total,
             'status' => 'belum_bayar',
             'note' => $request->note,

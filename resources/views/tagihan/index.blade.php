@@ -34,7 +34,7 @@
                 <div class="bg-white rounded-3xl shadow-sm p-6 border border-slate-200">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                            <h3 class="text-lg font-bold text-slate-900">Tagihan Iuran RT</h3>
+                            <h3 class="text-lg font-bold text-slate-900">{{ $item->display_title }}</h3>
                             <p class="text-slate-500">
                                 @php
                                     $namaBulan = \Carbon\Carbon::create(null, $item->bulan)->translatedFormat('F');
@@ -49,13 +49,13 @@
                             <span class="px-3 py-2 rounded-full text-sm font-semibold {{ $item->due_status_class }}">
                                 {{ $item->due_status_label }}
                             </span>
-                            <span class="text-slate-500 text-sm">Rp {{ number_format($item->total, 0, ',', '.') }}</span>
+                                <span class="text-slate-500 text-sm">Rp {{ number_format($item->total, 0, ',', '.') }}</span>
                         </div>
                     </div>
 
                     <div class="mt-5 grid gap-4 md:grid-cols-2">
                         <div class="bg-slate-50 rounded-3xl p-4">
-                            <p class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-3">Rincian Komponen Iuran</p>
+                            <p class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-3">Rincian Nota Pembayaran</p>
                             <div class="space-y-2 mb-4 border-b border-slate-200 pb-4">
                                 @forelse($item->details as $detail)
                                     <div class="flex justify-between text-sm">

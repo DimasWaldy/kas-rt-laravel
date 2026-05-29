@@ -21,6 +21,8 @@ class Tagihan extends Model
         'rumah_id',
         'bulan',
         'tahun',
+        'billing_group',
+        'judul',
         'total',
         'status',
         'payment_method',
@@ -46,6 +48,38 @@ class Tagihan extends Model
     public function scopeForMonth($query, int $bulan, int $tahun)
     {
         return $query->where('bulan', $bulan)->where('tahun', $tahun);
+    }
+
+    public static function billingGroupForIuran(IuranBulanan $iuran): string
+    {
+        $nama = str($iuran->nama)->lower()->toString();
+
+        if (str_contains($nama, 'kebersihan') || str_contains($nama, 'keamanan')) {
+            return 'iuran_rutin';
+        }
+
+        return 'iuran_' . $iuran->id;
+    }
+
+    public static function titleForGroup($items, string $group): string
+    {
+        if ($group === 'iuran_rutin') {
+            $names = $items->pluck('nama')->values();
+
+            if ($names->contains(fn ($name) => str($name)->lower()->contains('kebersihan'))
+                && $names->contains(fn ($name) => str($name)->lower()->contains('keamanan'))) {
+                return 'Iuran Kebersihan & Keamanan';
+            }
+
+            return $names->first() ?? 'Iuran Rutin';
+        }
+
+        return $items->pluck('nama')->join(' + ') ?: 'Tagihan Iuran';
+    }
+
+    public function getDisplayTitleAttribute(): string
+    {
+        return $this->judul ?: 'Tagihan Iuran RT';
     }
 
     public function getDueDateAttribute(): Carbon
@@ -108,8 +142,12 @@ class Tagihan extends Model
 
     public static function generateForMonth(int $bulan, int $tahun): void
     {
-        $total = IuranBulanan::totalForMonth($bulan, $tahun);
-        if ($total === 0) {
+        $groups = IuranBulanan::forMonth($bulan, $tahun)
+            ->get()
+            ->groupBy(fn (IuranBulanan $iuran) => self::billingGroupForIuran($iuran))
+            ->filter(fn ($items) => $items->sum('jumlah') > 0);
+
+        if ($groups->isEmpty()) {
             return;
         }
 
@@ -117,47 +155,53 @@ class Tagihan extends Model
             ->where('status', 'aktif')
             ->whereNotNull('penanggung_jawab_id')
             ->get()
-            ->each(function (Rumah $rumah) use ($bulan, $tahun, $total) {
+            ->each(function (Rumah $rumah) use ($bulan, $tahun, $groups) {
                 $user = $rumah->penanggungJawab;
                 if (! $user) {
                     return;
                 }
 
-                $tagihan = self::firstOrNew([
-                    'rumah_id' => $rumah->id,
-                    'bulan' => $bulan,
-                    'tahun' => $tahun,
-                ]);
-
-                $wasNew = !$tagihan->exists;
-                $oldValues = $tagihan->getOriginal();
-
-                $tagihan->user_id = $user->id;
-                $tagihan->total = $total;
-                if ($tagihan->status !== 'lunas') {
-                    $tagihan->status = 'belum_bayar';
-                    $tagihan->payment_method = 'none';
-                    $tagihan->note = null;
-                    $tagihan->paid_at = null;
-                }
-
-                $tagihan->save();
-
-                if ($wasNew || $tagihan->wasChanged()) {
-                    AuditLog::create([
-                        'user_id' => null,
-                        'auditable_type' => self::class,
-                        'auditable_id' => $tagihan->id,
-                        'event' => 'tagihan_generated',
-                        'old_values' => $wasNew ? null : $oldValues,
-                        'new_values' => $tagihan->getAttributes(),
-                        'notes' => 'Tagihan bulanan otomatis dibuat untuk bulan ' . $bulan . ' tahun ' . $tahun,
+                $groups->each(function ($items, string $group) use ($rumah, $user, $bulan, $tahun) {
+                    $tagihan = self::firstOrNew([
+                        'rumah_id' => $rumah->id,
+                        'bulan' => $bulan,
+                        'tahun' => $tahun,
+                        'billing_group' => $group,
                     ]);
-                }
 
-                if ($wasNew && filled($user->phone)) {
-                    Notification::send($user, new TagihanCreated($tagihan));
-                }
+                    $wasNew = ! $tagihan->exists;
+                    $oldValues = $tagihan->getOriginal();
+
+                    $tagihan->user_id = $user->id;
+                    $tagihan->judul = self::titleForGroup($items, $group);
+                    $tagihan->total = (int) $items->sum('jumlah');
+
+                    if ($wasNew || $tagihan->status !== 'lunas') {
+                        $tagihan->status = 'belum_bayar';
+                        $tagihan->payment_method = 'none';
+                        $tagihan->bukti = null;
+                        $tagihan->note = null;
+                        $tagihan->paid_at = null;
+                    }
+
+                    $tagihan->save();
+
+                    if ($wasNew || $tagihan->wasChanged()) {
+                        AuditLog::create([
+                            'user_id' => null,
+                            'auditable_type' => self::class,
+                            'auditable_id' => $tagihan->id,
+                            'event' => 'tagihan_generated',
+                            'old_values' => $wasNew ? null : $oldValues,
+                            'new_values' => $tagihan->getAttributes(),
+                            'notes' => 'Tagihan ' . $tagihan->display_title . ' otomatis dibuat untuk bulan ' . $bulan . ' tahun ' . $tahun,
+                        ]);
+                    }
+
+                    if ($wasNew && filled($user->phone)) {
+                        Notification::send($user, new TagihanCreated($tagihan));
+                    }
+                });
             });
     }
 
@@ -166,7 +210,11 @@ class Tagihan extends Model
      */
     public function getIuranComponents()
     {
-        return IuranBulanan::where('bulan', $this->bulan)->where('tahun', $this->tahun)->get();
+        return IuranBulanan::where('bulan', $this->bulan)
+            ->where('tahun', $this->tahun)
+            ->get()
+            ->filter(fn (IuranBulanan $iuran) => self::billingGroupForIuran($iuran) === $this->billing_group)
+            ->values();
     }
 
     public function getStatusLabelAttribute(): string

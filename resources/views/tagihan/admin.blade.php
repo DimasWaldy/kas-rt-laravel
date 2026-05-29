@@ -21,6 +21,7 @@
             <thead class="bg-slate-50">
                 <tr>
                     <th class="px-4 py-3 text-left font-semibold text-slate-600">Rumah / Warga</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Tagihan</th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-600">Bulan</th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-600">Total</th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
@@ -36,6 +37,10 @@
                         <td class="px-4 py-4 whitespace-nowrap text-slate-700">
                             <div class="font-bold text-slate-900">{{ $tagihan->rumah?->kode_rumah ?? 'Rumah belum diatur' }}</div>
                             <div class="text-xs text-slate-500">{{ $tagihan->user->name }}</div>
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap text-slate-700">
+                            <div class="font-bold text-slate-900">{{ $tagihan->display_title }}</div>
+                            <div class="text-xs text-slate-500">{{ $tagihan->billing_group }}</div>
                         </td>
                         <td class="px-4 py-4 whitespace-nowrap text-slate-700">{{ $tagihan->bulan }}/{{ $tagihan->tahun }}</td>
                         <td class="px-4 py-4 whitespace-nowrap text-slate-700">Rp {{ number_format($tagihan->total, 0, ',', '.') }}</td>
@@ -90,7 +95,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada tagihan yang tersedia.</td>
+                        <td colspan="8" class="px-4 py-8 text-center text-slate-500">Belum ada tagihan yang tersedia.</td>
                     </tr>
                 @endforelse
             </tbody>
