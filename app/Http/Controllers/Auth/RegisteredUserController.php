@@ -39,11 +39,13 @@ class RegisteredUserController extends Controller
             'is_kepala_keluarga' => ['nullable', 'boolean'],
             'jumlah_anggota_keluarga' => ['required', 'integer', 'min:1', 'max:20'],
             'phone' => ['required', 'regex:/^[0-9]{10,13}$/'],
-            'rt' => ['required', 'string', 'max:10'],
-            'rw' => ['required', 'string', 'max:10'],
+            'rt' => ['required', 'regex:/^[0-9]{1,3}$/'],
+            'rw' => ['required', 'regex:/^[0-9]{1,3}$/'],
         ], [
             'no_kk.digits' => 'Nomor KK harus berisi 16 digit angka.',
             'phone.regex' => 'Nomor HP harus berisi angka saja, minimal 10 digit dan maksimal 13 digit.',
+            'rt.regex' => 'RT harus berisi angka saja, maksimal 3 digit.',
+            'rw.regex' => 'RW harus berisi angka saja, maksimal 3 digit.',
         ]);
 
         $role = Role::firstOrCreate(

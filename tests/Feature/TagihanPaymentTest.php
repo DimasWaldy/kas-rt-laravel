@@ -3,6 +3,7 @@
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Tagihan;
+use App\Models\KasMasuk;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -54,6 +55,8 @@ test('resident can pay bill using bank transfer with valid file', function () {
     $tagihan->refresh();
     expect($tagihan->status)->toBe('pending_transfer');
     expect($tagihan->payment_method)->toBe('transfer');
+    expect($tagihan->verification_status)->toBe('menunggu');
+    expect($tagihan->transaction_number)->toStartWith('TRX-');
     expect($tagihan->note)->toBe('Paid via Mobile Banking');
     expect($tagihan->bukti)->not->toBeNull();
 
@@ -140,6 +143,8 @@ test('resident can pay offline with a valid note', function () {
     $tagihan->refresh();
     expect($tagihan->status)->toBe('pending_offline');
     expect($tagihan->payment_method)->toBe('offline');
+    expect($tagihan->verification_status)->toBe('menunggu');
+    expect($tagihan->transaction_number)->toStartWith('TRX-');
     expect($tagihan->note)->toBe('Diserahkan langsung ke Pak RT');
     expect($tagihan->bukti)->toBeNull();
 });
@@ -179,4 +184,113 @@ test('offline payment fails validation when note is missing or too short', funct
     ]);
 
     $response->assertSessionHasErrors(['note' => 'Catatan pembayaran offline minimal harus terdiri dari 5 karakter.']);
+});
+
+test('cash income is created only after verification and removed when bill is reopened', function () {
+    $admin = User::factory()->create([
+        'role_id' => $this->adminRole->id,
+    ]);
+
+    $resident = User::factory()->create([
+        'role_id' => $this->wargaRole->id,
+        'is_kepala_keluarga' => true,
+        'no_kk' => '1234567890123456',
+    ]);
+
+    $tagihan = Tagihan::create([
+        'user_id' => $resident->id,
+        'bulan' => 5,
+        'tahun' => 2026,
+        'billing_group' => 'iuran_rutin',
+        'judul' => 'Iuran Kebersihan & Keamanan',
+        'total' => 50000,
+        'status' => 'pending_offline',
+        'payment_method' => 'offline',
+        'note' => 'Diserahkan ke bendahara',
+    ]);
+
+    expect(KasMasuk::where('tagihan_id', $tagihan->id)->exists())->toBeFalse();
+
+    $this->actingAs($admin)->post(route('tagihan.confirm'), [
+        'tagihan_id' => $tagihan->id,
+        'status' => 'lunas',
+    ])->assertRedirect(route('tagihan.admin'));
+
+    $kasMasuk = KasMasuk::where('tagihan_id', $tagihan->id)->first();
+
+    expect($kasMasuk)->not->toBeNull();
+    expect((int) $kasMasuk->jumlah)->toBe(50000);
+
+    $this->actingAs($admin)->post(route('tagihan.confirm'), [
+        'tagihan_id' => $tagihan->id,
+        'status' => 'belum_bayar',
+    ])->assertRedirect(route('tagihan.admin'));
+
+    $tagihan->refresh();
+
+    expect(KasMasuk::where('tagihan_id', $tagihan->id)->exists())->toBeFalse();
+    expect($tagihan->status)->toBe('belum_bayar');
+    expect($tagihan->payment_method)->toBe('none');
+    expect($tagihan->note)->toBeNull();
+    expect($tagihan->verification_status)->toBe('belum_dikirim');
+    expect($tagihan->transaction_number)->toBeNull();
+});
+
+test('admin can reject payment proof with reason and resident can resubmit', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create([
+        'role_id' => $this->adminRole->id,
+    ]);
+
+    $resident = User::factory()->create([
+        'role_id' => $this->wargaRole->id,
+        'is_kepala_keluarga' => true,
+        'no_kk' => '1234567890123456',
+    ]);
+
+    $tagihan = Tagihan::create([
+        'user_id' => $resident->id,
+        'bulan' => 5,
+        'tahun' => 2026,
+        'total' => 50000,
+        'status' => 'belum_bayar',
+    ]);
+
+    $this->actingAs($resident)->post(route('tagihan.pay'), [
+        'tagihan_id' => $tagihan->id,
+        'payment_method' => 'transfer',
+        'bukti' => UploadedFile::fake()->image('wrong-proof.jpg'),
+    ])->assertRedirect(route('tagihan.index'));
+
+    $tagihan->refresh();
+    $firstTransactionNumber = $tagihan->transaction_number;
+
+    $this->actingAs($admin)->post(route('tagihan.confirm'), [
+        'tagihan_id' => $tagihan->id,
+        'status' => 'ditolak',
+        'verification_note' => 'Sudah dicek bendahara.',
+        'rejection_reason' => 'Nominal pada bukti tidak sesuai tagihan.',
+    ])->assertRedirect(route('tagihan.admin'));
+
+    $tagihan->refresh();
+
+    expect($tagihan->status)->toBe('belum_bayar');
+    expect($tagihan->verification_status)->toBe('ditolak');
+    expect($tagihan->rejection_reason)->toBe('Nominal pada bukti tidak sesuai tagihan.');
+    expect($tagihan->verified_by)->toBe($admin->id);
+    expect($tagihan->verified_at)->not->toBeNull();
+
+    $this->actingAs($resident)->post(route('tagihan.pay'), [
+        'tagihan_id' => $tagihan->id,
+        'payment_method' => 'transfer',
+        'bukti' => UploadedFile::fake()->image('correct-proof.jpg'),
+    ])->assertRedirect(route('tagihan.index'));
+
+    $tagihan->refresh();
+
+    expect($tagihan->status)->toBe('pending_transfer');
+    expect($tagihan->verification_status)->toBe('menunggu');
+    expect($tagihan->rejection_reason)->toBeNull();
+    expect($tagihan->transaction_number)->toBe($firstTransactionNumber);
 });

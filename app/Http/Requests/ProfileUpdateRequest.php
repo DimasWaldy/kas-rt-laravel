@@ -29,13 +29,23 @@ class ProfileUpdateRequest extends FormRequest
             'rumah_id' => ['nullable', 'integer', 'exists:rumahs,id'],
             'rumah_kode' => ['nullable', 'string', 'max:50'],
             'rumah_alamat' => ['nullable', 'string', 'max:500'],
-            'no_kk' => ['sometimes', 'required', 'string', 'max:50'],
+            'no_kk' => ['sometimes', 'required', 'digits:16'],
             'is_kepala_keluarga' => ['nullable', 'boolean'],
             'is_penanggung_jawab_rumah' => ['nullable', 'boolean'],
             'jumlah_anggota_keluarga' => ['sometimes', 'required', 'integer', 'min:1', 'max:20'],
-            'phone' => ['sometimes', 'required', 'string', 'max:20'],
-            'rt' => ['sometimes', 'required', 'string', 'max:10'],
-            'rw' => ['sometimes', 'required', 'string', 'max:10'],
+            'phone' => ['sometimes', 'required', 'regex:/^[0-9]{10,13}$/'],
+            'rt' => ['sometimes', 'required', 'regex:/^[0-9]{1,3}$/'],
+            'rw' => ['sometimes', 'required', 'regex:/^[0-9]{1,3}$/'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'no_kk.digits' => 'Nomor KK harus berisi 16 digit angka.',
+            'phone.regex' => 'Nomor HP harus berisi angka saja, minimal 10 digit dan maksimal 13 digit.',
+            'rt.regex' => 'RT harus berisi angka saja, maksimal 3 digit.',
+            'rw.regex' => 'RW harus berisi angka saja, maksimal 3 digit.',
         ];
     }
 }

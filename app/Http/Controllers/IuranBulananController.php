@@ -43,10 +43,13 @@ class IuranBulananController extends Controller
         $data = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
             'keterangan' => ['nullable', 'string', 'max:500'],
-            'jumlah' => ['required', 'numeric', 'min:0'],
+            'jumlah' => ['required', 'integer', 'min:1'],
             'bulan' => ['required', 'integer', 'between:1,12'],
             'tahun' => ['required', 'integer', 'min:2024'],
             'is_wajib' => ['required', 'boolean'], // 1 untuk Wajib, 0 untuk Opsional
+        ], [
+            'jumlah.min' => 'Nominal iuran harus lebih dari 0.',
+            'jumlah.integer' => 'Nominal iuran harus berupa angka bulat.',
         ]);
 
         $iuran = IuranBulanan::create($data);
@@ -78,8 +81,13 @@ class IuranBulananController extends Controller
             abort(403);
         }
 
-        $bulan = $request->input('bulan', now()->month);
-        $tahun = $request->input('tahun', now()->year);
+        $validated = $request->validate([
+            'bulan' => ['nullable', 'integer', 'between:1,12'],
+            'tahun' => ['nullable', 'integer', 'min:2024', 'max:' . (now()->year + 5)],
+        ]);
+
+        $bulan = (int) ($validated['bulan'] ?? now()->month);
+        $tahun = (int) ($validated['tahun'] ?? now()->year);
 
         DB::transaction(function () use ($bulan, $tahun, $request) {
             // 1. Cek apakah sudah ada komponen iuran di bulan ini

@@ -149,6 +149,12 @@ class TagihanController extends Controller
             $tagihan->note = $request->note;
         }
 
+        $tagihan->verification_status = 'menunggu';
+        $tagihan->verification_note = null;
+        $tagihan->rejection_reason = null;
+        $tagihan->verified_by = null;
+        $tagihan->verified_at = null;
+        $tagihan->transaction_number ??= Tagihan::nextTransactionNumber();
         $tagihan->save();
 
         AuditLog::create([
@@ -178,7 +184,7 @@ class TagihanController extends Controller
 
         Auth::user()->unreadNotifications->markAsRead();
 
-        $tagihans = Tagihan::with(['user', 'rumah'])
+        $tagihans = Tagihan::with(['user', 'rumah', 'verifier'])
             ->orderByDesc('tahun')
             ->orderByDesc('bulan')
             ->get();
@@ -194,7 +200,12 @@ class TagihanController extends Controller
 
         $request->validate([
             'tagihan_id' => ['required', 'integer'],
-            'status' => ['required', 'in:lunas,belum_bayar'],
+            'status' => ['required', 'in:lunas,belum_bayar,ditolak'],
+            'verification_note' => ['nullable', 'string', 'max:500'],
+            'rejection_reason' => ['required_if:status,ditolak', 'nullable', 'string', 'min:5', 'max:500'],
+        ], [
+            'rejection_reason.required_if' => 'Alasan penolakan wajib diisi saat bukti pembayaran ditolak.',
+            'rejection_reason.min' => 'Alasan penolakan minimal 5 karakter.',
         ]);
 
         $tagihan = Tagihan::findOrFail($request->tagihan_id);
@@ -202,8 +213,37 @@ class TagihanController extends Controller
         $oldValues = $tagihan->getOriginal();
 
         DB::transaction(function () use ($tagihan, $request, $oldValues) {
-            $tagihan->status = $request->status;
-            $tagihan->paid_at = $request->status === 'lunas' ? now() : null;
+            if ($request->status === 'lunas') {
+                $tagihan->status = 'lunas';
+                $tagihan->verification_status = 'valid';
+                $tagihan->verification_note = $request->verification_note;
+                $tagihan->rejection_reason = null;
+                $tagihan->verified_by = Auth::id();
+                $tagihan->verified_at = now();
+                $tagihan->paid_at = now();
+                $tagihan->transaction_number ??= Tagihan::nextTransactionNumber();
+            } elseif ($request->status === 'ditolak') {
+                $tagihan->status = 'belum_bayar';
+                $tagihan->verification_status = 'ditolak';
+                $tagihan->verification_note = $request->verification_note;
+                $tagihan->rejection_reason = $request->rejection_reason;
+                $tagihan->verified_by = Auth::id();
+                $tagihan->verified_at = now();
+                $tagihan->paid_at = null;
+            } else {
+                $tagihan->status = 'belum_bayar';
+                $tagihan->payment_method = 'none';
+                $tagihan->bukti = null;
+                $tagihan->note = null;
+                $tagihan->verification_status = 'belum_dikirim';
+                $tagihan->transaction_number = null;
+                $tagihan->verification_note = null;
+                $tagihan->rejection_reason = null;
+                $tagihan->verified_by = null;
+                $tagihan->verified_at = null;
+                $tagihan->paid_at = null;
+            }
+
             $tagihan->save();
 
             AuditLog::create([
@@ -213,7 +253,7 @@ class TagihanController extends Controller
                 'event' => 'tagihan_status_updated',
                 'old_values' => $oldValues,
                 'new_values' => $tagihan->getAttributes(),
-                'notes' => 'Status tagihan diubah menjadi ' . $request->status,
+                'notes' => 'Status tagihan diubah menjadi ' . $tagihan->status . ' dengan status bukti ' . $tagihan->verification_status,
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);
@@ -230,6 +270,8 @@ class TagihanController extends Controller
                         'bukti' => $tagihan->bukti,
                     ]
                 );
+            } else {
+                KasMasuk::where('tagihan_id', $tagihan->id)->delete();
             }
         });
 

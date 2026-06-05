@@ -126,6 +126,7 @@
                                         data-jumlah="{{ number_format($item->jumlah, 0, ',', '.') }}"
                                         data-tanggal="{{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d F Y') }}"
                                         data-bukti="{{ asset('storage/'.$item->bukti) }}"
+                                        data-filetype="{{ pathinfo($item->bukti, PATHINFO_EXTENSION) }}"
                                         onclick="openExpenseModal(this)">
                                         <i class="fa-solid fa-eye mr-2"></i>
                                         Lihat Bukti
@@ -187,11 +188,14 @@
 function openExpenseModal(button) {
     const modal = document.getElementById('expense-modal');
     const imageUrl = button.dataset.bukti;
+    const fileType = (button.dataset.filetype || '').toLowerCase();
 
     document.getElementById('modal-keterangan').innerText = button.dataset.keterangan;
     document.getElementById('modal-jumlah').innerText = button.dataset.jumlah;
     document.getElementById('modal-tanggal').innerText = button.dataset.tanggal;
-    document.getElementById('modal-gambar').innerHTML = `<img src="${imageUrl}" class="max-h-[420px] w-full object-contain" alt="Bukti pengeluaran">`;
+    document.getElementById('modal-gambar').innerHTML = fileType === 'pdf'
+        ? `<div class="p-8 text-center"><i class="fa-solid fa-file-pdf text-4xl text-rose-500"></i><p class="mt-3 text-sm font-bold text-slate-700">Bukti berupa PDF</p><a href="${imageUrl}" target="_blank" class="mt-4 inline-flex rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white">Buka PDF</a></div>`
+        : `<img src="${imageUrl}" class="max-h-[420px] w-full object-contain" alt="Bukti pengeluaran">`;
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');

@@ -113,8 +113,8 @@
                         <input type="text" name="phone" placeholder="Nomor HP Kepala Keluarga (maks. 13 digit)" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" class="numeric-only w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('phone') }}" required>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <input type="text" name="rt" placeholder="RT" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('rt') }}" required>
-                        <input type="text" name="rw" placeholder="RW" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('rw') }}" required>
+                        <input type="text" name="rt" placeholder="RT" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="numeric-only bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('rt') }}" required>
+                        <input type="text" name="rw" placeholder="RW" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="numeric-only bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('rw') }}" required>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <input type="password" name="password" placeholder="Password" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" required>

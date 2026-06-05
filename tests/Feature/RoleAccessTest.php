@@ -42,6 +42,54 @@ test('sekretaris cannot access finance verification pages directly', function ()
     $response->assertSee('Halaman ini hanya dapat diakses oleh admin atau bendahara.');
 });
 
+test('sekretaris cannot submit finance verification directly', function () {
+    $sekretaris = userWithRole('sekretaris');
+
+    $response = $this->actingAs($sekretaris)->post(route('tagihan.confirm'), [
+        'tagihan_id' => 1,
+        'status' => 'lunas',
+    ]);
+
+    $response->assertForbidden();
+    $response->assertSee('Halaman ini hanya dapat diakses oleh admin atau bendahara.');
+});
+
+test('warga cannot access admin dashboard or warga management routes', function () {
+    $warga = userWithRole('warga');
+
+    $this->actingAs($warga)
+        ->get(route('admin.dashboard'))
+        ->assertForbidden()
+        ->assertSee('Halaman ini hanya dapat diakses oleh admin.');
+
+    $this->actingAs($warga)
+        ->get(route('admin.warga.index'))
+        ->assertForbidden()
+        ->assertSee('Halaman ini hanya dapat diakses oleh admin atau sekretaris.');
+});
+
+test('bendahara cannot create or update warga data directly', function () {
+    $bendahara = userWithRole('bendahara');
+    $warga = userWithRole('warga');
+
+    $this->actingAs($bendahara)
+        ->post(route('admin.warga.store'), [
+            'name' => 'Warga Ditolak',
+            'email' => 'ditolak@example.com',
+            'password' => 'password',
+        ])
+        ->assertForbidden()
+        ->assertSee('Halaman ini hanya dapat diakses oleh admin atau sekretaris.');
+
+    $this->actingAs($bendahara)
+        ->patch(route('admin.warga.update', $warga), [
+            'name' => 'Update Ditolak',
+            'email' => $warga->email,
+        ])
+        ->assertForbidden()
+        ->assertSee('Halaman ini hanya dapat diakses oleh admin atau sekretaris.');
+});
+
 test('bendahara cannot access admin dashboard directly', function () {
     $bendahara = userWithRole('bendahara');
 

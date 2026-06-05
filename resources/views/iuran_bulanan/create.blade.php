@@ -69,7 +69,7 @@
                         <label class="block text-sm font-bold text-slate-700">Jumlah</label>
                         <div class="mt-2 flex overflow-hidden rounded-2xl border border-slate-200 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-200 @error('jumlah') border-red-500 @enderror">
                             <span class="flex items-center bg-emerald-50 px-4 text-sm font-bold text-emerald-800">Rp</span>
-                            <input type="number" name="jumlah" value="{{ old('jumlah') }}" min="0"
+                            <input type="number" name="jumlah" value="{{ old('jumlah') }}" min="1" step="1"
                                 class="w-full border-0 px-4 py-3 text-sm focus:ring-0"
                                 placeholder="0" required>
                         </div>

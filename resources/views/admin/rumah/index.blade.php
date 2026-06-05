@@ -49,7 +49,9 @@
                         <th class="px-4 py-3">PJ Iuran</th>
                         <th class="px-4 py-3">Warga</th>
                         <th class="px-4 py-3">KK</th>
+                        <th class="px-4 py-3">Status Rumah</th>
                         <th class="px-4 py-3">Status Tagihan</th>
+                        <th class="px-4 py-3">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-emerald-100">
@@ -68,19 +70,30 @@
                             <td class="px-4 py-4 font-bold text-slate-800">{{ $rumah->warga_count }}</td>
                             <td class="px-4 py-4 font-bold text-slate-800">{{ $rumah->kepala_keluarga_count }}</td>
                             <td class="px-4 py-4">
+                                <span class="rounded-full px-3 py-1 text-xs font-bold {{ $rumah->status === 'aktif' ? 'bg-emerald-100 text-emerald-700' : ($rumah->status === 'kosong' ? 'bg-slate-100 text-slate-600' : 'bg-rose-100 text-rose-700') }}">
+                                    {{ ucfirst($rumah->status) }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-4">
                                 @if($tagihan)
                                     <span class="rounded-full px-3 py-1 text-xs font-bold {{ $tagihan->status === 'lunas' ? 'bg-emerald-100 text-emerald-700' : ($tagihan->status === 'belum_bayar' ? 'bg-slate-100 text-slate-700' : 'bg-amber-100 text-amber-700') }}">
                                         {{ $tagihan->status_label }}
                                     </span>
-                                    <p class="mt-1 text-xs text-slate-500">Rp {{ number_format($tagihan->total, 0, ',', '.') }}</p>
+                                    <p class="mt-1 text-xs text-slate-500">{{ $tagihan->count }} nota | Rp {{ number_format($tagihan->total, 0, ',', '.') }}</p>
                                 @else
                                     <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">Belum ada</span>
                                 @endif
                             </td>
+                            <td class="px-4 py-4">
+                                <div class="flex flex-wrap gap-2">
+                                    <a href="{{ route('admin.rumah.show', $rumah) }}" class="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700">Detail</a>
+                                    <a href="{{ route('admin.rumah.edit', $rumah) }}" class="rounded-xl border border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50">Edit</a>
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada data rumah.</td>
+                            <td colspan="9" class="px-4 py-8 text-center text-slate-500">Belum ada data rumah.</td>
                         </tr>
                     @endforelse
                 </tbody>

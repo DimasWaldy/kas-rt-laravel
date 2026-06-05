@@ -67,24 +67,24 @@
 
         <div>
             <x-input-label for="no_kk" value="Nomor KK" />
-            <x-text-input id="no_kk" name="no_kk" type="text" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('no_kk', $user->no_kk)" required autocomplete="off" />
+            <x-text-input id="no_kk" name="no_kk" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('no_kk', $user->no_kk)" required autocomplete="off" />
             <x-input-error class="mt-2" :messages="$errors->get('no_kk')" />
         </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
                 <x-input-label for="phone" value="Nomor HP" />
-                <x-text-input id="phone" name="phone" type="text" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('phone', $user->phone)" required autocomplete="tel" />
+                <x-text-input id="phone" name="phone" type="text" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('phone', $user->phone)" required autocomplete="tel" />
                 <x-input-error class="mt-2" :messages="$errors->get('phone')" />
             </div>
             <div>
                 <x-input-label for="rt" value="RT" />
-                <x-text-input id="rt" name="rt" type="text" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('rt', $user->rt)" required autocomplete="off" />
+                <x-text-input id="rt" name="rt" type="text" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('rt', $user->rt)" required autocomplete="off" />
                 <x-input-error class="mt-2" :messages="$errors->get('rt')" />
             </div>
             <div>
                 <x-input-label for="rw" value="RW" />
-                <x-text-input id="rw" name="rw" type="text" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('rw', $user->rw)" required autocomplete="off" />
+                <x-text-input id="rw" name="rw" type="text" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('rw', $user->rw)" required autocomplete="off" />
                 <x-input-error class="mt-2" :messages="$errors->get('rw')" />
             </div>
         </div>

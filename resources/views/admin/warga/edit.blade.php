@@ -64,27 +64,27 @@
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700">No. KK</label>
-                    <input type="text" name="no_kk" value="{{ old('no_kk', $user->no_kk) }}" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                    <input type="text" name="no_kk" value="{{ old('no_kk', $user->no_kk) }}" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" autocomplete="off" placeholder="16 digit angka" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700">Telepon</label>
-                    <input type="text" name="phone" value="{{ old('phone', $user->phone) }}" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                    <input type="text" name="phone" value="{{ old('phone', $user->phone) }}" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" placeholder="10-13 digit angka" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700">RT</label>
-                    <input type="text" name="rt" value="{{ old('rt', $user->rt) }}" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                    <input type="text" name="rt" value="{{ old('rt', $user->rt) }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700">RW</label>
-                    <input type="text" name="rw" value="{{ old('rw', $user->rw) }}" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                    <input type="text" name="rw" value="{{ old('rw', $user->rw) }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700">Jumlah Anggota Keluarga</label>
-                    <input type="number" name="jumlah_anggota_keluarga" value="{{ old('jumlah_anggota_keluarga', $user->jumlah_anggota_keluarga) }}" min="0" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                    <input type="number" name="jumlah_anggota_keluarga" value="{{ old('jumlah_anggota_keluarga', $user->jumlah_anggota_keluarga) }}" min="1" max="20" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                 </div>
 
                 <div class="flex items-center gap-3">

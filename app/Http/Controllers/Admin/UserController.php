@@ -64,20 +64,7 @@ class UserController extends Controller
             abort(404);
         }
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'rumah_id' => ['nullable', 'integer', 'exists:rumahs,id'],
-            'rumah_kode' => ['nullable', 'string', 'max:50'],
-            'rumah_alamat' => ['nullable', 'string', 'max:500'],
-            'no_kk' => ['nullable', 'string', 'max:50'],
-            'phone' => ['nullable', 'string', 'max:25'],
-            'rt' => ['nullable', 'string', 'max:5'],
-            'rw' => ['nullable', 'string', 'max:5'],
-            'jumlah_anggota_keluarga' => ['nullable', 'integer', 'min:0'],
-            'is_kepala_keluarga' => ['nullable', 'boolean'],
-            'is_penanggung_jawab_rumah' => ['nullable', 'boolean'],
-        ]);
+        $validated = $request->validate($this->wargaRules($user), $this->wargaMessages());
 
         $validated['is_kepala_keluarga'] = $request->boolean('is_kepala_keluarga');
         $validated['is_penanggung_jawab_rumah'] = $request->boolean('is_penanggung_jawab_rumah');
@@ -108,21 +95,7 @@ class UserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
-            'rumah_id' => ['nullable', 'integer', 'exists:rumahs,id'],
-            'rumah_kode' => ['nullable', 'string', 'max:50'],
-            'rumah_alamat' => ['nullable', 'string', 'max:500'],
-            'no_kk' => ['nullable', 'string', 'max:50'],
-            'phone' => ['nullable', 'string', 'max:25'],
-            'rt' => ['nullable', 'string', 'max:5'],
-            'rw' => ['nullable', 'string', 'max:5'],
-            'jumlah_anggota_keluarga' => ['nullable', 'integer', 'min:0'],
-            'is_kepala_keluarga' => ['nullable', 'boolean'],
-            'is_penanggung_jawab_rumah' => ['nullable', 'boolean'],
-        ]);
+        $validated = $request->validate($this->wargaRules(), $this->wargaMessages());
 
         $validated['password'] = Hash::make($validated['password']);
         $validated['role_id'] = Role::firstOrCreate(
@@ -178,6 +151,39 @@ class UserController extends Controller
         }
 
         return $rumah->id;
+    }
+
+    private function wargaRules(?User $user = null): array
+    {
+        $userId = $user?->id;
+
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email' . ($userId ? ',' . $userId : '')],
+            'password' => [$user ? 'sometimes' : 'required', 'string', 'min:8'],
+            'rumah_id' => ['nullable', 'integer', 'exists:rumahs,id'],
+            'rumah_kode' => ['nullable', 'string', 'max:50'],
+            'rumah_alamat' => ['nullable', 'string', 'max:500'],
+            'no_kk' => ['nullable', 'digits:16'],
+            'phone' => ['nullable', 'regex:/^[0-9]{10,13}$/'],
+            'rt' => ['nullable', 'regex:/^[0-9]{1,3}$/'],
+            'rw' => ['nullable', 'regex:/^[0-9]{1,3}$/'],
+            'jumlah_anggota_keluarga' => ['nullable', 'integer', 'min:1', 'max:20'],
+            'is_kepala_keluarga' => ['nullable', 'boolean'],
+            'is_penanggung_jawab_rumah' => ['nullable', 'boolean'],
+        ];
+    }
+
+    private function wargaMessages(): array
+    {
+        return [
+            'no_kk.digits' => 'Nomor KK harus berisi 16 digit angka.',
+            'phone.regex' => 'Nomor HP harus berisi angka saja, minimal 10 digit dan maksimal 13 digit.',
+            'rt.regex' => 'RT harus berisi angka saja, maksimal 3 digit.',
+            'rw.regex' => 'RW harus berisi angka saja, maksimal 3 digit.',
+            'jumlah_anggota_keluarga.min' => 'Jumlah anggota keluarga minimal 1 orang.',
+            'jumlah_anggota_keluarga.max' => 'Jumlah anggota keluarga maksimal 20 orang.',
+        ];
     }
 
     private function syncPenanggungJawabRumah(User $user): void

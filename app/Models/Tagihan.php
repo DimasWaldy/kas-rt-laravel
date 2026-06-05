@@ -23,16 +23,23 @@ class Tagihan extends Model
         'tahun',
         'billing_group',
         'judul',
+        'transaction_number',
         'total',
         'status',
         'payment_method',
+        'verification_status',
         'bukti',
         'note',
+        'verification_note',
+        'rejection_reason',
+        'verified_by',
+        'verified_at',
         'paid_at',
     ];
 
     protected $casts = [
         'paid_at' => 'datetime',
+        'verified_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -43,6 +50,11 @@ class Tagihan extends Model
     public function rumah(): BelongsTo
     {
         return $this->belongsTo(Rumah::class);
+    }
+
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 
     public function scopeForMonth($query, int $bulan, int $tahun)
@@ -80,6 +92,30 @@ class Tagihan extends Model
     public function getDisplayTitleAttribute(): string
     {
         return $this->judul ?: 'Tagihan Iuran RT';
+    }
+
+    public function getPaymentReferenceAttribute(): string
+    {
+        return $this->transaction_number ?: 'Belum ada nomor transaksi';
+    }
+
+    public function getVerificationStatusLabelAttribute(): string
+    {
+        return match ($this->verification_status) {
+            'menunggu' => 'Menunggu Verifikasi',
+            'valid' => 'Bukti Valid',
+            'ditolak' => 'Bukti Ditolak',
+            default => 'Belum Dikirim',
+        };
+    }
+
+    public static function nextTransactionNumber(): string
+    {
+        do {
+            $number = 'TRX-' . now()->format('Ymd') . '-' . strtoupper(str()->random(6));
+        } while (self::where('transaction_number', $number)->exists());
+
+        return $number;
     }
 
     public function getDueDateAttribute(): Carbon
@@ -174,14 +210,34 @@ class Tagihan extends Model
 
                     $tagihan->user_id = $user->id;
                     $tagihan->judul = self::titleForGroup($items, $group);
-                    $tagihan->total = (int) $items->sum('jumlah');
-
-                    if ($wasNew || $tagihan->status !== 'lunas') {
+                    if ($wasNew) {
+                        $tagihan->total = (int) $items->sum('jumlah');
                         $tagihan->status = 'belum_bayar';
                         $tagihan->payment_method = 'none';
+                        $tagihan->verification_status = 'belum_dikirim';
+                        $tagihan->transaction_number = null;
                         $tagihan->bukti = null;
                         $tagihan->note = null;
+                        $tagihan->verification_note = null;
+                        $tagihan->rejection_reason = null;
+                        $tagihan->verified_by = null;
+                        $tagihan->verified_at = null;
                         $tagihan->paid_at = null;
+                    } elseif ($tagihan->status === 'belum_bayar') {
+                        $tagihan->total = (int) $items->sum('jumlah');
+
+                        if ($tagihan->verification_status !== 'ditolak') {
+                            $tagihan->payment_method = 'none';
+                            $tagihan->verification_status = 'belum_dikirim';
+                            $tagihan->transaction_number = null;
+                            $tagihan->bukti = null;
+                            $tagihan->note = null;
+                            $tagihan->verification_note = null;
+                            $tagihan->rejection_reason = null;
+                            $tagihan->verified_by = null;
+                            $tagihan->verified_at = null;
+                            $tagihan->paid_at = null;
+                        }
                     }
 
                     $tagihan->save();

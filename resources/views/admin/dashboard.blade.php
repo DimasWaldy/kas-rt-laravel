@@ -39,11 +39,11 @@
             </div>
         </a>
 
-        <a href="{{ route('tagihan.admin') }}" class="rounded-2xl border {{ $tagihanBelumLunasBulanIni > 0 ? 'border-lime-200 bg-lime-50' : 'border-emerald-100 bg-white' }} p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <a href="{{ route('tagihan.admin') }}" class="rounded-2xl border {{ $rumahBelumBayarCount > 0 ? 'border-lime-200 bg-lime-50' : 'border-emerald-100 bg-white' }} p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div class="flex items-start justify-between gap-3">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Belum Lunas Bulan Ini</p>
-                    <p class="mt-2 text-3xl font-black text-slate-900">{{ $tagihanBelumLunasBulanIni }}</p>
+                    <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Rumah Belum Lunas</p>
+                    <p class="mt-2 text-3xl font-black text-slate-900">{{ $rumahBelumBayarCount }}</p>
                     <p class="mt-1 text-xs font-semibold text-slate-600">Nominal tertunggak: Rp {{ number_format($nominalTagihanTertunggak, 0, ',', '.') }}</p>
                 </div>
                 <div class="rounded-xl bg-lime-100 p-3 text-lime-700">
@@ -99,7 +99,13 @@
         </div>
 
         <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
-            <p class="text-sm font-medium text-slate-600">Rasio Lunas</p>
+            <p class="text-sm font-medium text-slate-600">Net Bulan Ini</p>
+            <h2 class="mt-2 text-2xl font-black {{ $netBulanIni >= 0 ? 'text-emerald-700' : 'text-red-600' }}">Rp {{ number_format($netBulanIni, 0, ',', '.') }}</h2>
+            <p class="mt-2 text-xs font-semibold text-slate-500">Masuk dikurangi keluar bulan ini</p>
+        </div>
+
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+            <p class="text-sm font-medium text-slate-600">Rasio Lunas Tagihan</p>
             @php
                 $totalTagihanRatio = max($totalTagihan, 1);
                 $lunasPercent = round(($tagihanSudahLunas / $totalTagihanRatio) * 100);
@@ -107,6 +113,64 @@
             <h2 class="mt-2 text-2xl font-black text-slate-900">{{ $lunasPercent }}%</h2>
             <div class="mt-3 h-2 rounded-full bg-emerald-100">
                 <div class="h-2 rounded-full bg-emerald-500" style="width: {{ $lunasPercent }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+            <h2 class="text-lg font-black text-slate-900">Prioritas Hari Ini</h2>
+            <div class="mt-4 space-y-3">
+                <a href="{{ route('tagihan.admin') }}" class="flex items-center justify-between rounded-2xl bg-amber-50 p-4 transition hover:bg-amber-100">
+                    <div>
+                        <p class="text-sm font-black text-amber-900">Verifikasi Pembayaran</p>
+                        <p class="mt-1 text-xs text-amber-700">{{ $pendingTransferCount + $pendingOfflineCount }} pembayaran menunggu keputusan</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-amber-600"></i>
+                </a>
+                <a href="{{ route('admin.rumah.index') }}" class="flex items-center justify-between rounded-2xl bg-lime-50 p-4 transition hover:bg-lime-100">
+                    <div>
+                        <p class="text-sm font-black text-lime-900">Rumah Belum Lunas</p>
+                        <p class="mt-1 text-xs text-lime-700">{{ $rumahBelumBayarCount }} dari {{ $totalRumahAktif }} rumah aktif perlu ditindaklanjuti</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-lime-600"></i>
+                </a>
+                <a href="{{ route('laporan-kas.index') }}" class="flex items-center justify-between rounded-2xl bg-emerald-50 p-4 transition hover:bg-emerald-100">
+                    <div>
+                        <p class="text-sm font-black text-emerald-900">Pantau Kas Bulan Ini</p>
+                        <p class="mt-1 text-xs text-emerald-700">Net: Rp {{ number_format($netBulanIni, 0, ',', '.') }}</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-emerald-600"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm xl:col-span-2">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-lg font-black text-slate-900">Rumah Belum Bayar Bulan Ini</h2>
+                    <p class="mt-1 text-xs font-semibold text-slate-500">Diurutkan dari nominal tagihan terbesar.</p>
+                </div>
+                <a href="{{ route('admin.rumah.index') }}" class="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100">Data Rumah</a>
+            </div>
+            <div class="mt-4 grid gap-3 md:grid-cols-2">
+                @forelse($rumahBelumBayarBulanIni->take(6) as $item)
+                    <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-black text-slate-900">{{ $item->rumah?->kode_rumah ?? 'Rumah belum diatur' }}</p>
+                                <p class="mt-1 truncate text-xs text-slate-500">{{ $item->rumah?->alamat ?? $item->user?->name ?? '-' }}</p>
+                                <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">{{ $item->status }}</span>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-black text-emerald-700">Rp {{ number_format($item->total, 0, ',', '.') }}</p>
+                                <p class="mt-1 text-xs text-slate-400">{{ $item->belum_lunas }}/{{ $item->jumlah_tagihan }} nota</p>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <p class="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700 md:col-span-2">Semua rumah aktif sudah lunas untuk bulan ini.</p>
+                @endforelse
             </div>
         </div>
     </div>
@@ -148,6 +212,44 @@
             <a href="{{ route('tagihan.admin') }}" class="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-600">
                 Buka Verifikasi
             </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+            <h2 class="text-lg font-black text-slate-900">Tagihan Jatuh Tempo</h2>
+            <p class="mt-1 text-xs font-semibold text-slate-500">Menampilkan tagihan yang overdue atau mendekati akhir bulan.</p>
+            <div class="mt-4 space-y-3">
+                @forelse($tagihanJatuhTempo as $tagihan)
+                    <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-4">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-black text-slate-900">{{ $tagihan->display_title }}</p>
+                            <p class="mt-1 text-xs text-slate-500">{{ $tagihan->rumah?->kode_rumah ?? $tagihan->user?->name ?? '-' }} - jatuh tempo {{ $tagihan->due_date->translatedFormat('d M Y') }}</p>
+                        </div>
+                        <span class="rounded-full px-3 py-1 text-xs font-bold {{ $tagihan->due_status_class }}">{{ $tagihan->due_status_label }}</span>
+                    </div>
+                @empty
+                    <p class="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Tidak ada tagihan yang mendekati jatuh tempo.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+            <h2 class="text-lg font-black text-slate-900">Kas Keluar Terbesar Bulan Ini</h2>
+            <p class="mt-1 text-xs font-semibold text-slate-500">Bantu cek pengeluaran besar yang perlu dipertanggungjawabkan.</p>
+            <div class="mt-4 space-y-3">
+                @forelse($kasKeluarTerbesarBulanIni as $item)
+                    <div class="flex items-center justify-between gap-3 rounded-2xl bg-rose-50 p-4">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-black text-slate-900">{{ $item->keterangan }}</p>
+                            <p class="mt-1 text-xs text-slate-500">{{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y') }}</p>
+                        </div>
+                        <p class="text-sm font-black text-rose-600">Rp {{ number_format($item->jumlah, 0, ',', '.') }}</p>
+                    </div>
+                @empty
+                    <p class="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Belum ada kas keluar bulan ini.</p>
+                @endforelse
+            </div>
         </div>
     </div>
 

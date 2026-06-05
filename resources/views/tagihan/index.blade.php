@@ -77,9 +77,17 @@
                             </div>
 
                             <p class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-3">Informasi Pembayaran</p>
+                            <p class="text-sm text-slate-600">No. Transaksi: <span class="font-semibold">{{ $item->payment_reference }}</span></p>
+                            <p class="text-sm text-slate-600 mt-2">Status Bukti: <span class="font-semibold">{{ $item->verification_status_label }}</span></p>
                             <p class="text-sm text-slate-600">Metode: <span class="font-semibold capitalize">{{ $item->payment_method === 'none' ? 'Belum Bayar' : str_replace('_', ' ', $item->payment_method) }}</span></p>
                             @if($item->note)
                                 <p class="text-sm text-slate-600 mt-2">Catatan: {{ $item->note }}</p>
+                            @endif
+                            @if($item->verification_note)
+                                <p class="text-sm text-slate-600 mt-2">Catatan Verifikasi: {{ $item->verification_note }}</p>
+                            @endif
+                            @if($item->rejection_reason)
+                                <p class="mt-2 rounded-2xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">Alasan Ditolak: {{ $item->rejection_reason }}</p>
                             @endif
                             @if($item->bukti)
                                 <p class="text-sm text-slate-600 mt-2">Bukti: <a href="{{ Storage::url($item->bukti) }}" target="_blank" class="text-blue-600 hover:underline">Lihat</a></p>
@@ -142,12 +150,12 @@
                             @elseif($item->status === 'pending_transfer')
                                 <div class="rounded-3xl bg-amber-50 p-4">
                                     <p class="text-sm font-semibold text-amber-800">Transaksi transfer sedang menunggu konfirmasi RT.</p>
-                                    <p class="text-sm text-slate-600 mt-2">Silakan tunggu admin memverifikasi bukti pembayaran Anda.</p>
+                                    <p class="text-sm text-slate-600 mt-2">Nomor transaksi: <span class="font-bold">{{ $item->payment_reference }}</span>.</p>
                                 </div>
                             @elseif($item->status === 'pending_offline')
                                 <div class="rounded-3xl bg-sky-50 p-4">
                                     <p class="text-sm font-semibold text-sky-800">Pembayaran offline menunggu verifikasi.</p>
-                                    <p class="text-sm text-slate-600 mt-2">Admin akan mengubah status menjadi lunas saat pembayaran diterima.</p>
+                                    <p class="text-sm text-slate-600 mt-2">Nomor transaksi: <span class="font-bold">{{ $item->payment_reference }}</span>.</p>
                                 </div>
                             @else
                                 <div class="rounded-3xl bg-emerald-50 p-4">

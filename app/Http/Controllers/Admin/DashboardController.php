@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\KasMasuk;
 use App\Models\KasKeluar;
 use App\Models\Pengaduan;
+use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -84,6 +86,31 @@ class DashboardController extends Controller
             ->count();
         $nominalTagihanTertunggak = Tagihan::where('status', '!=', 'lunas')->sum('total');
 
+        $tagihanBulanIni = Tagihan::with(['user', 'rumah'])
+            ->where('bulan', now()->month)
+            ->where('tahun', now()->year)
+            ->get();
+
+        $rumahBelumBayarBulanIni = $this->rumahBelumBayar($tagihanBulanIni);
+        $rumahBelumBayarCount = $rumahBelumBayarBulanIni->count();
+
+        $tagihanJatuhTempo = Tagihan::with(['user', 'rumah'])
+            ->whereIn('status', ['belum_bayar', 'pending_transfer', 'pending_offline'])
+            ->get()
+            ->filter(fn (Tagihan $tagihan) => $tagihan->isDueSoon() || $tagihan->isOverdue())
+            ->sortBy(fn (Tagihan $tagihan) => $tagihan->due_date)
+            ->take(6)
+            ->values();
+
+        $kasKeluarTerbesarBulanIni = KasKeluar::whereMonth('tanggal', now()->month)
+            ->whereYear('tanggal', now()->year)
+            ->orderByDesc('jumlah')
+            ->limit(5)
+            ->get();
+
+        $netBulanIni = $masukBulanIni - $keluarBulanIni;
+        $totalRumahAktif = Rumah::where('status', 'aktif')->count();
+
         // Statistik pengaduan
         $pengaduanPending = Pengaduan::where('status', 'pending')->count();
         $pengaduanProses = Pengaduan::where('status', 'proses')->count();
@@ -120,6 +147,12 @@ class DashboardController extends Controller
             'pendingOfflineCount',
             'tagihanBelumLunasBulanIni',
             'nominalTagihanTertunggak',
+            'rumahBelumBayarBulanIni',
+            'rumahBelumBayarCount',
+            'tagihanJatuhTempo',
+            'kasKeluarTerbesarBulanIni',
+            'netBulanIni',
+            'totalRumahAktif',
             'pengaduanPending',
             'pengaduanProses',
             'pengaduanSelesai',
@@ -181,5 +214,28 @@ class DashboardController extends Controller
             'masukData' => $masukData,
             'keluarData' => $keluarData,
         ];
+    }
+
+    private function rumahBelumBayar(Collection $tagihanBulanIni): Collection
+    {
+        return $tagihanBulanIni
+            ->groupBy(fn (Tagihan $tagihan) => $tagihan->rumah_id ? 'rumah-' . $tagihan->rumah_id : 'user-' . $tagihan->user_id)
+            ->map(function (Collection $items) {
+                $first = $items->first();
+
+                return (object) [
+                    'rumah' => $first->rumah,
+                    'user' => $first->user,
+                    'total' => (int) $items->sum('total'),
+                    'belum_lunas' => $items->where('status', '!=', 'lunas')->count(),
+                    'jumlah_tagihan' => $items->count(),
+                    'status' => $items->contains(fn (Tagihan $tagihan) => in_array($tagihan->status, ['pending_transfer', 'pending_offline'], true))
+                        ? 'Menunggu Verifikasi'
+                        : 'Belum Bayar',
+                ];
+            })
+            ->filter(fn ($item) => $item->belum_lunas > 0)
+            ->sortByDesc('total')
+            ->values();
     }
 }
