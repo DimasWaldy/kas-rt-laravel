@@ -154,7 +154,7 @@
                 <a href="{{ route('admin.rumah.index') }}" class="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100">Data Rumah</a>
             </div>
             <div class="mt-4 grid gap-3 md:grid-cols-2">
-                @forelse($rumahBelumBayarBulanIni->take(6) as $item)
+                @forelse(array_slice($rumahBelumBayarBulanIni, 0, 6) as $item)
                     <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
@@ -257,10 +257,10 @@
         <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
             <h2 class="mb-4 text-lg font-black text-slate-900">Top 5 Warga - Sepanjang Masa</h2>
             <div class="space-y-3">
-                @forelse($topWarga as $index => $warga)
+                @forelse($topWarga as $warga)
                     <div class="flex items-center justify-between rounded-xl bg-emerald-50/70 p-3 transition hover:bg-emerald-50">
                         <div class="flex min-w-0 items-center gap-3">
-                            <span class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white">{{ $index + 1 }}</span>
+                            <span class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white">{{ $loop->iteration }}</span>
                             <p class="truncate font-semibold text-slate-800">{{ $warga->name }}</p>
                         </div>
                         <p class="flex-shrink-0 font-bold text-emerald-700">Rp {{ number_format($warga->total_iuran, 0, ',', '.') }}</p>

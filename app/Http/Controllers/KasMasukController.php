@@ -58,6 +58,7 @@ class KasMasukController extends Controller
         ]);
 
         Cache::forget('admin.dashboard.stats');
+        Cache::forget('admin.dashboard.stats.v2');
         Cache::forget('dashboard.stats.user.' . auth()->id());
 
         return redirect()->route('kas-masuk.index')

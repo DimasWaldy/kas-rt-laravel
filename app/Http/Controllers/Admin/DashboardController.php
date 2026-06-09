@@ -17,142 +17,13 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    private const CACHE_KEY = 'admin.dashboard.stats.v2';
+
     public function index(Request $request): View
     {
         $chartMode = $request->query('chart', 'monthly') === 'daily' ? 'daily' : 'monthly';
 
-        $stats = Cache::remember('admin.dashboard.stats', 300, function () {
-            $totalKasMasuk = KasMasuk::sum('jumlah');
-            $totalKasKeluar = KasKeluar::sum('jumlah');
-            $saldoAkhir = $totalKasMasuk - $totalKasKeluar;
-
-            $bulanSekarang = now()->startOfMonth();
-            $masukBulanIni = KasMasuk::whereDate('tanggal', '>=', $bulanSekarang)
-                ->sum('jumlah');
-            $keluarBulanIni = KasKeluar::whereDate('tanggal', '>=', $bulanSekarang)
-                ->sum('jumlah');
-
-            $chartDataMonthly = $this->getMonthlyChartData();
-            $chartDataDaily = $this->getDailyChartData();
-
-            $totalWarga = User::whereRelation('role', 'name', 'warga')->count();
-            $totalKepalaKeluarga = User::where('is_kepala_keluarga', true)->count();
-
-            $wargaAktifBulanIni = Tagihan::where('bulan', now()->month)
-                ->where('tahun', now()->year)
-                ->where('status', 'lunas')
-                ->count();
-
-            $wargaBelumBayarBulanIni = Tagihan::where('bulan', now()->month)
-                ->where('tahun', now()->year)
-                ->where('status', '!=', 'lunas')
-                ->count();
-
-            $topWarga = KasMasuk::selectRaw('users.id, users.name, SUM(kas_masuks.jumlah) as total_iuran')
-                ->join('users', 'kas_masuks.user_id', '=', 'users.id')
-                ->groupBy('users.id', 'users.name')
-                ->orderByDesc('total_iuran')
-                ->limit(5)
-                ->get();
-
-            $topWargaBulanIni = KasMasuk::selectRaw('users.id, users.name, SUM(kas_masuks.jumlah) as total_iuran')
-                ->join('users', 'kas_masuks.user_id', '=', 'users.id')
-                ->whereDate('kas_masuks.tanggal', '>=', $bulanSekarang)
-                ->groupBy('users.id', 'users.name')
-                ->orderByDesc('total_iuran')
-                ->limit(5)
-                ->get();
-
-            $transaksiTerbaru = KasMasuk::with('user')
-                ->orderBy('tanggal', 'desc')
-                ->limit(10)
-                ->get();
-
-            $totalTagihan = Tagihan::count();
-            $tagihanBelumLunas = Tagihan::where('status', '!=', 'lunas')->count();
-            $tagihanSudahLunas = Tagihan::where('status', 'lunas')->count();
-            $pendingTransferCount = Tagihan::where('status', 'pending_transfer')->count();
-            $pendingOfflineCount = Tagihan::where('status', 'pending_offline')->count();
-            $tagihanBelumLunasBulanIni = Tagihan::where('bulan', now()->month)
-                ->where('tahun', now()->year)
-                ->where('status', '!=', 'lunas')
-                ->count();
-            $nominalTagihanTertunggak = Tagihan::where('status', '!=', 'lunas')->sum('total');
-
-            $tagihanBulanIni = Tagihan::with(['user', 'rumah'])
-                ->where('bulan', now()->month)
-                ->where('tahun', now()->year)
-                ->get();
-
-            $rumahBelumBayarBulanIni = $this->rumahBelumBayar($tagihanBulanIni);
-            $rumahBelumBayarCount = $rumahBelumBayarBulanIni->count();
-
-            $tagihanJatuhTempo = Tagihan::with(['user', 'rumah'])
-                ->whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline'])
-                ->get()
-                ->filter(fn (Tagihan $tagihan) => $tagihan->isDueSoon() || $tagihan->isOverdue())
-                ->sortBy(fn (Tagihan $tagihan) => $tagihan->due_date)
-                ->take(6)
-                ->values();
-
-            $kasKeluarTerbesarBulanIni = KasKeluar::whereMonth('tanggal', now()->month)
-                ->whereYear('tanggal', now()->year)
-                ->orderByDesc('jumlah')
-                ->limit(5)
-                ->get();
-
-            $netBulanIni = $masukBulanIni - $keluarBulanIni;
-            $totalRumahAktif = Rumah::where('status', 'aktif')->count();
-
-            $pengaduanPending = Pengaduan::where('status', 'pending')->count();
-            $pengaduanProses = Pengaduan::where('status', 'proses')->count();
-            $pengaduanSelesai = Pengaduan::where('status', 'selesai')->count();
-            $pengaduanTerbaru = Pengaduan::with('user')
-                ->latest()
-                ->limit(5)
-                ->get();
-
-            $tagihanMenungguVerifikasi = Tagihan::with('user')
-                ->whereIn('status', ['pending_transfer', 'pending_offline'])
-                ->latest()
-                ->limit(5)
-                ->get();
-
-            return compact(
-                'totalKasMasuk',
-                'totalKasKeluar',
-                'saldoAkhir',
-                'masukBulanIni',
-                'keluarBulanIni',
-                'chartDataMonthly',
-                'chartDataDaily',
-                'totalWarga',
-                'totalKepalaKeluarga',
-                'wargaAktifBulanIni',
-                'wargaBelumBayarBulanIni',
-                'topWarga',
-                'topWargaBulanIni',
-                'transaksiTerbaru',
-                'totalTagihan',
-                'tagihanBelumLunas',
-                'tagihanSudahLunas',
-                'pendingTransferCount',
-                'pendingOfflineCount',
-                'tagihanBelumLunasBulanIni',
-                'nominalTagihanTertunggak',
-                'rumahBelumBayarBulanIni',
-                'rumahBelumBayarCount',
-                'tagihanJatuhTempo',
-                'kasKeluarTerbesarBulanIni',
-                'netBulanIni',
-                'totalRumahAktif',
-                'pengaduanPending',
-                'pengaduanProses',
-                'pengaduanSelesai',
-                'pengaduanTerbaru',
-                'tagihanMenungguVerifikasi'
-            );
-        });
+        $stats = Cache::remember(self::CACHE_KEY, 300, fn () => $this->buildStats());
 
         $stats['chartData'] = $chartMode === 'daily'
             ? $stats['chartDataDaily']
@@ -162,6 +33,148 @@ class DashboardController extends Controller
         $stats['chartMode'] = $chartMode;
 
         return view('admin.dashboard', $stats);
+    }
+
+    private function buildStats(): array
+    {
+        $totalKasMasuk = KasMasuk::sum('jumlah');
+        $totalKasKeluar = KasKeluar::sum('jumlah');
+        $saldoAkhir = $totalKasMasuk - $totalKasKeluar;
+
+        $bulanSekarang = now()->startOfMonth();
+        $masukBulanIni = KasMasuk::whereDate('tanggal', '>=', $bulanSekarang)
+            ->sum('jumlah');
+        $keluarBulanIni = KasKeluar::whereDate('tanggal', '>=', $bulanSekarang)
+            ->sum('jumlah');
+
+        $chartDataMonthly = $this->getMonthlyChartData();
+        $chartDataDaily = $this->getDailyChartData();
+
+        $totalWarga = User::whereRelation('role', 'name', 'warga')->count();
+        $totalKepalaKeluarga = User::where('is_kepala_keluarga', true)->count();
+
+        $wargaAktifBulanIni = Tagihan::where('bulan', now()->month)
+            ->where('tahun', now()->year)
+            ->where('status', 'lunas')
+            ->count();
+
+        $wargaBelumBayarBulanIni = Tagihan::where('bulan', now()->month)
+            ->where('tahun', now()->year)
+            ->where('status', '!=', 'lunas')
+            ->count();
+
+        $topWarga = KasMasuk::selectRaw('users.id, users.name, SUM(kas_masuks.jumlah) as total_iuran')
+            ->join('users', 'kas_masuks.user_id', '=', 'users.id')
+            ->groupBy('users.id', 'users.name')
+            ->orderByDesc('total_iuran')
+            ->limit(5)
+            ->get()
+            ->all();
+
+        $topWargaBulanIni = KasMasuk::selectRaw('users.id, users.name, SUM(kas_masuks.jumlah) as total_iuran')
+            ->join('users', 'kas_masuks.user_id', '=', 'users.id')
+            ->whereDate('kas_masuks.tanggal', '>=', $bulanSekarang)
+            ->groupBy('users.id', 'users.name')
+            ->orderByDesc('total_iuran')
+            ->limit(5)
+            ->get()
+            ->all();
+
+        $transaksiTerbaru = KasMasuk::with('user')
+            ->orderBy('tanggal', 'desc')
+            ->limit(10)
+            ->get()
+            ->all();
+
+        $totalTagihan = Tagihan::count();
+        $tagihanBelumLunas = Tagihan::where('status', '!=', 'lunas')->count();
+        $tagihanSudahLunas = Tagihan::where('status', 'lunas')->count();
+        $pendingTransferCount = Tagihan::where('status', 'pending_transfer')->count();
+        $pendingOfflineCount = Tagihan::where('status', 'pending_offline')->count();
+        $tagihanBelumLunasBulanIni = Tagihan::where('bulan', now()->month)
+            ->where('tahun', now()->year)
+            ->where('status', '!=', 'lunas')
+            ->count();
+        $nominalTagihanTertunggak = Tagihan::where('status', '!=', 'lunas')->sum('total');
+
+        $tagihanBulanIni = Tagihan::with(['user', 'rumah'])
+            ->where('bulan', now()->month)
+            ->where('tahun', now()->year)
+            ->get();
+
+        $rumahBelumBayarBulanIni = $this->rumahBelumBayar($tagihanBulanIni);
+        $rumahBelumBayarCount = $rumahBelumBayarBulanIni->count();
+        $rumahBelumBayarBulanIni = $rumahBelumBayarBulanIni->all();
+
+        $tagihanJatuhTempo = Tagihan::with(['user', 'rumah'])
+            ->whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline'])
+            ->get()
+            ->filter(fn (Tagihan $tagihan) => $tagihan->isDueSoon() || $tagihan->isOverdue())
+            ->sortBy(fn (Tagihan $tagihan) => $tagihan->due_date)
+            ->take(6)
+            ->values()
+            ->all();
+
+        $kasKeluarTerbesarBulanIni = KasKeluar::whereMonth('tanggal', now()->month)
+            ->whereYear('tanggal', now()->year)
+            ->orderByDesc('jumlah')
+            ->limit(5)
+            ->get()
+            ->all();
+
+        $netBulanIni = $masukBulanIni - $keluarBulanIni;
+        $totalRumahAktif = Rumah::where('status', 'aktif')->count();
+
+        $pengaduanPending = Pengaduan::where('status', 'pending')->count();
+        $pengaduanProses = Pengaduan::where('status', 'proses')->count();
+        $pengaduanSelesai = Pengaduan::where('status', 'selesai')->count();
+        $pengaduanTerbaru = Pengaduan::with('user')
+            ->latest()
+            ->limit(5)
+            ->get()
+            ->all();
+
+        $tagihanMenungguVerifikasi = Tagihan::with('user')
+            ->whereIn('status', ['pending_transfer', 'pending_offline'])
+            ->latest()
+            ->limit(5)
+            ->get()
+            ->all();
+
+        return compact(
+            'totalKasMasuk',
+            'totalKasKeluar',
+            'saldoAkhir',
+            'masukBulanIni',
+            'keluarBulanIni',
+            'chartDataMonthly',
+            'chartDataDaily',
+            'totalWarga',
+            'totalKepalaKeluarga',
+            'wargaAktifBulanIni',
+            'wargaBelumBayarBulanIni',
+            'topWarga',
+            'topWargaBulanIni',
+            'transaksiTerbaru',
+            'totalTagihan',
+            'tagihanBelumLunas',
+            'tagihanSudahLunas',
+            'pendingTransferCount',
+            'pendingOfflineCount',
+            'tagihanBelumLunasBulanIni',
+            'nominalTagihanTertunggak',
+            'rumahBelumBayarBulanIni',
+            'rumahBelumBayarCount',
+            'tagihanJatuhTempo',
+            'kasKeluarTerbesarBulanIni',
+            'netBulanIni',
+            'totalRumahAktif',
+            'pengaduanPending',
+            'pengaduanProses',
+            'pengaduanSelesai',
+            'pengaduanTerbaru',
+            'tagihanMenungguVerifikasi'
+        );
     }
 
     private function getMonthlyChartData(): array

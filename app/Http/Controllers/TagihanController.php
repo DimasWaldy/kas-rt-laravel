@@ -272,6 +272,7 @@ class TagihanController extends Controller
         });
 
         Cache::forget('admin.dashboard.stats');
+        Cache::forget('admin.dashboard.stats.v2');
         Cache::forget('dashboard.stats.user.' . $tagihan->user_id);
 
         return redirect()->route('tagihan.admin')->with('success', 'Status tagihan berhasil diperbarui.');
