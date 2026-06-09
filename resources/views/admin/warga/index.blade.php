@@ -3,14 +3,14 @@
 @section('title', 'Data Warga')
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6" x-data="{ showWargaForm: {{ old('_form') === 'admin_warga' ? 'true' : 'false' }} }">
     <div class="rounded-3xl bg-white shadow-sm p-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800">Data Warga</h1>
                 <p class="mt-2 text-sm text-slate-500">Kelola profil warga, rumah/unit hunian, dan penanggung jawab iuran.</p>
             </div>
-            <a href="{{ route('admin.warga.create') }}" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition">+ Tambah Warga</a>
+            <button type="button" x-on:click="showWargaForm = true" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition">+ Tambah Warga</button>
         </div>
 
         <form method="GET" action="{{ route('admin.warga.index') }}" class="mb-6 grid gap-4 lg:grid-cols-[1.5fr_auto] xl:grid-cols-[1.5fr_auto_auto] items-end">
@@ -101,6 +101,124 @@
         <div class="mt-6">
             {{ $users->links() }}
         </div>
+    </div>
+
+    <div x-cloak x-show="showWargaForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" x-on:click.self="showWargaForm = false">
+        <section x-transition class="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
+            <div class="flex items-start justify-between bg-emerald-800 p-6 text-white">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.22em] text-emerald-100">Data Warga</p>
+                    <h2 class="mt-2 text-xl font-black">Tambah Warga Baru</h2>
+                    <p class="mt-1 text-sm text-emerald-50">Tambahkan warga, rumah, dan penanggung jawab iuran dari halaman ini.</p>
+                </div>
+                <button type="button" x-on:click="showWargaForm = false" class="rounded-xl p-2 text-white/80 transition hover:bg-white/10 hover:text-white" aria-label="Tutup form">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('admin.warga.store') }}" method="POST" class="space-y-6 p-6">
+                @csrf
+                <input type="hidden" name="_form" value="admin_warga">
+
+                @if(old('_form') === 'admin_warga' && $errors->any())
+                    <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                        Periksa kembali data warga yang diisi.
+                    </div>
+                @endif
+
+                <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700">Nama</label>
+                        <input type="text" name="name" value="{{ old('_form') === 'admin_warga' ? old('name') : '' }}" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('name') border-red-500 @enderror @endif" required>
+                        @if(old('_form') === 'admin_warga') @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700">Email</label>
+                        <input type="email" name="email" value="{{ old('_form') === 'admin_warga' ? old('email') : '' }}" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('email') border-red-500 @enderror @endif" required>
+                        @if(old('_form') === 'admin_warga') @error('email') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700">Password</label>
+                        <input type="password" name="password" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('password') border-red-500 @enderror @endif" required>
+                        @if(old('_form') === 'admin_warga') @error('password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700">Jumlah Anggota Keluarga</label>
+                        <input type="number" name="jumlah_anggota_keluarga" value="{{ old('_form') === 'admin_warga' ? old('jumlah_anggota_keluarga') : 1 }}" min="1" max="20" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('jumlah_anggota_keluarga') border-red-500 @enderror @endif">
+                        @if(old('_form') === 'admin_warga') @error('jumlah_anggota_keluarga') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
+                    </div>
+
+                    <div class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
+                        <h3 class="text-sm font-black text-emerald-900">Data Rumah / Unit Hunian</h3>
+                        <p class="mt-1 text-xs text-emerald-700">Tagihan iuran dibuat per rumah. Satu rumah bisa punya lebih dari satu KK.</p>
+
+                        <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700">Pilih Rumah yang Sudah Ada</label>
+                                <select name="rumah_id" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                                    <option value="">Buat rumah baru / belum ditentukan</option>
+                                    @foreach($rumahs as $rumah)
+                                        <option value="{{ $rumah->id }}" {{ old('_form') === 'admin_warga' && old('rumah_id') == $rumah->id ? 'selected' : '' }}>{{ $rumah->label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700">Kode Rumah Baru</label>
+                                <input type="text" name="rumah_kode" value="{{ old('_form') === 'admin_warga' ? old('rumah_kode') : '' }}" placeholder="Contoh: A-01" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                            </div>
+
+                            <div class="lg:col-span-2">
+                                <label class="block text-sm font-bold text-slate-700">Alamat Rumah Baru</label>
+                                <input type="text" name="rumah_alamat" value="{{ old('_form') === 'admin_warga' ? old('rumah_alamat') : '' }}" placeholder="Contoh: Jl. Melati No. 1" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700">No. KK</label>
+                        <input type="text" name="no_kk" value="{{ old('_form') === 'admin_warga' ? old('no_kk') : '' }}" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" autocomplete="off" placeholder="16 digit angka" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('no_kk') border-red-500 @enderror @endif">
+                        @if(old('_form') === 'admin_warga') @error('no_kk') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700">Telepon</label>
+                        <input type="text" name="phone" value="{{ old('_form') === 'admin_warga' ? old('phone') : '' }}" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" placeholder="10-13 digit angka" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('phone') border-red-500 @enderror @endif">
+                        @if(old('_form') === 'admin_warga') @error('phone') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700">RT</label>
+                        <input type="text" name="rt" value="{{ old('_form') === 'admin_warga' ? old('rt') : '' }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('rt') border-red-500 @enderror @endif">
+                        @if(old('_form') === 'admin_warga') @error('rt') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700">RW</label>
+                        <input type="text" name="rw" value="{{ old('_form') === 'admin_warga' ? old('rw') : '' }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('rw') border-red-500 @enderror @endif">
+                        @if(old('_form') === 'admin_warga') @error('rw') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
+                    </div>
+
+                    <label class="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
+                        <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('_form') === 'admin_warga' && old('is_kepala_keluarga') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        Kepala Keluarga
+                    </label>
+
+                    <label class="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
+                        <input type="checkbox" name="is_penanggung_jawab_rumah" value="1" {{ old('_form') === 'admin_warga' && old('is_penanggung_jawab_rumah') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        Penanggung Jawab Iuran Rumah
+                    </label>
+                </div>
+
+                <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+                    <button type="button" x-on:click="showWargaForm = false" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-700">Tambah Warga</button>
+                </div>
+            </form>
+        </section>
     </div>
 </div>
 

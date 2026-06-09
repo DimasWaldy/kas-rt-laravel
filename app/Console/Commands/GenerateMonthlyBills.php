@@ -11,7 +11,7 @@ class GenerateMonthlyBills extends Command
     protected $signature = 'bills:generate';
     protected $description = 'Otomatis menyalin iuran dari bulan sebelumnya dan membangkitkan tagihan warga';
 
-    public function handle()
+    public function handle(): int
     {
         $now = now();
         $bulan = $now->month;
@@ -59,8 +59,16 @@ class GenerateMonthlyBills extends Command
             }
         }
 
-        // 2. Bangkitkan tagihan KK untuk kepala keluarga
-        Tagihan::generateForMonth($bulan, $tahun);
-        $this->info("Selesai! Tagihan keluarga telah berhasil diproses untuk kepala keluarga.");
+        // 2. Bangkitkan tagihan KK untuk kepala keluarga.
+        // Tagihan::generate() idempotent: kombinasi rumah + periode + billing_group
+        // yang sudah ada tidak akan di-insert ulang.
+        $result = Tagihan::generate($bulan, $tahun);
+
+        $this->info('Selesai! Tagihan keluarga telah diproses.');
+        $this->line('Tagihan baru dibuat: ' . $result['created']);
+        $this->line('Tagihan dilewati karena sudah ada: ' . $result['skipped']);
+        $this->line('Tagihan yang diperbarui nominal/detailnya: ' . $result['updated']);
+
+        return self::SUCCESS;
     }
 }

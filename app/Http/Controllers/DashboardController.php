@@ -8,142 +8,147 @@ use App\Models\KasKeluar;
 use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $kasMasuk = KasMasuk::sum('jumlah');
-        $kasKeluar = KasKeluar::sum('jumlah');
+        $stats = Cache::remember('dashboard.stats.user.' . Auth::id(), 300, function () {
+            $kasMasuk = KasMasuk::sum('jumlah');
+            $kasKeluar = KasKeluar::sum('jumlah');
 
-        $tanggal = KasMasuk::pluck('tanggal');
-        $dataMasuk = KasMasuk::pluck('jumlah');
-        $dataKeluar = KasKeluar::pluck('jumlah');
+            $tanggal = KasMasuk::pluck('tanggal');
+            $dataMasuk = KasMasuk::pluck('jumlah');
+            $dataKeluar = KasKeluar::pluck('jumlah');
 
-        $totalWarga = User::whereRelation('role', 'name', 'warga')->count();
-        $totalRumah = Rumah::count();
-        $totalKK = $totalRumah ?: User::whereNotNull('no_kk')->distinct('no_kk')->count('no_kk');
-        $totalKepalaKeluarga = User::where('is_kepala_keluarga', true)->count();
-        $totalRegistrations = User::count();
-        $totalWargaByKK = $totalWarga;
+            $totalWarga = User::whereRelation('role', 'name', 'warga')->count();
+            $totalRumah = Rumah::count();
+            $totalKK = $totalRumah ?: User::whereNotNull('no_kk')->distinct('no_kk')->count('no_kk');
+            $totalKepalaKeluarga = User::where('is_kepala_keluarga', true)->count();
+            $totalRegistrations = User::count();
+            $totalWargaByKK = $totalWarga;
 
-        $rumahAktifBulanIni = Tagihan::where('bulan', now()->month)
-            ->where('tahun', now()->year)
-            ->where('status', 'lunas')
-            ->whereNotNull('rumah_id')
-            ->distinct('rumah_id')
-            ->count('rumah_id');
+            $rumahAktifBulanIni = Tagihan::where('bulan', now()->month)
+                ->where('tahun', now()->year)
+                ->where('status', 'lunas')
+                ->whereNotNull('rumah_id')
+                ->distinct('rumah_id')
+                ->count('rumah_id');
 
-        $kepalaKeluargaAktif = $totalRumah
-            ? $rumahAktifBulanIni
-            : User::whereIn('id', KasMasuk::whereMonth('tanggal', now()->month)->whereYear('tanggal', now()->year)->pluck('user_id')->unique())
-                ->where('is_kepala_keluarga', true)
+            $kepalaKeluargaAktif = $totalRumah
+                ? $rumahAktifBulanIni
+                : User::whereIn('id', KasMasuk::whereMonth('tanggal', now()->month)->whereYear('tanggal', now()->year)->pluck('user_id')->unique())
+                    ->where('is_kepala_keluarga', true)
+                    ->count();
+
+            $keluargaBelumBayar = $totalRumah
+                ? max($totalRumah - $rumahAktifBulanIni, 0)
+                : User::where('is_kepala_keluarga', true)
+                    ->whereNotIn('id', KasMasuk::whereMonth('tanggal', now()->month)->whereYear('tanggal', now()->year)->pluck('user_id')->unique())
+                    ->count();
+
+            $iuranPerKK = KasMasuk::selectRaw('users.no_kk, users.name as kepala_keluarga, SUM(kas_masuks.jumlah) as total_iuran')
+                ->join('users', 'kas_masuks.user_id', '=', 'users.id')
+                ->groupBy('users.no_kk', 'users.name')
+                ->orderByDesc('total_iuran')
+                ->limit(5)
+                ->get();
+
+            $leaderboard = KasMasuk::selectRaw('user_id, SUM(jumlah) as total')
+                ->groupBy('user_id')
+                ->orderByDesc('total')
+                ->with('user')
+                ->limit(5)
+                ->get();
+
+            $dueSoon = Tagihan::whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline'])
+                ->get()
+                ->filter(fn($tagihan) => $tagihan->isDueSoon())
                 ->count();
 
-        $keluargaBelumBayar = $totalRumah
-            ? max($totalRumah - $rumahAktifBulanIni, 0)
-            : User::where('is_kepala_keluarga', true)
-                ->whereNotIn('id', KasMasuk::whereMonth('tanggal', now()->month)->whereYear('tanggal', now()->year)->pluck('user_id')->unique())
+            $overdueCount = Tagihan::whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline'])
+                ->get()
+                ->filter(fn($tagihan) => $tagihan->isOverdue())
                 ->count();
 
-        $iuranPerKK = KasMasuk::selectRaw('users.no_kk, users.name as kepala_keluarga, SUM(kas_masuks.jumlah) as total_iuran')
-            ->join('users', 'kas_masuks.user_id', '=', 'users.id')
-            ->groupBy('users.no_kk', 'users.name')
-            ->orderByDesc('total_iuran')
-            ->limit(5)
-            ->get();
+            $totalPaidTagihan = Tagihan::where('status', 'lunas')->count();
+            $totalUnpaidTagihan = Tagihan::whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline'])->count();
+            $monthlyRevenue = KasMasuk::whereMonth('tanggal', now()->month)
+                ->whereYear('tanggal', now()->year)
+                ->sum('jumlah');
+            $pendingTransferCount = Tagihan::where('status', 'pending_transfer')->count();
 
-        $leaderboard = KasMasuk::selectRaw('user_id, SUM(jumlah) as total')
-            ->groupBy('user_id')
-            ->orderByDesc('total')
-            ->with('user')
-            ->limit(5)
-            ->get();
+            $user = Auth::user();
+            $statusOwnerId = $user->id;
+            $statusQuery = Tagihan::query();
 
-        $dueSoon = Tagihan::whereIn('status', ['belum_bayar', 'pending_transfer', 'pending_offline'])
-            ->get()
-            ->filter(fn($tagihan) => $tagihan->isDueSoon())
-            ->count();
+            if ($user->rumah_id) {
+                $statusQuery->where('rumah_id', $user->rumah_id);
+            } elseif (! $user->is_kepala_keluarga && filled($user->no_kk)) {
+                $statusOwnerId = User::where('no_kk', $user->no_kk)
+                    ->where('is_kepala_keluarga', true)
+                    ->value('id') ?? $user->id;
+                $statusQuery->where('user_id', $statusOwnerId);
+            } else {
+                $statusQuery->where('user_id', $statusOwnerId);
+            }
 
-        $overdueCount = Tagihan::whereIn('status', ['belum_bayar', 'pending_transfer', 'pending_offline'])
-            ->get()
-            ->filter(fn($tagihan) => $tagihan->isOverdue())
-            ->count();
+            $userStatus = $statusQuery
+                ->where('bulan', now()->month)
+                ->where('tahun', now()->year)
+                ->value('status');
 
-        $totalPaidTagihan = Tagihan::where('status', 'lunas')->count();
-        $totalUnpaidTagihan = Tagihan::whereIn('status', ['belum_bayar', 'pending_transfer', 'pending_offline'])->count();
-        $monthlyRevenue = KasMasuk::whereMonth('tanggal', now()->month)
-            ->whereYear('tanggal', now()->year)
-            ->sum('jumlah');
-        $pendingTransferCount = Tagihan::where('status', 'pending_transfer')->count();
+            $topKKIuran = KasMasuk::selectRaw('COALESCE(rumahs.kode_rumah, users.no_kk) as no_kk, COALESCE(rumahs.alamat, users.name) as kepala_keluarga, SUM(kas_masuks.jumlah) as total_iuran')
+                ->leftJoin('tagihans', 'kas_masuks.tagihan_id', '=', 'tagihans.id')
+                ->leftJoin('rumahs', 'tagihans.rumah_id', '=', 'rumahs.id')
+                ->join('users', 'kas_masuks.user_id', '=', 'users.id')
+                ->groupBy('rumahs.kode_rumah', 'rumahs.alamat', 'users.no_kk', 'users.name')
+                ->orderByDesc('total_iuran')
+                ->limit(5)
+                ->get();
 
-        $user = auth()->user();
-        $statusOwnerId = $user->id;
-        $statusQuery = Tagihan::query();
+            $leaderboard = KasMasuk::selectRaw('user_id, SUM(jumlah) as total')
+                ->groupBy('user_id')
+                ->orderByDesc('total')
+                ->with('user')
+                ->limit(5)
+                ->get();
 
-        if ($user->rumah_id) {
-            $statusQuery->where('rumah_id', $user->rumah_id);
-        } elseif (! $user->is_kepala_keluarga && filled($user->no_kk)) {
-            $statusOwnerId = User::where('no_kk', $user->no_kk)
-                ->where('is_kepala_keluarga', true)
-                ->value('id') ?? $user->id;
-            $statusQuery->where('user_id', $statusOwnerId);
-        } else {
-            $statusQuery->where('user_id', $statusOwnerId);
-        }
+            $recentAuditLogs = AuditLog::with('user')
+                ->latest()
+                ->limit(5)
+                ->get();
 
-        $userStatus = $statusQuery
-            ->where('bulan', now()->month)
-            ->where('tahun', now()->year)
-            ->value('status');
+            return compact(
+                'kasMasuk',
+                'kasKeluar',
+                'tanggal',
+                'dataMasuk',
+                'dataKeluar',
+                'leaderboard',
+                'totalWarga',
+                'totalKK',
+                'totalRumah',
+                'totalKepalaKeluarga',
+                'totalRegistrations',
+                'totalWargaByKK',
+                'kepalaKeluargaAktif',
+                'keluargaBelumBayar',
+                'iuranPerKK',
+                'dueSoon',
+                'overdueCount',
+                'totalPaidTagihan',
+                'totalUnpaidTagihan',
+                'monthlyRevenue',
+                'pendingTransferCount',
+                'userStatus',
+                'topKKIuran',
+                'recentAuditLogs'
+            );
+        });
 
-        $topKKIuran = KasMasuk::selectRaw('COALESCE(rumahs.kode_rumah, users.no_kk) as no_kk, COALESCE(rumahs.alamat, users.name) as kepala_keluarga, SUM(kas_masuks.jumlah) as total_iuran')
-            ->leftJoin('tagihans', 'kas_masuks.tagihan_id', '=', 'tagihans.id')
-            ->leftJoin('rumahs', 'tagihans.rumah_id', '=', 'rumahs.id')
-            ->join('users', 'kas_masuks.user_id', '=', 'users.id')
-            ->groupBy('rumahs.kode_rumah', 'rumahs.alamat', 'users.no_kk', 'users.name')
-            ->orderByDesc('total_iuran')
-            ->limit(5)
-            ->get();
-
-        $leaderboard = KasMasuk::selectRaw('user_id, SUM(jumlah) as total')
-            ->groupBy('user_id')
-            ->orderByDesc('total')
-            ->with('user')
-            ->limit(5)
-            ->get();
-
-        $recentAuditLogs = AuditLog::with('user')
-            ->latest()
-            ->limit(5)
-            ->get();
-
-        return view('dashboard', compact(
-            'kasMasuk',
-            'kasKeluar',
-            'tanggal',
-            'dataMasuk',
-            'dataKeluar',
-            'leaderboard',
-            'totalWarga',
-            'totalKK',
-            'totalRumah',
-            'totalKepalaKeluarga',
-            'totalRegistrations',
-            'totalWargaByKK',
-            'kepalaKeluargaAktif',
-            'keluargaBelumBayar',
-            'iuranPerKK',
-            'dueSoon',
-            'overdueCount',
-            'totalPaidTagihan',
-            'totalUnpaidTagihan',
-            'monthlyRevenue',
-            'pendingTransferCount',
-            'userStatus',
-            'topKKIuran',
-            'recentAuditLogs'
-        ));
+        return view('dashboard', $stats);
     }
 }

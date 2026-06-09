@@ -29,7 +29,7 @@ trait Auditable
         return $this->morphMany(AuditLog::class, 'auditable');
     }
 
-    protected function recordAudit(string $event, array $oldValues = []): void
+    protected function recordAudit(string $event, array $oldValues = [], ?string $notes = null): void
     {
         AuditLog::create([
             'user_id' => Auth::id(),
@@ -38,9 +38,14 @@ trait Auditable
             'event' => $event,
             'old_values' => $oldValues ?: null,
             'new_values' => $this->getAttributes(),
-            'notes' => null,
+            'notes' => $notes,
             'ip_address' => Request::ip(),
             'user_agent' => Request::userAgent(),
         ]);
+    }
+
+    public function recordAuditWithNote(string $event, array $oldValues = [], ?string $notes = null): void
+    {
+        $this->recordAudit($event, $oldValues, $notes);
     }
 }

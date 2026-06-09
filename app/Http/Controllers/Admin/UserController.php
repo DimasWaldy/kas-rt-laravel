@@ -44,7 +44,9 @@ class UserController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('admin.warga.index', compact('users'));
+        $rumahs = Rumah::orderBy('kode_rumah')->get();
+
+        return view('admin.warga.index', compact('users', 'rumahs'));
     }
 
     public function edit(User $user): View

@@ -3,7 +3,7 @@
 @section('title', 'Pengaduan & Aspirasi Warga')
 
 @section('content')
-<div class="font-sans">
+<div class="font-sans" x-data="{ showPengaduanForm: {{ old('_form') === 'pengaduan' ? 'true' : 'false' }} }">
 
     {{-- =============================================
          SECTION 1: STATISTIK RINGKAS
@@ -95,11 +95,11 @@
 
         {{-- Action Button --}}
         <div>
-            <a href="{{ route('pengaduan.create') }}" 
+            <button type="button" x-on:click="showPengaduanForm = true"
                class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm px-5 py-3 rounded-2xl shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all transform hover:-translate-y-0.5">
                 <i class="fa-solid fa-plus text-xs"></i>
                 Tulis Pengaduan Baru
-            </a>
+            </button>
         </div>
     </div>
 
@@ -113,10 +113,10 @@
             </div>
             <h4 class="text-base font-bold text-slate-800 mb-1">Belum Ada Pengaduan</h4>
             <p class="text-sm text-slate-500 max-w-md mx-auto mb-6">Tidak menemukan laporan dengan kategori atau filter saat ini. Aspirasi Anda sangat berharga untuk kemajuan lingkungan RT kita.</p>
-            <a href="{{ route('pengaduan.create') }}" class="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition">
+            <button type="button" x-on:click="showPengaduanForm = true" class="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition">
                 <i class="fa-solid fa-pen-nib"></i>
                 Tulis Aspirasi Sekarang
-            </a>
+            </button>
         </div>
     @else
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -221,6 +221,100 @@
             {{ $pengaduans->links() }}
         </div>
     @endif
+
+    <div x-cloak x-show="showPengaduanForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" x-on:click.self="showPengaduanForm = false">
+        <section x-transition class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
+            <div class="flex items-start justify-between bg-emerald-800 p-6 text-white">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.22em] text-emerald-100">Pengaduan Warga</p>
+                    <h2 class="mt-2 text-xl font-black">Tulis Pengaduan Baru</h2>
+                    <p class="mt-1 text-sm text-emerald-50">Aduan akan masuk ke daftar pengurus RT untuk ditindaklanjuti.</p>
+                </div>
+                <button type="button" x-on:click="showPengaduanForm = false" class="rounded-xl p-2 text-white/80 transition hover:bg-white/10 hover:text-white" aria-label="Tutup form">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('pengaduan.store') }}" method="POST" enctype="multipart/form-data" class="space-y-5 p-6">
+                @csrf
+                <input type="hidden" name="_form" value="pengaduan">
+
+                @if(old('_form') === 'pengaduan' && $errors->any())
+                    <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                        Periksa kembali data pengaduan yang diisi.
+                    </div>
+                @endif
+
+                <div>
+                    <label for="judul" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Judul Pengaduan</label>
+                    <input type="text" name="judul" id="judul" value="{{ old('_form') === 'pengaduan' ? old('judul') : '' }}" required
+                        class="w-full rounded-2xl border px-4 py-3 text-sm transition-all focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 @if(old('_form') === 'pengaduan') @error('judul') border-red-400 @else border-slate-200 @enderror @else border-slate-200 @endif"
+                        placeholder="Contoh: Lampu Jalan Blok C Padam">
+                    @if(old('_form') === 'pengaduan')
+                        @error('judul')
+                            <p class="mt-1 text-xs font-semibold text-red-500">{{ $message }}</p>
+                        @enderror
+                    @endif
+                </div>
+
+                <div>
+                    <label for="kategori" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Kategori</label>
+                    <select name="kategori" id="kategori" required
+                        class="w-full rounded-2xl border bg-white px-4 py-3 text-sm transition-all focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 @if(old('_form') === 'pengaduan') @error('kategori') border-red-400 @else border-slate-200 @enderror @else border-slate-200 @endif">
+                        <option value="">Pilih Kategori</option>
+                        <option value="Keamanan" {{ old('_form') === 'pengaduan' && old('kategori') === 'Keamanan' ? 'selected' : '' }}>Keamanan & Ketertiban</option>
+                        <option value="Kebersihan" {{ old('_form') === 'pengaduan' && old('kategori') === 'Kebersihan' ? 'selected' : '' }}>Kebersihan Lingkungan / Sampah</option>
+                        <option value="Infrastruktur" {{ old('_form') === 'pengaduan' && old('kategori') === 'Infrastruktur' ? 'selected' : '' }}>Infrastruktur / Jalan / Saluran Air</option>
+                        <option value="Sosial" {{ old('_form') === 'pengaduan' && old('kategori') === 'Sosial' ? 'selected' : '' }}>Masalah Sosial & Warga</option>
+                        <option value="Lainnya" {{ old('_form') === 'pengaduan' && old('kategori') === 'Lainnya' ? 'selected' : '' }}>Lainnya / Aspirasi Umum</option>
+                    </select>
+                    @if(old('_form') === 'pengaduan')
+                        @error('kategori')
+                            <p class="mt-1 text-xs font-semibold text-red-500">{{ $message }}</p>
+                        @enderror
+                    @endif
+                </div>
+
+                <div>
+                    <label for="deskripsi" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Isi Pengaduan / Kronologi</label>
+                    <textarea name="deskripsi" id="deskripsi" rows="5" required
+                        class="w-full rounded-2xl border px-4 py-3 text-sm leading-relaxed transition-all focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 @if(old('_form') === 'pengaduan') @error('deskripsi') border-red-400 @else border-slate-200 @enderror @else border-slate-200 @endif"
+                        placeholder="Tuliskan lokasi, kronologi, dan detail penunjang agar pengurus RT dapat merespon.">{{ old('_form') === 'pengaduan' ? old('deskripsi') : '' }}</textarea>
+                    @if(old('_form') === 'pengaduan')
+                        @error('deskripsi')
+                            <p class="mt-1 text-xs font-semibold text-red-500">{{ $message }}</p>
+                        @enderror
+                    @endif
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Unggah Foto Bukti</label>
+                    <label class="mt-1 flex cursor-pointer justify-center rounded-3xl border-2 border-dashed border-emerald-200 bg-emerald-50/50 px-6 py-6 text-center transition hover:bg-emerald-50">
+                        <div>
+                            <i class="fa-regular fa-image mb-3 block text-3xl text-emerald-500"></i>
+                            <span class="text-sm font-bold text-emerald-800">Pilih berkas foto</span>
+                            <p class="mt-1 text-xs text-emerald-700">PNG, JPG, JPEG maks. 2MB</p>
+                            <input name="foto" type="file" class="sr-only" accept="image/*">
+                        </div>
+                    </label>
+                    @if(old('_form') === 'pengaduan')
+                        @error('foto')
+                            <p class="mt-1 text-xs font-semibold text-red-500">{{ $message }}</p>
+                        @enderror
+                    @endif
+                </div>
+
+                <div class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:justify-between">
+                    <button type="button" x-on:click="showPengaduanForm = false" class="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50">
+                        Batal
+                    </button>
+                    <button type="submit" class="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-bold text-white transition hover:bg-emerald-800">
+                        Kirim Laporan
+                    </button>
+                </div>
+            </form>
+        </section>
+    </div>
 
 </div>
 @endsection

@@ -6,8 +6,11 @@ use App\Models\Role;
 use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 
 test('admin dashboard exposes actionable finance and billing data', function () {
+    Cache::forget('admin.dashboard.stats');
+
     $adminRole = Role::firstOrCreate(['name' => 'admin'], ['description' => 'Admin']);
     $wargaRole = Role::firstOrCreate(['name' => 'warga'], ['description' => 'Warga']);
 
@@ -73,6 +76,22 @@ test('admin dashboard exposes actionable finance and billing data', function () 
     $response->assertViewHas('totalRumahAktif', 1);
     $response->assertViewHas('rumahBelumBayarBulanIni', fn ($items) => $items->count() === 1);
     $response->assertViewHas('kasKeluarTerbesarBulanIni', fn ($items) => $items->first()->jumlah === 25000);
+    $response->assertViewHas('chartData', function (array $chartData) {
+        return count($chartData['months']) === 12
+            && $chartData['masukData'][11] === 50000
+            && $chartData['keluarData'][11] === 25000;
+    });
     $response->assertSee('Prioritas Hari Ini');
     $response->assertSee('Kas Keluar Terbesar Bulan Ini');
+
+    $dailyResponse = $this->actingAs($admin)->get(route('admin.dashboard', ['chart' => 'daily']));
+
+    $dailyResponse->assertOk();
+    $dailyResponse->assertViewHas('chartData', function (array $chartData) {
+        $todayIndex = now()->day - 1;
+
+        return count($chartData['months']) === now()->daysInMonth
+            && $chartData['masukData'][$todayIndex] === 50000
+            && $chartData['keluarData'][$todayIndex] === 25000;
+    });
 });

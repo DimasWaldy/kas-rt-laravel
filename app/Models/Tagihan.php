@@ -7,15 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
-use App\Models\AuditLog;
 use App\Models\IuranBulanan;
+use App\Services\TagihanService;
 use App\Models\User;
-use App\Notifications\TagihanCreated;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tagihan extends Model
 {
-    use Auditable;
+    use Auditable, SoftDeletes;
+
+    public const BILLING_GROUP_MANUAL = 'manual';
+
     protected $fillable = [
         'user_id',
         'rumah_id',
@@ -32,6 +34,8 @@ class Tagihan extends Model
         'note',
         'verification_note',
         'rejection_reason',
+        'rejected_at',
+        'rejected_by',
         'verified_by',
         'verified_at',
         'paid_at',
@@ -40,6 +44,7 @@ class Tagihan extends Model
     protected $casts = [
         'paid_at' => 'datetime',
         'verified_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -55,6 +60,11 @@ class Tagihan extends Model
     public function verifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function rejecter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 
     public function scopeForMonth($query, int $bulan, int $tahun)
@@ -176,89 +186,9 @@ class Tagihan extends Model
         return 'bg-slate-100 text-slate-700';
     }
 
-    public static function generateForMonth(int $bulan, int $tahun): void
+    public static function generate(int $bulan, int $tahun): array
     {
-        $groups = IuranBulanan::forMonth($bulan, $tahun)
-            ->get()
-            ->groupBy(fn (IuranBulanan $iuran) => self::billingGroupForIuran($iuran))
-            ->filter(fn ($items) => $items->sum('jumlah') > 0);
-
-        if ($groups->isEmpty()) {
-            return;
-        }
-
-        Rumah::with('penanggungJawab')
-            ->where('status', 'aktif')
-            ->whereNotNull('penanggung_jawab_id')
-            ->get()
-            ->each(function (Rumah $rumah) use ($bulan, $tahun, $groups) {
-                $user = $rumah->penanggungJawab;
-                if (! $user) {
-                    return;
-                }
-
-                $groups->each(function ($items, string $group) use ($rumah, $user, $bulan, $tahun) {
-                    $tagihan = self::firstOrNew([
-                        'rumah_id' => $rumah->id,
-                        'bulan' => $bulan,
-                        'tahun' => $tahun,
-                        'billing_group' => $group,
-                    ]);
-
-                    $wasNew = ! $tagihan->exists;
-                    $oldValues = $tagihan->getOriginal();
-
-                    $tagihan->user_id = $user->id;
-                    $tagihan->judul = self::titleForGroup($items, $group);
-                    if ($wasNew) {
-                        $tagihan->total = (int) $items->sum('jumlah');
-                        $tagihan->status = 'belum_bayar';
-                        $tagihan->payment_method = 'none';
-                        $tagihan->verification_status = 'belum_dikirim';
-                        $tagihan->transaction_number = null;
-                        $tagihan->bukti = null;
-                        $tagihan->note = null;
-                        $tagihan->verification_note = null;
-                        $tagihan->rejection_reason = null;
-                        $tagihan->verified_by = null;
-                        $tagihan->verified_at = null;
-                        $tagihan->paid_at = null;
-                    } elseif ($tagihan->status === 'belum_bayar') {
-                        $tagihan->total = (int) $items->sum('jumlah');
-
-                        if ($tagihan->verification_status !== 'ditolak') {
-                            $tagihan->payment_method = 'none';
-                            $tagihan->verification_status = 'belum_dikirim';
-                            $tagihan->transaction_number = null;
-                            $tagihan->bukti = null;
-                            $tagihan->note = null;
-                            $tagihan->verification_note = null;
-                            $tagihan->rejection_reason = null;
-                            $tagihan->verified_by = null;
-                            $tagihan->verified_at = null;
-                            $tagihan->paid_at = null;
-                        }
-                    }
-
-                    $tagihan->save();
-
-                    if ($wasNew || $tagihan->wasChanged()) {
-                        AuditLog::create([
-                            'user_id' => null,
-                            'auditable_type' => self::class,
-                            'auditable_id' => $tagihan->id,
-                            'event' => 'tagihan_generated',
-                            'old_values' => $wasNew ? null : $oldValues,
-                            'new_values' => $tagihan->getAttributes(),
-                            'notes' => 'Tagihan ' . $tagihan->display_title . ' otomatis dibuat untuk bulan ' . $bulan . ' tahun ' . $tahun,
-                        ]);
-                    }
-
-                    if ($wasNew && filled($user->phone)) {
-                        Notification::send($user, new TagihanCreated($tagihan));
-                    }
-                });
-            });
+        return app(TagihanService::class)->generateForMonth($bulan, $tahun);
     }
 
     /**
@@ -278,6 +208,7 @@ class Tagihan extends Model
         return match ($this->status) {
             'pending_transfer' => 'Menunggu Konfirmasi',
             'pending_offline' => 'Bayar Offline',
+            'failed' => 'Pembayaran Ditolak',
             'lunas' => 'Lunas',
             default => 'Belum Bayar',
         };

@@ -43,7 +43,7 @@ test('monthly bills are generated once per rumah even when a rumah has multiple 
         'is_wajib' => true,
     ]);
 
-    Tagihan::generateForMonth(5, 2026);
+    Tagihan::generate(5, 2026);
 
     expect(Tagihan::where('rumah_id', $rumah->id)->count())->toBe(1);
     expect(Tagihan::where('rumah_id', $rumah->id)->first()->user_id)->toBe($penanggungJawab->id);
@@ -84,7 +84,7 @@ test('additional iuran creates separate bill except kebersihan and keamanan are 
         'is_wajib' => true,
     ]);
 
-    Tagihan::generateForMonth(5, 2026);
+    Tagihan::generate(5, 2026);
 
     $routineBill = Tagihan::where('rumah_id', $rumah->id)
         ->where('billing_group', 'iuran_rutin')
@@ -104,7 +104,7 @@ test('additional iuran creates separate bill except kebersihan and keamanan are 
         'is_wajib' => false,
     ]);
 
-    Tagihan::generateForMonth(5, 2026);
+    Tagihan::generate(5, 2026);
 
     $routineBill = $routineBill->fresh();
     $maulidBill = Tagihan::where('rumah_id', $rumah->id)
@@ -161,7 +161,7 @@ test('regenerating bills does not reset paid or pending bills', function () {
         'is_wajib' => true,
     ]);
 
-    Tagihan::generateForMonth(5, 2026);
+    Tagihan::generate(5, 2026);
 
     $paidBill = Tagihan::where('rumah_id', $paidHouse->id)->firstOrFail();
     $pendingBill = Tagihan::where('rumah_id', $pendingHouse->id)->firstOrFail();
@@ -187,7 +187,7 @@ test('regenerating bills does not reset paid or pending bills', function () {
         'is_wajib' => true,
     ]);
 
-    Tagihan::generateForMonth(5, 2026);
+    Tagihan::generate(5, 2026);
 
     expect($paidBill->fresh()->status)->toBe('lunas');
     expect($paidBill->fresh()->total)->toBe(20000);
@@ -224,11 +224,11 @@ test('regenerating bills keeps rejected proof reason until resident resubmits', 
         'is_wajib' => true,
     ]);
 
-    Tagihan::generateForMonth(5, 2026);
+    Tagihan::generate(5, 2026);
 
     $tagihan = Tagihan::where('rumah_id', $rumah->id)->firstOrFail();
     $tagihan->update([
-        'status' => 'belum_bayar',
+        'status' => 'failed',
         'payment_method' => 'transfer',
         'verification_status' => 'ditolak',
         'transaction_number' => 'TRX-20260501-ABC123',
@@ -244,7 +244,7 @@ test('regenerating bills keeps rejected proof reason until resident resubmits', 
         'is_wajib' => true,
     ]);
 
-    Tagihan::generateForMonth(5, 2026);
+    Tagihan::generate(5, 2026);
 
     $tagihan->refresh();
 
@@ -299,4 +299,58 @@ test('non penanggung jawab rumah cannot submit payment for rumah bill', function
     $response->assertSessionHas('error', 'Hanya penanggung jawab rumah yang dapat membayar tagihan iuran.');
 
     expect($tagihan->fresh()->status)->toBe('belum_bayar');
+});
+
+test('monthly bill command is idempotent and reports created skipped and updated counts', function () {
+    $role = Role::firstOrCreate(['name' => 'warga'], ['description' => 'Warga']);
+
+    $rumah = Rumah::create([
+        'kode_rumah' => 'T-07',
+        'alamat' => 'Jl. Test No. 7',
+        'rt' => '001',
+        'rw' => '002',
+    ]);
+
+    $penanggungJawab = User::factory()->create([
+        'role_id' => $role->id,
+        'rumah_id' => $rumah->id,
+        'is_kepala_keluarga' => true,
+        'is_penanggung_jawab_rumah' => true,
+    ]);
+
+    $rumah->update(['penanggung_jawab_id' => $penanggungJawab->id]);
+
+    IuranBulanan::create([
+        'nama' => 'Iuran Keamanan',
+        'jumlah' => 15000,
+        'bulan' => now()->month,
+        'tahun' => now()->year,
+        'is_wajib' => true,
+    ]);
+
+    $this->artisan('bills:generate')
+        ->expectsOutput('Mengecek iuran untuk periode ' . now()->month . '/' . now()->year . '...')
+        ->expectsOutput('Selesai! Tagihan keluarga telah diproses.')
+        ->expectsOutput('Tagihan baru dibuat: 1')
+        ->expectsOutput('Tagihan dilewati karena sudah ada: 0')
+        ->expectsOutput('Tagihan yang diperbarui nominal/detailnya: 0')
+        ->assertExitCode(0);
+
+    expect(Tagihan::where('rumah_id', $rumah->id)
+        ->where('bulan', now()->month)
+        ->where('tahun', now()->year)
+        ->count())->toBe(1);
+
+    $this->artisan('bills:generate')
+        ->expectsOutput('Mengecek iuran untuk periode ' . now()->month . '/' . now()->year . '...')
+        ->expectsOutput('Selesai! Tagihan keluarga telah diproses.')
+        ->expectsOutput('Tagihan baru dibuat: 0')
+        ->expectsOutput('Tagihan dilewati karena sudah ada: 1')
+        ->expectsOutput('Tagihan yang diperbarui nominal/detailnya: 0')
+        ->assertExitCode(0);
+
+    expect(Tagihan::where('rumah_id', $rumah->id)
+        ->where('bulan', now()->month)
+        ->where('tahun', now()->year)
+        ->count())->toBe(1);
 });

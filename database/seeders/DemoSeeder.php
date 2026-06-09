@@ -149,7 +149,7 @@ class DemoSeeder extends Seeder
             );
         }
 
-        Tagihan::generateForMonth($bulan, $tahun);
+        Tagihan::generate($bulan, $tahun);
 
         Rumah::with('penanggungJawab')->where('status', 'aktif')->get()->each(function (Rumah $rumah, int $index) use ($bulan, $tahun) {
             if (! $rumah->penanggungJawab) {

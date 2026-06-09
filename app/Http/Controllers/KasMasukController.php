@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreKasMasukRequest;
 use App\Models\KasMasuk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class KasMasukController extends Controller
 {
@@ -44,13 +46,9 @@ class KasMasukController extends Controller
         return view('kas_masuk.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreKasMasukRequest $request)
     {
-        $validated = $request->validate([
-            'keterangan' => ['required', 'string', 'max:255'],
-            'jumlah' => ['required', 'integer', 'min:1'],
-            'tanggal' => ['required', 'date'],
-        ]);
+        $validated = $request->validated();
 
         KasMasuk::create([
             'user_id' => auth()->id(),
@@ -58,6 +56,9 @@ class KasMasukController extends Controller
             'jumlah' => $validated['jumlah'],
             'tanggal' => $validated['tanggal'],
         ]);
+
+        Cache::forget('admin.dashboard.stats');
+        Cache::forget('dashboard.stats.user.' . auth()->id());
 
         return redirect()->route('kas-masuk.index')
             ->with('success', 'Data kas masuk berhasil dicatat.');

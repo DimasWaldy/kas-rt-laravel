@@ -4,7 +4,7 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('bills:generate')->monthlyOn(1, '01:00');
+Schedule::command('bills:generate')->monthlyOn(1, '07:00');
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

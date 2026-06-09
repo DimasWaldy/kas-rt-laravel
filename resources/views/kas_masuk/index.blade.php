@@ -9,7 +9,7 @@
     $tahunAktif = request('tahun', date('Y'));
 @endphp
 
-<div class="space-y-6">
+<div class="space-y-6" x-data="{ showKasMasukForm: {{ old('_form') === 'kas_masuk' ? 'true' : 'false' }} }">
     <div class="rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-100">
         <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
@@ -21,10 +21,10 @@
             </div>
 
             @can('manage-finance')
-                <a href="{{ route('kas-masuk.create') }}" class="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-50">
+                <button type="button" x-on:click="showKasMasukForm = true" class="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-50">
                     <i class="fa-solid fa-plus mr-2"></i>
                     Tambah Kas Masuk
-                </a>
+                </button>
             @endcan
         </div>
     </div>
@@ -157,6 +157,86 @@
             </table>
         </div>
     </div>
+
+    @can('manage-finance')
+        <div x-cloak x-show="showKasMasukForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" x-on:click.self="showKasMasukForm = false">
+            <section x-transition class="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+                <div class="flex items-start justify-between bg-emerald-800 p-6 text-white">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.22em] text-emerald-100">Kas Masuk</p>
+                        <h2 class="mt-2 text-xl font-black">Tambah Data Pemasukan</h2>
+                        <p class="mt-1 text-sm text-emerald-50">Catat pemasukan manual tanpa pindah halaman.</p>
+                    </div>
+                    <button type="button" x-on:click="showKasMasukForm = false" class="rounded-xl p-2 text-white/80 transition hover:bg-white/10 hover:text-white" aria-label="Tutup form">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <form action="{{ route('kas-masuk.store') }}" method="POST" class="space-y-5 p-6">
+                    @csrf
+                    <input type="hidden" name="_form" value="kas_masuk">
+
+                    @if(old('_form') === 'kas_masuk' && $errors->any())
+                        <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                            Periksa kembali data pemasukan yang diisi.
+                        </div>
+                    @endif
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700">Keterangan</label>
+                        <input type="text" name="keterangan" value="{{ old('_form') === 'kas_masuk' ? old('keterangan') : '' }}"
+                            placeholder="Contoh: Saldo awal kas RT"
+                            class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-600 focus:ring-emerald-200 @if(old('_form') === 'kas_masuk') @error('keterangan') border-red-500 @enderror @endif" required>
+                        @if(old('_form') === 'kas_masuk')
+                            @error('keterangan')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        @endif
+                    </div>
+
+                    <div class="grid gap-5 md:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700">Jumlah</label>
+                            <div class="mt-2 flex overflow-hidden rounded-2xl border border-slate-200 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-200 @if(old('_form') === 'kas_masuk') @error('jumlah') border-red-500 @enderror @endif">
+                                <span class="flex items-center bg-emerald-50 px-4 text-sm font-bold text-emerald-800">Rp</span>
+                                <input type="number" name="jumlah" value="{{ old('_form') === 'kas_masuk' ? old('jumlah') : '' }}" min="1" step="1"
+                                    placeholder="0" class="w-full border-0 px-4 py-3 text-sm focus:ring-0" required>
+                            </div>
+                            @if(old('_form') === 'kas_masuk')
+                                @error('jumlah')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            @endif
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700">Tanggal</label>
+                            <input type="date" name="tanggal" value="{{ old('_form') === 'kas_masuk' ? old('tanggal', now()->toDateString()) : now()->toDateString() }}"
+                                class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-600 focus:ring-emerald-200 @if(old('_form') === 'kas_masuk') @error('tanggal') border-red-500 @enderror @endif" required>
+                            @if(old('_form') === 'kas_masuk')
+                                @error('tanggal')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900">
+                        Untuk iuran warga, lebih rapi gunakan alur Tagihan. Form ini khusus pemasukan tambahan di luar tagihan bulanan.
+                    </div>
+
+                    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+                        <button type="button" x-on:click="showKasMasukForm = false" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
+                            Batal
+                        </button>
+                        <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-emerald-800 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-900">
+                            Simpan Pemasukan
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    @endcan
 </div>
 
 @endsection

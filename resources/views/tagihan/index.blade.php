@@ -43,7 +43,7 @@
                             </p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <span class="px-3 py-2 rounded-full text-sm font-semibold {{ $item->status === 'lunas' ? 'bg-emerald-100 text-emerald-700' : ($item->status === 'pending_transfer' ? 'bg-amber-100 text-amber-700' : ($item->status === 'pending_offline' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-700')) }}">
+                            <span class="px-3 py-2 rounded-full text-sm font-semibold {{ $item->status === 'lunas' ? 'bg-emerald-100 text-emerald-700' : ($item->status === 'failed' ? 'bg-rose-100 text-rose-700' : ($item->status === 'pending_transfer' ? 'bg-amber-100 text-amber-700' : ($item->status === 'pending_offline' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-700'))) }}">
                                 {{ $item->status_label }}
                             </span>
                             <span class="px-3 py-2 rounded-full text-sm font-semibold {{ $item->due_status_class }}">
@@ -86,16 +86,21 @@
                             @if($item->verification_note)
                                 <p class="text-sm text-slate-600 mt-2">Catatan Verifikasi: {{ $item->verification_note }}</p>
                             @endif
-                            @if($item->rejection_reason)
-                                <p class="mt-2 rounded-2xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">Alasan Ditolak: {{ $item->rejection_reason }}</p>
+                            @if($item->status === 'failed' && $item->rejection_reason)
+                                <div class="mt-2 rounded-2xl bg-rose-50 p-3 text-sm text-rose-700">
+                                    <p class="font-bold">Alasan Ditolak: {{ $item->rejection_reason }}</p>
+                                    @if($item->rejected_at)
+                                        <p class="mt-1 text-xs font-semibold text-rose-600">Ditolak pada {{ $item->rejected_at->format('d/m/Y H:i') }}.</p>
+                                    @endif
+                                </div>
                             @endif
                             @if($item->bukti)
-                                <p class="text-sm text-slate-600 mt-2">Bukti: <a href="{{ Storage::url($item->bukti) }}" target="_blank" class="text-blue-600 hover:underline">Lihat</a></p>
+                                <p class="text-sm text-slate-600 mt-2">Bukti: <a href="{{ route('tagihan.bukti', $item) }}" target="_blank" class="text-blue-600 hover:underline">Lihat</a></p>
                             @endif
                         </div>
 
                         <div class="p-4 rounded-3xl border border-slate-200 bg-white">
-                            @if($item->status === 'belum_bayar')
+                            @if(in_array($item->status, ['belum_bayar', 'failed'], true))
                                 @if($canPayTagihan)
                                 <form action="{{ route('tagihan.pay') }}" method="POST" enctype="multipart/form-data" class="space-y-4" x-data="{ paymentMethod: '{{ old('tagihan_id') == $item->id ? old('payment_method', 'transfer') : 'transfer' }}' }">
                                     @csrf
@@ -118,8 +123,8 @@
                                         <label class="block text-sm font-semibold text-slate-700">
                                             Bukti Transfer <span class="text-rose-500">*</span>
                                         </label>
-                                        <input type="file" name="bukti" accept="image/*,application/pdf" class="mt-2 w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                                        <p class="text-xs text-slate-400 mt-1">Unggah bukti transfer (format: JPG, PNG, JPEG, PDF. Maksimal 3MB).</p>
+                                        <input type="file" name="bukti" accept="image/jpeg,image/png,application/pdf" class="mt-2 w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                                        <p class="text-xs text-slate-400 mt-1">Unggah bukti transfer (format: JPG, PNG, PDF. Maksimal 2MB).</p>
                                         @if(old('tagihan_id') == $item->id)
                                             @error('bukti')
                                                 <p class="text-xs font-semibold text-rose-500 mt-1">{{ $message }}</p>

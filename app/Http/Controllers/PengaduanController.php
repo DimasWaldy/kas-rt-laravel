@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StorePengaduanRequest;
 use App\Models\Pengaduan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,12 +38,15 @@ class PengaduanController extends Controller
 
         $pengaduans = $query->latest()->paginate(10)->withQueryString();
 
-        // Hitung statistik untuk dashboard pengaduan
+        $rawStats = Pengaduan::selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
         $stats = [
-            'total' => Pengaduan::count(),
-            'pending' => Pengaduan::where('status', 'pending')->count(),
-            'proses' => Pengaduan::where('status', 'proses')->count(),
-            'selesai' => Pengaduan::where('status', 'selesai')->count(),
+            'total' => (int) $rawStats->sum(),
+            'pending' => (int) $rawStats->get('pending', 0),
+            'proses' => (int) $rawStats->get('proses', 0),
+            'selesai' => (int) $rawStats->get('selesai', 0),
         ];
 
         return view('pengaduan.index', compact('pengaduans', 'stats', 'filter'));
@@ -59,21 +63,9 @@ class PengaduanController extends Controller
     /**
      * Simpan pengaduan baru ke database.
      */
-    public function store(Request $request)
+    public function store(StorePengaduanRequest $request)
     {
-        $request->validate([
-            'judul' => 'required|string|max:255',
-            'kategori' => 'required|string|in:Keamanan,Kebersihan,Infrastruktur,Sosial,Lainnya',
-            'deskripsi' => 'required|string',
-            'foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ], [
-            'judul.required' => 'Judul pengaduan wajib diisi.',
-            'kategori.required' => 'Kategori wajib dipilih.',
-            'deskripsi.required' => 'Deskripsi aduan wajib ditulis.',
-            'foto.image' => 'Berkas bukti harus berupa gambar.',
-            'foto.mimes' => 'Format gambar harus jpeg, png, atau jpg.',
-            'foto.max' => 'Ukuran foto maksimal adalah 2MB.',
-        ]);
+        $validated = $request->validated();
 
         $fotoPath = null;
         if ($request->hasFile('foto')) {
@@ -82,9 +74,9 @@ class PengaduanController extends Controller
 
         Pengaduan::create([
             'user_id' => Auth::id(),
-            'judul' => $request->judul,
-            'kategori' => $request->kategori,
-            'deskripsi' => $request->deskripsi,
+            'judul' => $validated['judul'],
+            'kategori' => $validated['kategori'],
+            'deskripsi' => $validated['deskripsi'],
             'foto' => $fotoPath,
             'status' => 'pending',
         ]);
@@ -106,8 +98,6 @@ class PengaduanController extends Controller
      */
     public function updateStatus(Request $request, Pengaduan $pengaduan)
     {
-        abort_if(!Auth::user()->canManagePengaduan(), 403, 'Akses ditolak. Hanya pengurus RT/Sekretaris yang dapat memberikan tanggapan.');
-
         $request->validate([
             'status' => 'required|string|in:pending,proses,selesai,ditolak',
             'tanggapan' => 'required|string|min:5',

@@ -13,10 +13,6 @@ class DemoUtsController extends Controller
 {
     public function index(Request $request)
     {
-        if (! $request->user()->canManageFinance()) {
-            abort(403);
-        }
-
         $bulan = now()->month;
         $tahun = now()->year;
 

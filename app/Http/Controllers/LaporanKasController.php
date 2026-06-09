@@ -11,10 +11,6 @@ class LaporanKasController extends Controller
 {
     public function index(Request $request)
     {
-        if (! $request->user()->canManageFinance()) {
-            abort(403);
-        }
-
         $validated = $request->validate([
             'tanggal_mulai' => ['nullable', 'date'],
             'tanggal_selesai' => ['nullable', 'date', 'after_or_equal:tanggal_mulai'],

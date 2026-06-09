@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AuditLog;
+use App\Http\Requests\PayTagihanRequest;
+use App\Http\Requests\StoreTagihanRequest;
 use App\Models\Tagihan;
 use App\Models\IuranBulanan;
 use App\Models\KasMasuk;
@@ -10,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
@@ -77,37 +79,10 @@ class TagihanController extends Controller
         return view('tagihan.index', compact('tagihan', 'iuranItems', 'bulan', 'tahun', 'headUser', 'showHeadNotice', 'rumah', 'canPayTagihan'));
     }
 
-    public function pay(Request $request)
+    public function pay(PayTagihanRequest $request)
     {
-        $paymentMethod = $request->input('payment_method');
-
-        $request->validate([
-            'tagihan_id' => ['required', 'integer'],
-            'payment_method' => ['required', 'in:transfer,offline'],
-            'bukti' => [
-                $paymentMethod === 'transfer' ? 'required' : 'nullable',
-                'file',
-                'mimes:jpeg,png,jpg,pdf',
-                'max:3072'
-            ],
-            'note' => [
-                $paymentMethod === 'offline' ? 'required' : 'nullable',
-                'string',
-                'min:5',
-                'max:255'
-            ],
-        ], [
-            'tagihan_id.required' => 'ID tagihan wajib ditentukan.',
-            'payment_method.required' => 'Metode pembayaran wajib dipilih.',
-            'payment_method.in' => 'Metode pembayaran harus berupa transfer atau offline.',
-            'bukti.required' => 'Bukti pembayaran wajib diunggah untuk metode transfer.',
-            'bukti.file' => 'Berkas bukti pembayaran tidak valid.',
-            'bukti.mimes' => 'Format bukti pembayaran harus berupa gambar (jpeg, png, jpg) atau PDF.',
-            'bukti.max' => 'Ukuran berkas bukti pembayaran maksimal adalah 3 MB (3072 KB).',
-            'note.required' => 'Catatan wajib diisi untuk pembayaran offline (misal: diserahkan ke siapa & tanggal).',
-            'note.min' => 'Catatan pembayaran offline minimal harus terdiri dari 5 karakter.',
-            'note.max' => 'Catatan pembayaran maksimal berisi 255 karakter.',
-        ]);
+        $validated = $request->validated();
+        $paymentMethod = $validated['payment_method'];
 
         $user = Auth::user();
 
@@ -119,85 +94,107 @@ class TagihanController extends Controller
             return redirect()->route('tagihan.index')->with('error', 'Hanya kepala keluarga yang dapat membayar tagihan KK.');
         }
 
-        $tagihan = Tagihan::where('id', $request->tagihan_id)
-            ->when($user->rumah_id, fn($query) => $query->where('rumah_id', $user->rumah_id))
-            ->when(! $user->rumah_id, fn($query) => $query->where('user_id', Auth::id()))
-            ->firstOrFail();
+        return DB::transaction(function () use ($request, $validated, $paymentMethod, $user) {
+            $tagihan = Tagihan::where('id', $validated['tagihan_id'])
+                ->when($user->rumah_id, fn($query) => $query->where('rumah_id', $user->rumah_id))
+                ->when(! $user->rumah_id, fn($query) => $query->where('user_id', $user->id))
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        // Pastikan nominal tagihan valid
-        if ($tagihan->total <= 0) {
-            return redirect()->back()->with('error', 'Tagihan ini tidak memiliki nominal pembayaran.');
-        }
+            // Pastikan nominal tagihan valid setelah row terkunci.
+            if ($tagihan->total <= 0) {
+                return redirect()->back()->with('error', 'Tagihan ini tidak memiliki nominal pembayaran.');
+            }
 
-        // Validasi: Jangan izinkan bayar jika sudah lunas atau sedang pending
-        if (in_array($tagihan->status, ['lunas', 'pending_transfer', 'pending_offline'])) {
-            return redirect()->back()->with('error', 'Tagihan ini sudah dibayar atau sedang dalam proses verifikasi.');
-        }
+            // Validasi ulang setelah lock untuk mencegah dua request memproses tagihan yang sama.
+            if (! in_array($tagihan->status, ['belum_bayar', 'failed'], true)) {
+                return redirect()->back()->with('error', 'Tagihan ini sudah dibayar atau sedang dalam proses verifikasi.');
+            }
 
-        $oldValues = $tagihan->getOriginal();
+            $oldValues = $tagihan->getOriginal();
 
-        if ($paymentMethod === 'transfer') {
-            $path = $request->file('bukti')->store('uploads', 'public');
-            $tagihan->bukti = $path;
-            $tagihan->status = 'pending_transfer';
-            $tagihan->payment_method = 'transfer';
-            $tagihan->note = $request->note;
-        } else {
-            $tagihan->bukti = null;
-            $tagihan->status = 'pending_offline';
-            $tagihan->payment_method = 'offline';
-            $tagihan->note = $request->note;
-        }
+            if ($paymentMethod === 'transfer') {
+                $path = $request->file('bukti')->store('tagihan-bukti', 'local');
+                $tagihan->bukti = $path;
+                $tagihan->status = 'pending_transfer';
+                $tagihan->payment_method = 'transfer';
+                $tagihan->note = $validated['note'] ?? null;
+            } else {
+                $tagihan->bukti = null;
+                $tagihan->status = 'pending_offline';
+                $tagihan->payment_method = 'offline';
+                $tagihan->note = $validated['note'] ?? null;
+            }
 
-        $tagihan->verification_status = 'menunggu';
-        $tagihan->verification_note = null;
-        $tagihan->rejection_reason = null;
-        $tagihan->verified_by = null;
-        $tagihan->verified_at = null;
-        $tagihan->transaction_number ??= Tagihan::nextTransactionNumber();
-        $tagihan->save();
+            $tagihan->verification_status = 'menunggu';
+            $tagihan->verification_note = null;
+            $tagihan->rejection_reason = null;
+            $tagihan->rejected_at = null;
+            $tagihan->rejected_by = null;
+            $tagihan->verified_by = null;
+            $tagihan->verified_at = null;
+            $tagihan->transaction_number ??= Tagihan::nextTransactionNumber();
+            $tagihan->saveQuietly();
+            $tagihan->recordAuditWithNote(
+                'payment_submitted',
+                $oldValues,
+                'Pembayaran diajukan via ' . $tagihan->payment_method
+            );
 
-        AuditLog::create([
-            'user_id' => Auth::id(),
-            'auditable_type' => Tagihan::class,
-            'auditable_id' => $tagihan->id,
-            'event' => 'payment_submitted',
-            'old_values' => $oldValues,
-            'new_values' => $tagihan->getAttributes(),
-            'notes' => 'Pembayaran diajukan via ' . $tagihan->payment_method,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
+            // Kirim Notifikasi ke Admin
+            $admins = User::whereRelation('role', 'name', 'admin')->get();
+            Notification::send($admins, new PaymentReceived($tagihan));
 
-        // Kirim Notifikasi ke Admin
-        $admins = User::whereRelation('role', 'name', 'admin')->get();
-        Notification::send($admins, new PaymentReceived($tagihan));
-
-        return redirect()->route('tagihan.index')->with('success', 'Pembayaran tagihan telah dikirim. Tunggu konfirmasi RT.');
+            return redirect()->route('tagihan.index')->with('success', 'Pembayaran tagihan telah dikirim. Tunggu konfirmasi RT.');
+        });
     }
 
-    public function adminIndex()
+    public function bukti(Tagihan $tagihan)
     {
-        if (!Auth::user()->canManageFinance()) {
-            abort(403);
+        abort_unless($this->canViewBukti($tagihan), 403);
+
+        if (! $tagihan->bukti) {
+            abort(404);
         }
 
+        $disk = Storage::disk('local')->exists($tagihan->bukti) ? 'local' : 'public';
+
+        abort_unless(Storage::disk($disk)->exists($tagihan->bukti), 404);
+
+        return response()->file(Storage::disk($disk)->path($tagihan->bukti), [
+            'Content-Disposition' => 'inline; filename="' . basename($tagihan->bukti) . '"',
+        ]);
+    }
+
+    public function adminIndex(Request $request)
+    {
         Auth::user()->unreadNotifications->markAsRead();
 
-        $tagihans = Tagihan::with(['user', 'rumah', 'verifier'])
+        $filterBulan = $request->filled('bulan') ? (int) $request->query('bulan') : null;
+        $filterTahun = $request->filled('tahun') ? (int) $request->query('tahun') : null;
+
+        $tagihans = Tagihan::with(['user', 'rumah', 'verifier', 'rejecter'])
+            ->when($filterBulan, fn ($query) => $query->where('bulan', $filterBulan))
+            ->when($filterTahun, fn ($query) => $query->where('tahun', $filterTahun))
             ->orderByDesc('tahun')
             ->orderByDesc('bulan')
-            ->get();
+            ->paginate(20);
 
-        return view('tagihan.admin', compact('tagihans'));
+        $users = User::whereRelation('role', 'name', 'warga')
+            ->where('is_kepala_keluarga', true)
+            ->orderBy('name')
+            ->get();
+        $bulanList = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $bulanList[$i] = \Carbon\Carbon::create(null, $i)->translatedFormat('F');
+        }
+        $tahunList = range(now()->year - 2, now()->year + 1);
+
+        return view('tagihan.admin', compact('tagihans', 'users', 'bulanList', 'tahunList', 'filterBulan', 'filterTahun'));
     }
 
     public function confirm(Request $request)
     {
-        if (!Auth::user()->canManageFinance()) {
-            abort(403);
-        }
-
         $request->validate([
             'tagihan_id' => ['required', 'integer'],
             'status' => ['required', 'in:lunas,belum_bayar,ditolak'],
@@ -218,15 +215,19 @@ class TagihanController extends Controller
                 $tagihan->verification_status = 'valid';
                 $tagihan->verification_note = $request->verification_note;
                 $tagihan->rejection_reason = null;
+                $tagihan->rejected_at = null;
+                $tagihan->rejected_by = null;
                 $tagihan->verified_by = Auth::id();
                 $tagihan->verified_at = now();
                 $tagihan->paid_at = now();
                 $tagihan->transaction_number ??= Tagihan::nextTransactionNumber();
             } elseif ($request->status === 'ditolak') {
-                $tagihan->status = 'belum_bayar';
+                $tagihan->status = 'failed';
                 $tagihan->verification_status = 'ditolak';
                 $tagihan->verification_note = $request->verification_note;
                 $tagihan->rejection_reason = $request->rejection_reason;
+                $tagihan->rejected_at = now();
+                $tagihan->rejected_by = Auth::id();
                 $tagihan->verified_by = Auth::id();
                 $tagihan->verified_at = now();
                 $tagihan->paid_at = null;
@@ -239,24 +240,19 @@ class TagihanController extends Controller
                 $tagihan->transaction_number = null;
                 $tagihan->verification_note = null;
                 $tagihan->rejection_reason = null;
+                $tagihan->rejected_at = null;
+                $tagihan->rejected_by = null;
                 $tagihan->verified_by = null;
                 $tagihan->verified_at = null;
                 $tagihan->paid_at = null;
             }
 
-            $tagihan->save();
-
-            AuditLog::create([
-                'user_id' => Auth::id(),
-                'auditable_type' => Tagihan::class,
-                'auditable_id' => $tagihan->id,
-                'event' => 'tagihan_status_updated',
-                'old_values' => $oldValues,
-                'new_values' => $tagihan->getAttributes(),
-                'notes' => 'Status tagihan diubah menjadi ' . $tagihan->status . ' dengan status bukti ' . $tagihan->verification_status,
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-            ]);
+            $tagihan->saveQuietly();
+            $tagihan->recordAuditWithNote(
+                'tagihan_status_updated',
+                $oldValues,
+                'Status tagihan diubah menjadi ' . $tagihan->status . ' dengan status bukti ' . $tagihan->verification_status
+            );
 
             // Jika lunas, baru buat entri di KasMasuk
             if ($request->status === 'lunas') {
@@ -275,15 +271,14 @@ class TagihanController extends Controller
             }
         });
 
+        Cache::forget('admin.dashboard.stats');
+        Cache::forget('dashboard.stats.user.' . $tagihan->user_id);
+
         return redirect()->route('tagihan.admin')->with('success', 'Status tagihan berhasil diperbarui.');
     }
 
     public function create(): View
     {
-        if (!Auth::user()->canManageFinance()) {
-            abort(403);
-        }
-
         $users = User::whereRelation('role', 'name', 'warga')->where('is_kepala_keluarga', true)->orderBy('name')->get();
         $bulanList = [];
         for ($i = 1; $i <= 12; $i++) {
@@ -294,67 +289,56 @@ class TagihanController extends Controller
         return view('tagihan.create', compact('users', 'bulanList', 'tahunList'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreTagihanRequest $request): RedirectResponse
     {
-        if (!Auth::user()->canManageFinance()) {
-            abort(403);
-        }
+        $validated = $request->validated();
 
-        $request->validate([
-            'user_id' => ['required', 'integer', 'exists:users,id'],
-            'bulan' => ['required', 'integer', 'min:1', 'max:12'],
-            'tahun' => ['required', 'integer', 'min:2020', 'max:' . (now()->year + 5)],
-            'total' => ['required', 'integer', 'min:1000'],
-            'note' => ['nullable', 'string', 'max:500'],
-        ]);
-
-        // Check if tagihan sudah ada
-        $existing = Tagihan::where('user_id', $request->user_id)
-            ->where('bulan', $request->bulan)
-            ->where('tahun', $request->tahun)
-            ->first();
-
-        if ($existing) {
-            return redirect()->back()->with('error', 'Tagihan untuk bulan dan tahun ini sudah ada.');
-        }
-
-        $user = User::findOrFail($request->user_id);
+        $user = User::findOrFail($validated['user_id']);
         if ($user->role?->name !== 'warga' || !$user->is_kepala_keluarga) {
             return redirect()->back()->with('error', 'User harus kepala keluarga.');
         }
 
-        $tagihan = Tagihan::create([
-            'user_id' => $request->user_id,
-            'bulan' => $request->bulan,
-            'tahun' => $request->tahun,
-            'billing_group' => 'manual_' . now()->timestamp,
+        $existing = Tagihan::where('bulan', $validated['bulan'])
+            ->where('tahun', $validated['tahun'])
+            ->where('billing_group', Tagihan::BILLING_GROUP_MANUAL)
+            ->where(function ($query) use ($user) {
+                if ($user->rumah_id) {
+                    $query->where('rumah_id', $user->rumah_id)
+                        ->orWhere('user_id', $user->id);
+                } else {
+                    $query->where('user_id', $user->id);
+                }
+            })
+            ->first();
+
+        if ($existing) {
+            return redirect()->back()->with('error', 'Tagihan manual untuk warga, bulan, dan tahun ini sudah ada.');
+        }
+
+        $tagihan = new Tagihan([
+            'user_id' => $user->id,
+            'rumah_id' => $user->rumah_id,
+            'bulan' => $validated['bulan'],
+            'tahun' => $validated['tahun'],
+            'billing_group' => Tagihan::BILLING_GROUP_MANUAL,
             'judul' => 'Tagihan Manual',
-            'total' => $request->total,
+            'total' => $validated['total'],
             'status' => 'belum_bayar',
-            'note' => $request->note,
+            'note' => $validated['note'] ?? null,
         ]);
 
-        AuditLog::create([
-            'user_id' => Auth::id(),
-            'auditable_type' => Tagihan::class,
-            'auditable_id' => $tagihan->id,
-            'event' => 'tagihan_created',
-            'old_values' => [],
-            'new_values' => $tagihan->getAttributes(),
-            'notes' => 'Tagihan baru dibuat untuk ' . $user->name,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
+        $tagihan->saveQuietly();
+        $tagihan->recordAuditWithNote(
+            'tagihan_created',
+            [],
+            'Tagihan baru dibuat untuk ' . $user->name
+        );
 
         return redirect()->route('tagihan.admin')->with('success', 'Tagihan berhasil dibuat.');
     }
 
     public function edit(Tagihan $tagihan): View
     {
-        if (!Auth::user()->canManageFinance()) {
-            abort(403);
-        }
-
         $users = User::whereRelation('role', 'name', 'warga')->where('is_kepala_keluarga', true)->orderBy('name')->get();
         $bulanList = [];
         for ($i = 1; $i <= 12; $i++) {
@@ -367,10 +351,6 @@ class TagihanController extends Controller
 
     public function update(Request $request, Tagihan $tagihan): RedirectResponse
     {
-        if (!Auth::user()->canManageFinance()) {
-            abort(403);
-        }
-
         $request->validate([
             'total' => ['required', 'integer', 'min:1000'],
             'note' => ['nullable', 'string', 'max:500'],
@@ -378,52 +358,60 @@ class TagihanController extends Controller
 
         $oldValues = $tagihan->getOriginal();
 
-        $tagihan->update([
+        $tagihan->fill([
             'total' => $request->total,
             'note' => $request->note,
         ]);
 
-        AuditLog::create([
-            'user_id' => Auth::id(),
-            'auditable_type' => Tagihan::class,
-            'auditable_id' => $tagihan->id,
-            'event' => 'tagihan_updated',
-            'old_values' => $oldValues,
-            'new_values' => $tagihan->getAttributes(),
-            'notes' => 'Tagihan diperbarui oleh admin',
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
+        $tagihan->saveQuietly();
+        $tagihan->recordAuditWithNote(
+            'tagihan_updated',
+            $oldValues,
+            'Tagihan diperbarui oleh admin'
+        );
 
         return redirect()->route('tagihan.admin')->with('success', 'Tagihan berhasil diperbarui.');
     }
 
     public function destroy(Tagihan $tagihan): RedirectResponse
     {
-        if (! Auth::user()->canManageFinance()) {
-            abort(403);
-        }
-
         if ($tagihan->status === 'lunas') {
             return redirect()->back()->with('error', 'Tagihan yang sudah lunas tidak dapat dihapus.');
         }
 
         $tagihName = $tagihan->user->name . ' (' . $tagihan->bulan . '/' . $tagihan->tahun . ')';
 
-        AuditLog::create([
-            'user_id' => Auth::id(),
-            'auditable_type' => Tagihan::class,
-            'auditable_id' => $tagihan->id,
-            'event' => 'tagihan_deleted',
-            'old_values' => $tagihan->getAttributes(),
-            'new_values' => [],
-            'notes' => 'Tagihan dihapus untuk ' . $tagihName,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-        ]);
-
-        $tagihan->delete();
+        $oldValues = $tagihan->getAttributes();
+        $tagihan->deleteQuietly();
+        $tagihan->recordAuditWithNote(
+            'tagihan_deleted',
+            $oldValues,
+            'Tagihan dihapus untuk ' . $tagihName
+        );
 
         return redirect()->route('tagihan.admin')->with('success', "Tagihan '$tagihName' berhasil dihapus.");
+    }
+
+    private function canViewBukti(Tagihan $tagihan): bool
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->canManageFinance()) {
+            return true;
+        }
+
+        if ($tagihan->user_id === $user->id) {
+            return true;
+        }
+
+        if ($tagihan->rumah_id && $user->rumah_id === $tagihan->rumah_id) {
+            return true;
+        }
+
+        return false;
     }
 }

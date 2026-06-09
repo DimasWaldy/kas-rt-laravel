@@ -13,10 +13,6 @@ class IuranBulananController extends Controller
 {
     public function index()
     {
-        if (! Auth::user()->canManageFinance()) {
-            abort(403);
-        }
-
         $items = IuranBulanan::orderByDesc('tahun')
             ->orderByDesc('bulan')
             ->orderBy('nama')
@@ -27,19 +23,11 @@ class IuranBulananController extends Controller
 
     public function create()
     {
-        if (! Auth::user()->canManageFinance()) {
-            abort(403);
-        }
-
         return view('iuran_bulanan.create');
     }
 
     public function store(Request $request)
     {
-        if (! Auth::user()->canManageFinance()) {
-            abort(403);
-        }
-
         $data = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
             'keterangan' => ['nullable', 'string', 'max:500'],
@@ -66,7 +54,7 @@ class IuranBulananController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        Tagihan::generateForMonth($data['bulan'], $data['tahun']);
+        Tagihan::generate($data['bulan'], $data['tahun']);
 
         return redirect()->route('iuran-bulanan.index')->with('success', 'Iuran bulanan berhasil ditambahkan dan tagihan dibuat untuk warga.');
     }
@@ -77,10 +65,6 @@ class IuranBulananController extends Controller
      */
     public function generateMassal(Request $request)
     {
-        if (! Auth::user()->canManageFinance()) {
-            abort(403);
-        }
-
         $validated = $request->validate([
             'bulan' => ['nullable', 'integer', 'between:1,12'],
             'tahun' => ['nullable', 'integer', 'min:2024', 'max:' . (now()->year + 5)],
@@ -117,7 +101,7 @@ class IuranBulananController extends Controller
             }
 
             // 2. Trigger generate/update tagihan untuk seluruh Kepala Keluarga
-            Tagihan::generateForMonth($bulan, $tahun);
+            Tagihan::generate($bulan, $tahun);
 
             // Tambahkan Audit Log agar terekam siapa admin yang melakukan generate massal via UI
             AuditLog::create([
