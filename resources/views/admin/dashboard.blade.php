@@ -158,13 +158,13 @@
                     <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
-                                <p class="truncate text-sm font-black text-slate-900">{{ $item->rumah?->kode_rumah ?? 'Rumah belum diatur' }}</p>
-                                <p class="mt-1 truncate text-xs text-slate-500">{{ $item->rumah?->alamat ?? $item->user?->name ?? '-' }}</p>
-                                <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">{{ $item->status }}</span>
+                                <p class="truncate text-sm font-black text-slate-900">{{ $item['rumah_kode'] ?? 'Rumah belum diatur' }}</p>
+                                <p class="mt-1 truncate text-xs text-slate-500">{{ $item['rumah_alamat'] ?? $item['user_name'] ?? '-' }}</p>
+                                <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">{{ $item['status'] }}</span>
                             </div>
                             <div class="text-right">
-                                <p class="text-sm font-black text-emerald-700">Rp {{ number_format($item->total, 0, ',', '.') }}</p>
-                                <p class="mt-1 text-xs text-slate-400">{{ $item->belum_lunas }}/{{ $item->jumlah_tagihan }} nota</p>
+                                <p class="text-sm font-black text-emerald-700">Rp {{ number_format($item['total'], 0, ',', '.') }}</p>
+                                <p class="mt-1 text-xs text-slate-400">{{ $item['belum_lunas'] }}/{{ $item['jumlah_tagihan'] }} nota</p>
                             </div>
                         </div>
                     </div>
@@ -199,10 +199,10 @@
                     <div class="rounded-xl bg-emerald-50 p-3">
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
-                                <p class="truncate text-sm font-bold text-slate-900">{{ $tagihan->user?->name ?? 'Warga' }}</p>
-                                <p class="text-xs font-semibold text-slate-500">{{ $tagihan->status_label }} - {{ $tagihan->bulan }}/{{ $tagihan->tahun }}</p>
+                                <p class="truncate text-sm font-bold text-slate-900">{{ $tagihan['user_name'] }}</p>
+                                <p class="text-xs font-semibold text-slate-500">{{ $tagihan['status_label'] }} - {{ $tagihan['bulan'] }}/{{ $tagihan['tahun'] }}</p>
                             </div>
-                            <p class="flex-shrink-0 text-sm font-black text-emerald-700">Rp {{ number_format($tagihan->total, 0, ',', '.') }}</p>
+                            <p class="flex-shrink-0 text-sm font-black text-emerald-700">Rp {{ number_format($tagihan['total'], 0, ',', '.') }}</p>
                         </div>
                     </div>
                 @empty
@@ -223,10 +223,10 @@
                 @forelse($tagihanJatuhTempo as $tagihan)
                     <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-4">
                         <div class="min-w-0">
-                            <p class="truncate text-sm font-black text-slate-900">{{ $tagihan->display_title }}</p>
-                            <p class="mt-1 text-xs text-slate-500">{{ $tagihan->rumah?->kode_rumah ?? $tagihan->user?->name ?? '-' }} - jatuh tempo {{ $tagihan->due_date->translatedFormat('d M Y') }}</p>
+                            <p class="truncate text-sm font-black text-slate-900">{{ $tagihan['display_title'] }}</p>
+                            <p class="mt-1 text-xs text-slate-500">{{ $tagihan['owner_label'] }} - jatuh tempo {{ $tagihan['due_date_label'] }}</p>
                         </div>
-                        <span class="rounded-full px-3 py-1 text-xs font-bold {{ $tagihan->due_status_class }}">{{ $tagihan->due_status_label }}</span>
+                        <span class="rounded-full px-3 py-1 text-xs font-bold {{ $tagihan['due_status_class'] }}">{{ $tagihan['due_status_label'] }}</span>
                     </div>
                 @empty
                     <p class="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Tidak ada tagihan yang mendekati jatuh tempo.</p>
@@ -241,10 +241,10 @@
                 @forelse($kasKeluarTerbesarBulanIni as $item)
                     <div class="flex items-center justify-between gap-3 rounded-2xl bg-rose-50 p-4">
                         <div class="min-w-0">
-                            <p class="truncate text-sm font-black text-slate-900">{{ $item->keterangan }}</p>
-                            <p class="mt-1 text-xs text-slate-500">{{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y') }}</p>
+                            <p class="truncate text-sm font-black text-slate-900">{{ $item['keterangan'] }}</p>
+                            <p class="mt-1 text-xs text-slate-500">{{ $item['tanggal_label'] }}</p>
                         </div>
-                        <p class="text-sm font-black text-rose-600">Rp {{ number_format($item->jumlah, 0, ',', '.') }}</p>
+                        <p class="text-sm font-black text-rose-600">Rp {{ number_format($item['jumlah'], 0, ',', '.') }}</p>
                     </div>
                 @empty
                     <p class="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Belum ada kas keluar bulan ini.</p>
@@ -261,9 +261,9 @@
                     <div class="flex items-center justify-between rounded-xl bg-emerald-50/70 p-3 transition hover:bg-emerald-50">
                         <div class="flex min-w-0 items-center gap-3">
                             <span class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white">{{ $loop->iteration }}</span>
-                            <p class="truncate font-semibold text-slate-800">{{ $warga->name }}</p>
+                            <p class="truncate font-semibold text-slate-800">{{ $warga['name'] }}</p>
                         </div>
-                        <p class="flex-shrink-0 font-bold text-emerald-700">Rp {{ number_format($warga->total_iuran, 0, ',', '.') }}</p>
+                        <p class="flex-shrink-0 font-bold text-emerald-700">Rp {{ number_format($warga['total_iuran'], 0, ',', '.') }}</p>
                     </div>
                 @empty
                     <p class="py-4 text-center text-slate-500">Belum ada data transaksi</p>
@@ -276,14 +276,14 @@
             <p class="mb-4 text-xs font-semibold text-slate-500">Fitur tambahan di luar fokus utama kas RT.</p>
             <div class="space-y-3">
                 @forelse($pengaduanTerbaru as $pengaduan)
-                    <a href="{{ route('pengaduan.show', $pengaduan) }}" class="block rounded-xl bg-emerald-50/70 p-3 transition hover:bg-emerald-50">
+                    <a href="{{ route('pengaduan.show', $pengaduan['id']) }}" class="block rounded-xl bg-emerald-50/70 p-3 transition hover:bg-emerald-50">
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
-                                <p class="truncate text-sm font-bold text-slate-900">{{ $pengaduan->judul }}</p>
-                                <p class="text-xs font-semibold text-slate-500">{{ $pengaduan->user?->name ?? 'Warga' }} - {{ $pengaduan->kategori }}</p>
+                                <p class="truncate text-sm font-bold text-slate-900">{{ $pengaduan['judul'] }}</p>
+                                <p class="text-xs font-semibold text-slate-500">{{ $pengaduan['user_name'] ?? 'Warga' }} - {{ $pengaduan['kategori'] }}</p>
                             </div>
-                            <span class="flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase {{ $pengaduan->status === 'pending' ? 'bg-amber-100 text-amber-700' : ($pengaduan->status === 'proses' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600') }}">
-                                {{ $pengaduan->status }}
+                            <span class="flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase {{ $pengaduan['status'] === 'pending' ? 'bg-amber-100 text-amber-700' : ($pengaduan['status'] === 'proses' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600') }}">
+                                {{ $pengaduan['status'] }}
                             </span>
                         </div>
                     </a>
@@ -309,10 +309,10 @@
                 <tbody class="divide-y divide-emerald-100">
                     @forelse($transaksiTerbaru as $transaksi)
                         <tr class="transition hover:bg-emerald-50/70">
-                            <td class="px-4 py-3 text-slate-600">{{ \Carbon\Carbon::parse($transaksi->tanggal)->format('d/m/Y') }}</td>
-                            <td class="px-4 py-3 font-semibold text-slate-800">{{ $transaksi->user->name ?? '-' }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $transaksi->keterangan ?? '-' }}</td>
-                            <td class="px-4 py-3 text-right font-bold text-emerald-600">Rp {{ number_format($transaksi->jumlah, 0, ',', '.') }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ \Carbon\Carbon::parse($transaksi['tanggal'])->format('d/m/Y') }}</td>
+                            <td class="px-4 py-3 font-semibold text-slate-800">{{ $transaksi['user_name'] ?? '-' }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ $transaksi['keterangan'] ?? '-' }}</td>
+                            <td class="px-4 py-3 text-right font-bold text-emerald-600">Rp {{ number_format($transaksi['jumlah'], 0, ',', '.') }}</td>
                         </tr>
                     @empty
                         <tr>

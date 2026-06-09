@@ -17,7 +17,7 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    private const CACHE_KEY = 'admin.dashboard.stats.v2';
+    private const CACHE_KEY = 'admin.dashboard.stats.v3';
 
     public function index(Request $request): View
     {
@@ -69,6 +69,10 @@ class DashboardController extends Controller
             ->orderByDesc('total_iuran')
             ->limit(5)
             ->get()
+            ->map(fn ($item) => [
+                'name' => $item->name,
+                'total_iuran' => (int) $item->total_iuran,
+            ])
             ->all();
 
         $topWargaBulanIni = KasMasuk::selectRaw('users.id, users.name, SUM(kas_masuks.jumlah) as total_iuran')
@@ -78,12 +82,22 @@ class DashboardController extends Controller
             ->orderByDesc('total_iuran')
             ->limit(5)
             ->get()
+            ->map(fn ($item) => [
+                'name' => $item->name,
+                'total_iuran' => (int) $item->total_iuran,
+            ])
             ->all();
 
         $transaksiTerbaru = KasMasuk::with('user')
             ->orderBy('tanggal', 'desc')
             ->limit(10)
             ->get()
+            ->map(fn (KasMasuk $item) => [
+                'tanggal' => $item->tanggal,
+                'user_name' => $item->user?->name,
+                'keterangan' => $item->keterangan,
+                'jumlah' => (int) $item->jumlah,
+            ])
             ->all();
 
         $totalTagihan = Tagihan::count();
@@ -113,6 +127,13 @@ class DashboardController extends Controller
             ->sortBy(fn (Tagihan $tagihan) => $tagihan->due_date)
             ->take(6)
             ->values()
+            ->map(fn (Tagihan $tagihan) => [
+                'display_title' => $tagihan->display_title,
+                'owner_label' => $tagihan->rumah?->kode_rumah ?? $tagihan->user?->name ?? '-',
+                'due_date_label' => $tagihan->due_date->translatedFormat('d M Y'),
+                'due_status_class' => $tagihan->due_status_class,
+                'due_status_label' => $tagihan->due_status_label,
+            ])
             ->all();
 
         $kasKeluarTerbesarBulanIni = KasKeluar::whereMonth('tanggal', now()->month)
@@ -120,6 +141,11 @@ class DashboardController extends Controller
             ->orderByDesc('jumlah')
             ->limit(5)
             ->get()
+            ->map(fn (KasKeluar $item) => [
+                'keterangan' => $item->keterangan,
+                'tanggal_label' => \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y'),
+                'jumlah' => (int) $item->jumlah,
+            ])
             ->all();
 
         $netBulanIni = $masukBulanIni - $keluarBulanIni;
@@ -132,6 +158,13 @@ class DashboardController extends Controller
             ->latest()
             ->limit(5)
             ->get()
+            ->map(fn (Pengaduan $pengaduan) => [
+                'id' => $pengaduan->id,
+                'judul' => $pengaduan->judul,
+                'user_name' => $pengaduan->user?->name,
+                'kategori' => $pengaduan->kategori,
+                'status' => $pengaduan->status,
+            ])
             ->all();
 
         $tagihanMenungguVerifikasi = Tagihan::with('user')
@@ -139,6 +172,13 @@ class DashboardController extends Controller
             ->latest()
             ->limit(5)
             ->get()
+            ->map(fn (Tagihan $tagihan) => [
+                'user_name' => $tagihan->user?->name ?? 'Warga',
+                'status_label' => $tagihan->status_label,
+                'bulan' => $tagihan->bulan,
+                'tahun' => $tagihan->tahun,
+                'total' => (int) $tagihan->total,
+            ])
             ->all();
 
         return compact(
@@ -255,9 +295,10 @@ class DashboardController extends Controller
             ->map(function (Collection $items) {
                 $first = $items->first();
 
-                return (object) [
-                    'rumah' => $first->rumah,
-                    'user' => $first->user,
+                return [
+                    'rumah_kode' => $first->rumah?->kode_rumah,
+                    'rumah_alamat' => $first->rumah?->alamat,
+                    'user_name' => $first->user?->name,
                     'total' => (int) $items->sum('total'),
                     'belum_lunas' => $items->where('status', '!=', 'lunas')->count(),
                     'jumlah_tagihan' => $items->count(),
@@ -266,7 +307,7 @@ class DashboardController extends Controller
                         : 'Belum Bayar',
                 ];
             })
-            ->filter(fn ($item) => $item->belum_lunas > 0)
+            ->filter(fn (array $item) => $item['belum_lunas'] > 0)
             ->sortByDesc('total')
             ->values();
     }

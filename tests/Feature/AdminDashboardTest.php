@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 test('admin dashboard exposes actionable finance and billing data', function () {
     Cache::forget('admin.dashboard.stats');
     Cache::forget('admin.dashboard.stats.v2');
+    Cache::forget('admin.dashboard.stats.v3');
 
     $adminRole = Role::firstOrCreate(['name' => 'admin'], ['description' => 'Admin']);
     $wargaRole = Role::firstOrCreate(['name' => 'warga'], ['description' => 'Warga']);
@@ -76,7 +77,7 @@ test('admin dashboard exposes actionable finance and billing data', function () 
     $response->assertViewHas('netBulanIni', 25000);
     $response->assertViewHas('totalRumahAktif', 1);
     $response->assertViewHas('rumahBelumBayarBulanIni', fn (array $items) => count($items) === 1);
-    $response->assertViewHas('kasKeluarTerbesarBulanIni', fn (array $items) => $items[0]->jumlah === 25000);
+    $response->assertViewHas('kasKeluarTerbesarBulanIni', fn (array $items) => $items[0]['jumlah'] === 25000);
     $response->assertViewHas('chartData', function (array $chartData) {
         return count($chartData['months']) === 12
             && $chartData['masukData'][11] === 50000
