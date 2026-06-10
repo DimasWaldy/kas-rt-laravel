@@ -69,7 +69,7 @@ class PengaduanController extends Controller
 
         $fotoPath = null;
         if ($request->hasFile('foto')) {
-            $fotoPath = $request->file('foto')->store('pengaduan', 'public');
+            $fotoPath = $request->file('foto')->store('pengaduan', 'local');
         }
 
         Pengaduan::create([
@@ -91,6 +91,23 @@ class PengaduanController extends Controller
     {
         $pengaduan->load(['user', 'responder']);
         return view('pengaduan.show', compact('pengaduan'));
+    }
+
+    public function foto(Pengaduan $pengaduan)
+    {
+        abort_unless(Auth::check(), 403);
+
+        if (! $pengaduan->foto) {
+            abort(404);
+        }
+
+        $disk = Storage::disk('local')->exists($pengaduan->foto) ? 'local' : 'public';
+
+        abort_unless(Storage::disk($disk)->exists($pengaduan->foto), 404);
+
+        return response()->file(Storage::disk($disk)->path($pengaduan->foto), [
+            'Content-Disposition' => 'inline; filename="' . basename($pengaduan->foto) . '"',
+        ]);
     }
 
     /**
@@ -136,6 +153,7 @@ class PengaduanController extends Controller
 
         // Hapus foto dari storage jika ada
         if ($pengaduan->foto) {
+            Storage::disk('local')->delete($pengaduan->foto);
             Storage::disk('public')->delete($pengaduan->foto);
         }
 

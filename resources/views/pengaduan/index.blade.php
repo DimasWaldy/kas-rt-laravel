@@ -177,7 +177,7 @@
 
                             @if($pengaduan->foto)
                                 <div class="relative w-full h-40 bg-slate-100 rounded-2xl overflow-hidden mb-4 border border-slate-200">
-                                    <img src="{{ asset('storage/' . $pengaduan->foto) }}" alt="Bukti Foto" class="w-full h-full object-cover">
+                                    <img src="{{ route('pengaduan.foto', $pengaduan) }}" alt="Bukti Foto" class="w-full h-full object-cover">
                                 </div>
                             @endif
                         </div>

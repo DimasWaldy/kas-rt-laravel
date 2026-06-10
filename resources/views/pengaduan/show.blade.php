@@ -86,7 +86,7 @@
                     <div>
                         <p class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Foto Bukti Terlampir</p>
                         <div class="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
-                            <img src="{{ asset('storage/' . $pengaduan->foto) }}" alt="Bukti Aduan" class="w-full object-contain max-h-[450px] mx-auto">
+                            <img src="{{ route('pengaduan.foto', $pengaduan) }}" alt="Bukti Aduan" class="w-full object-contain max-h-[450px] mx-auto">
                         </div>
                     </div>
                 @endif

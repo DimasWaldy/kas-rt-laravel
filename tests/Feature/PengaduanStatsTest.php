@@ -3,6 +3,8 @@
 use App\Models\Pengaduan;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 test('pengaduan index calculates status stats from grouped query result', function () {
     $wargaRole = Role::firstOrCreate(['name' => 'warga'], ['description' => 'Warga']);
@@ -52,4 +54,30 @@ test('pengaduan index calculates status stats from grouped query result', functi
         'proses' => 1,
         'selesai' => 1,
     ]);
+});
+
+test('pengaduan photo is stored privately and served through controller', function () {
+    Storage::fake('local');
+    Storage::fake('public');
+
+    $role = Role::firstOrCreate(['name' => 'warga'], ['description' => 'Warga']);
+    $warga = User::factory()->create(['role_id' => $role->id]);
+
+    $this->actingAs($warga)->post(route('pengaduan.store'), [
+        '_form' => 'pengaduan',
+        'judul' => 'Lampu jalan mati',
+        'kategori' => 'Keamanan',
+        'deskripsi' => 'Lampu jalan depan pos ronda mati sejak semalam.',
+        'foto' => UploadedFile::fake()->image('lampu-jalan.jpg'),
+    ])->assertRedirect('/pengaduan');
+
+    $pengaduan = Pengaduan::firstOrFail();
+
+    expect($pengaduan->foto)->not->toBeNull();
+    Storage::disk('local')->assertExists($pengaduan->foto);
+    Storage::disk('public')->assertMissing($pengaduan->foto);
+
+    $this->actingAs($warga)
+        ->get(route('pengaduan.foto', $pengaduan))
+        ->assertOk();
 });

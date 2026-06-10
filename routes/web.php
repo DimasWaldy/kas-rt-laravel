@@ -78,6 +78,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tagihan/pay', [TagihanController::class, 'pay'])->name('tagihan.pay');
     Route::get('/tagihan/{tagihan}/bukti', [TagihanController::class, 'bukti'])->name('tagihan.bukti');
 
+    Route::get('/pengaduan/{pengaduan}/foto', [\App\Http\Controllers\PengaduanController::class, 'foto'])->name('pengaduan.foto');
     Route::resource('pengaduan', \App\Http\Controllers\PengaduanController::class)->except(['edit', 'update']);
     Route::patch('/pengaduan/{pengaduan}/status', [\App\Http\Controllers\PengaduanController::class, 'updateStatus'])
         ->middleware('permission:manage-pengaduan')
