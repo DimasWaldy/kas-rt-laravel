@@ -259,12 +259,12 @@
                             {{ $loop->iteration }}
                         </span>
                         <div>
-                            <p class="text-sm font-medium text-slate-800">{{ $topKK->kepala_keluarga }}</p>
-                            <p class="text-xs text-slate-400">Rumah {{ $topKK->no_kk }}</p>
+                            <p class="text-sm font-medium text-slate-800">{{ $topKK['kepala_keluarga'] }}</p>
+                            <p class="text-xs text-slate-400">Rumah {{ $topKK['no_kk'] }}</p>
                         </div>
                     </div>
                     <p class="text-sm font-semibold text-slate-900 flex-shrink-0">
-                        Rp {{ number_format($topKK->total_iuran, 0, ',', '.') }}
+                        Rp {{ number_format($topKK['total_iuran'], 0, ',', '.') }}
                     </p>
                 </div>
             @empty
@@ -300,13 +300,13 @@
                 @forelse($recentAuditLogs as $log)
                     <div class="py-2.5 {{ !$loop->last ? 'border-b border-slate-100' : '' }}">
                         <div class="flex items-start justify-between gap-2">
-                            <p class="text-sm font-medium text-slate-800 leading-snug">{{ $log->event }}</p>
-                            <span class="text-xs text-slate-400 flex-shrink-0 mt-0.5">{{ $log->created_at->diffForHumans() }}</span>
+                            <p class="text-sm font-medium text-slate-800 leading-snug">{{ $log['event'] }}</p>
+                            <span class="text-xs text-slate-400 flex-shrink-0 mt-0.5">{{ $log['created_at_human'] }}</span>
                         </div>
-                        @if($log->notes)
-                            <p class="text-xs text-slate-500 mt-1">{{ $log->notes }}</p>
+                        @if($log['notes'])
+                            <p class="text-xs text-slate-500 mt-1">{{ $log['notes'] }}</p>
                         @endif
-                        <p class="text-xs text-slate-400 mt-1">Oleh: {{ $log->user?->name ?? 'Sistem' }}</p>
+                        <p class="text-xs text-slate-400 mt-1">Oleh: {{ $log['user_name'] ?? 'Sistem' }}</p>
                     </div>
                 @empty
                     <div class="text-center py-6">

@@ -97,3 +97,31 @@ test('admin dashboard exposes actionable finance and billing data', function () 
             && $chartData['keluarData'][$todayIndex] === 25000;
     });
 });
+
+test('main dashboard remains stable after visiting admin dashboard', function () {
+    $adminRole = Role::firstOrCreate(['name' => 'admin'], ['description' => 'Admin']);
+    $wargaRole = Role::firstOrCreate(['name' => 'warga'], ['description' => 'Warga']);
+
+    $admin = User::factory()->create(['role_id' => $adminRole->id]);
+    $warga = User::factory()->create([
+        'role_id' => $wargaRole->id,
+        'name' => 'Warga Dashboard',
+        'no_kk' => '3174000000000001',
+        'is_kepala_keluarga' => true,
+    ]);
+
+    KasMasuk::create([
+        'user_id' => $warga->id,
+        'keterangan' => 'Pembayaran iuran dashboard',
+        'jumlah' => 75000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    Cache::forget('dashboard.stats.user.' . $admin->id);
+    Cache::forget('dashboard.stats.user.v2.' . $admin->id);
+
+    $this->actingAs($admin)->get(route('dashboard'))->assertOk();
+    $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
+    $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee('Top 5 Rumah');
+    $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee('Warga Dashboard');
+});

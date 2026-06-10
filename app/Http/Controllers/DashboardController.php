@@ -15,13 +15,13 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $stats = Cache::remember('dashboard.stats.user.' . Auth::id(), 300, function () {
+        $stats = Cache::remember('dashboard.stats.user.v2.' . Auth::id(), 300, function () {
             $kasMasuk = KasMasuk::sum('jumlah');
             $kasKeluar = KasKeluar::sum('jumlah');
 
-            $tanggal = KasMasuk::pluck('tanggal');
-            $dataMasuk = KasMasuk::pluck('jumlah');
-            $dataKeluar = KasKeluar::pluck('jumlah');
+            $tanggal = KasMasuk::pluck('tanggal')->all();
+            $dataMasuk = KasMasuk::pluck('jumlah')->map(fn ($jumlah) => (int) $jumlah)->all();
+            $dataKeluar = KasKeluar::pluck('jumlah')->map(fn ($jumlah) => (int) $jumlah)->all();
 
             $totalWarga = User::whereRelation('role', 'name', 'warga')->count();
             $totalRumah = Rumah::count();
@@ -54,14 +54,25 @@ class DashboardController extends Controller
                 ->groupBy('users.no_kk', 'users.name')
                 ->orderByDesc('total_iuran')
                 ->limit(5)
-                ->get();
+                ->get()
+                ->map(fn ($item) => [
+                    'no_kk' => $item->no_kk,
+                    'kepala_keluarga' => $item->kepala_keluarga,
+                    'total_iuran' => (int) $item->total_iuran,
+                ])
+                ->all();
 
             $leaderboard = KasMasuk::selectRaw('user_id, SUM(jumlah) as total')
                 ->groupBy('user_id')
                 ->orderByDesc('total')
                 ->with('user')
                 ->limit(5)
-                ->get();
+                ->get()
+                ->map(fn (KasMasuk $item) => [
+                    'user_name' => $item->user?->name,
+                    'total' => (int) $item->total,
+                ])
+                ->all();
 
             $dueSoon = Tagihan::whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline'])
                 ->get()
@@ -107,19 +118,37 @@ class DashboardController extends Controller
                 ->groupBy('rumahs.kode_rumah', 'rumahs.alamat', 'users.no_kk', 'users.name')
                 ->orderByDesc('total_iuran')
                 ->limit(5)
-                ->get();
+                ->get()
+                ->map(fn ($item) => [
+                    'no_kk' => $item->no_kk,
+                    'kepala_keluarga' => $item->kepala_keluarga,
+                    'total_iuran' => (int) $item->total_iuran,
+                ])
+                ->all();
 
             $leaderboard = KasMasuk::selectRaw('user_id, SUM(jumlah) as total')
                 ->groupBy('user_id')
                 ->orderByDesc('total')
                 ->with('user')
                 ->limit(5)
-                ->get();
+                ->get()
+                ->map(fn (KasMasuk $item) => [
+                    'user_name' => $item->user?->name,
+                    'total' => (int) $item->total,
+                ])
+                ->all();
 
             $recentAuditLogs = AuditLog::with('user')
                 ->latest()
                 ->limit(5)
-                ->get();
+                ->get()
+                ->map(fn (AuditLog $log) => [
+                    'event' => $log->event,
+                    'created_at_human' => $log->created_at->diffForHumans(),
+                    'notes' => $log->notes,
+                    'user_name' => $log->user?->name,
+                ])
+                ->all();
 
             return compact(
                 'kasMasuk',
