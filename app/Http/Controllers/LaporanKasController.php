@@ -21,15 +21,21 @@ class LaporanKasController extends Controller
         $tanggalSelesai = Carbon::parse($validated['tanggal_selesai'] ?? now()->endOfMonth()->toDateString())->endOfDay();
         $kategoriFilter = $validated['kategori'] ?? '';
 
-        $saldoAwal = (int) KasMasuk::whereDate('tanggal', '<', $tanggalMulai->toDateString())->sum('jumlah')
-            - (int) KasKeluar::whereDate('tanggal', '<', $tanggalMulai->toDateString())->sum('jumlah');
+        $saldoAwal = (int) KasMasuk::visibleTo($request->user())
+            ->whereDate('tanggal', '<', $tanggalMulai->toDateString())
+            ->sum('jumlah')
+            - (int) KasKeluar::visibleTo($request->user())
+                ->whereDate('tanggal', '<', $tanggalMulai->toDateString())
+                ->sum('jumlah');
 
         $kasMasuk = KasMasuk::with(['user', 'tagihan'])
+            ->visibleTo($request->user())
             ->whereBetween('tanggal', [$tanggalMulai->toDateString(), $tanggalSelesai->toDateString()])
             ->latest('tanggal')
             ->get();
 
-        $kasKeluar = KasKeluar::whereBetween('tanggal', [$tanggalMulai->toDateString(), $tanggalSelesai->toDateString()])
+        $kasKeluar = KasKeluar::visibleTo($request->user())
+            ->whereBetween('tanggal', [$tanggalMulai->toDateString(), $tanggalSelesai->toDateString()])
             ->latest('tanggal')
             ->get();
 

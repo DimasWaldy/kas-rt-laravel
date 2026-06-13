@@ -11,12 +11,15 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
     public function index(Request $request): View
     {
-        $usersQuery = User::with('rumah')->whereRelation('role', 'name', 'warga');
+        $usersQuery = User::with('rumah')
+            ->visibleTo($request->user())
+            ->whereRelation('role', 'name', 'warga');
 
         if ($search = trim($request->input('search'))) {
             $usersQuery->where(function ($query) use ($search) {
@@ -44,25 +47,25 @@ class UserController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $rumahs = Rumah::orderBy('kode_rumah')->get();
+        $rumahs = Rumah::visibleTo($request->user())->orderBy('kode_rumah')->get();
 
         return view('admin.warga.index', compact('users', 'rumahs'));
     }
 
-    public function edit(User $user): View
+    public function edit(Request $request, User $user): View
     {
-        if ($user->role_name !== 'warga') {
+        if ($user->role_name !== 'warga' || ! User::visibleTo($request->user())->whereKey($user->id)->exists()) {
             abort(404);
         }
 
-        $rumahs = Rumah::orderBy('kode_rumah')->get();
+        $rumahs = Rumah::visibleTo($request->user())->orderBy('kode_rumah')->get();
 
         return view('admin.warga.edit', compact('user', 'rumahs'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
-        if ($user->role_name !== 'warga') {
+        if ($user->role_name !== 'warga' || ! User::visibleTo($request->user())->whereKey($user->id)->exists()) {
             abort(404);
         }
 
@@ -70,7 +73,8 @@ class UserController extends Controller
 
         $validated['is_kepala_keluarga'] = $request->boolean('is_kepala_keluarga');
         $validated['is_penanggung_jawab_rumah'] = $request->boolean('is_penanggung_jawab_rumah');
-        $validated['rumah_id'] = $this->resolveRumahId($validated);
+        $validated['rumah_id'] = $this->resolveRumahId($validated, $request->user());
+        $validated['rt_id'] = $this->resolveRtId($validated['rumah_id'], $request->user(), $user->rt_id);
         unset($validated['rumah_kode'], $validated['rumah_alamat']);
 
         DB::transaction(function () use ($user, $validated) {
@@ -88,9 +92,9 @@ class UserController extends Controller
         return redirect()->route('admin.warga.index')->with('success', 'Data warga berhasil diperbarui.');
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        $rumahs = Rumah::orderBy('kode_rumah')->get();
+        $rumahs = Rumah::visibleTo($request->user())->orderBy('kode_rumah')->get();
 
         return view('admin.warga.create', compact('rumahs'));
     }
@@ -106,7 +110,8 @@ class UserController extends Controller
         )->id;
         $validated['is_kepala_keluarga'] = $request->boolean('is_kepala_keluarga');
         $validated['is_penanggung_jawab_rumah'] = $request->boolean('is_penanggung_jawab_rumah');
-        $validated['rumah_id'] = $this->resolveRumahId($validated);
+        $validated['rumah_id'] = $this->resolveRumahId($validated, $request->user());
+        $validated['rt_id'] = $this->resolveRtId($validated['rumah_id'], $request->user());
         unset($validated['rumah_kode'], $validated['rumah_alamat']);
 
         DB::transaction(function () use ($validated) {
@@ -119,7 +124,7 @@ class UserController extends Controller
 
     public function destroy(User $user): RedirectResponse
     {
-        if ($user->role_name !== 'warga') {
+        if ($user->role_name !== 'warga' || ! User::visibleTo($request->user())->whereKey($user->id)->exists()) {
             abort(404);
         }
 
@@ -129,30 +134,47 @@ class UserController extends Controller
         return redirect()->route('admin.warga.index')->with('success', "Warga '{$userName}' berhasil dihapus.");
     }
 
-    private function resolveRumahId(array $data): ?int
+    private function resolveRumahId(array $data, User $actor): ?int
     {
         if (! empty($data['rumah_id'])) {
-            return (int) $data['rumah_id'];
+            return Rumah::visibleTo($actor)->findOrFail($data['rumah_id'])->id;
         }
 
         if (blank($data['rumah_kode'] ?? null)) {
             return null;
         }
 
-        $rumah = Rumah::firstOrCreate(
-            ['kode_rumah' => strtoupper(trim($data['rumah_kode']))],
-            [
+        $kodeRumah = strtoupper(trim($data['rumah_kode']));
+        $rumah = Rumah::visibleTo($actor)->where('kode_rumah', $kodeRumah)->first();
+
+        if (! $rumah && Rumah::where('kode_rumah', $kodeRumah)->exists()) {
+            throw ValidationException::withMessages([
+                'rumah_kode' => 'Kode rumah tersebut sudah digunakan di RT lain.',
+            ]);
+        }
+
+        $rumah ??= Rumah::create([
+                'kode_rumah' => $kodeRumah,
                 'alamat' => $data['rumah_alamat'] ?? null,
                 'rt' => $data['rt'] ?? null,
                 'rw' => $data['rw'] ?? null,
-            ]
-        );
+                'rt_id' => $actor->canAccessAllRts() ? null : $actor->rt_id,
+            ]);
 
         if (filled($data['rumah_alamat'] ?? null) && blank($rumah->alamat)) {
             $rumah->update(['alamat' => $data['rumah_alamat']]);
         }
 
         return $rumah->id;
+    }
+
+    private function resolveRtId(?int $rumahId, User $actor, ?int $currentRtId = null): ?int
+    {
+        if ($rumahId) {
+            return Rumah::findOrFail($rumahId)->rt_id;
+        }
+
+        return $actor->canAccessAllRts() ? $currentRtId : $actor->rt_id;
     }
 
     private function wargaRules(?User $user = null): array
@@ -201,7 +223,8 @@ class UserController extends Controller
 
             Rumah::whereKey($user->rumah_id)->update([
                 'penanggung_jawab_id' => $user->id,
-                'rt' => $user->rt,
+                'rt_id' => $user->rt_id,
+                'rt' => $user->getRawOriginal('rt'),
                 'rw' => $user->rw,
             ]);
         } elseif (Rumah::whereKey($user->rumah_id)->where('penanggung_jawab_id', $user->id)->exists()) {

@@ -50,9 +50,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/iuran-bulanan/create', [IuranBulananController::class, 'create'])->name('iuran-bulanan.create');
         Route::post('/admin/iuran-bulanan/store', [IuranBulananController::class, 'store'])->name('iuran-bulanan.store');
         Route::post('/admin/iuran-bulanan/generate', [IuranBulananController::class, 'generateMassal'])->name('iuran-bulanan.generate');
-        Route::get('/admin/laporan-kas', [LaporanKasController::class, 'index'])->name('laporan-kas.index');
         Route::get('/admin/demo-uts', [DemoUtsController::class, 'index'])->name('demo-uts.index');
     });
+
+    Route::get('/admin/laporan-kas', [LaporanKasController::class, 'index'])
+        ->middleware('permission:view-finance')
+        ->name('laporan-kas.index');
 
     Route::middleware(['permission:manage-warga'])->group(function () {
         Route::get('/admin/warga', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.warga.index');

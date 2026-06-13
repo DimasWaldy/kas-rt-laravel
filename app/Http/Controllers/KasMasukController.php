@@ -17,6 +17,7 @@ class KasMasukController extends Controller
         $filter = $request->query('filter', 'terbaru');
 
         $query = KasMasuk::query()
+            ->visibleTo($request->user())
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->whereHas('user', function ($q) use ($search) {
@@ -52,6 +53,7 @@ class KasMasukController extends Controller
 
         KasMasuk::create([
             'user_id' => auth()->id(),
+            'rt_id' => $request->user()->rt_id,
             'keterangan' => $validated['keterangan'],
             'jumlah' => $validated['jumlah'],
             'tanggal' => $validated['tanggal'],

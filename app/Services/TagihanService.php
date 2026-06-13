@@ -5,12 +5,13 @@ namespace App\Services;
 use App\Models\IuranBulanan;
 use App\Models\Rumah;
 use App\Models\Tagihan;
+use App\Models\User;
 use App\Notifications\TagihanCreated;
 use Illuminate\Support\Facades\Notification;
 
 class TagihanService
 {
-    public function generateForMonth(int $bulan, int $tahun): array
+    public function generateForMonth(int $bulan, int $tahun, ?User $actor = null): array
     {
         $result = [
             'created' => 0,
@@ -28,6 +29,7 @@ class TagihanService
         }
 
         Rumah::with('penanggungJawab')
+            ->when($actor, fn ($query) => $query->visibleTo($actor))
             ->where('status', 'aktif')
             ->whereNotNull('penanggung_jawab_id')
             ->get()
@@ -53,6 +55,7 @@ class TagihanService
                     $oldValues = $tagihan->getOriginal();
 
                     $tagihan->user_id = $user->id;
+                    $tagihan->rt_id = $rumah->rt_id ?? $user->rt_id;
                     $tagihan->judul = Tagihan::titleForGroup($items, $group);
                     if ($wasNew) {
                         $tagihan->total = (int) $items->sum('jumlah');

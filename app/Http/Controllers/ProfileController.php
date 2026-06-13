@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -21,7 +22,7 @@ class ProfileController extends Controller
     {
         return view('profile.edit', [
             'user' => auth()->user(),
-            'rumahs' => Rumah::orderBy('kode_rumah')->get(),
+            'rumahs' => Rumah::visibleTo($request->user())->orderBy('kode_rumah')->get(),
         ]);
     }
 
@@ -39,7 +40,10 @@ class ProfileController extends Controller
         }
 
         $validated['is_penanggung_jawab_rumah'] = $request->boolean('is_penanggung_jawab_rumah');
-        $validated['rumah_id'] = $this->resolveRumahId($validated);
+        $validated['rumah_id'] = $this->resolveRumahId($validated, $user);
+        if ($validated['rumah_id']) {
+            $validated['rt_id'] = Rumah::findOrFail($validated['rumah_id'])->rt_id;
+        }
         unset($validated['rumah_kode'], $validated['rumah_alamat']);
 
         if (
@@ -87,24 +91,32 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 
-    private function resolveRumahId(array $data): ?int
+    private function resolveRumahId(array $data, User $user): ?int
     {
         if (! empty($data['rumah_id'])) {
-            return (int) $data['rumah_id'];
+            return Rumah::visibleTo($user)->findOrFail($data['rumah_id'])->id;
         }
 
         if (blank($data['rumah_kode'] ?? null)) {
             return null;
         }
 
-        $rumah = Rumah::firstOrCreate(
-            ['kode_rumah' => strtoupper(trim($data['rumah_kode']))],
-            [
+        $kodeRumah = strtoupper(trim($data['rumah_kode']));
+        $rumah = Rumah::visibleTo($user)->where('kode_rumah', $kodeRumah)->first();
+
+        if (! $rumah && Rumah::where('kode_rumah', $kodeRumah)->exists()) {
+            throw ValidationException::withMessages([
+                'rumah_kode' => 'Kode rumah tersebut sudah digunakan di RT lain.',
+            ]);
+        }
+
+        $rumah ??= Rumah::create([
+                'kode_rumah' => $kodeRumah,
                 'alamat' => $data['rumah_alamat'] ?? null,
                 'rt' => $data['rt'] ?? null,
                 'rw' => $data['rw'] ?? null,
-            ]
-        );
+                'rt_id' => $user->rt_id,
+            ]);
 
         if (filled($data['rumah_alamat'] ?? null) && blank($rumah->alamat)) {
             $rumah->update(['alamat' => $data['rumah_alamat']]);
@@ -126,7 +138,8 @@ class ProfileController extends Controller
 
             Rumah::whereKey($user->rumah_id)->update([
                 'penanggung_jawab_id' => $user->id,
-                'rt' => $user->rt,
+                'rt_id' => $user->rt_id,
+                'rt' => $user->getRawOriginal('rt'),
                 'rw' => $user->rw,
             ]);
         } elseif (Rumah::whereKey($user->rumah_id)->where('penanggung_jawab_id', $user->id)->exists()) {

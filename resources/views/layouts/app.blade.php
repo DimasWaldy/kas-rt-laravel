@@ -20,7 +20,14 @@
 @php
     $user = auth()->user();
     $roleLabel = match($user->role_name) {
-        'admin' => 'Admin RT',
+        'super_admin' => 'Super Admin',
+        'admin' => 'Operator Sistem',
+        'ketua_rw' => 'Ketua RW',
+        'sekretaris_rw' => 'Sekretaris RW',
+        'bendahara_rw' => 'Bendahara RW',
+        'ketua_rt' => 'Ketua RT',
+        'sekretaris_rt' => 'Sekretaris RT',
+        'bendahara_rt' => 'Bendahara RT',
         'bendahara' => 'Bendahara RT',
         'sekretaris' => 'Sekretaris RT',
         default => 'Warga',
@@ -57,7 +64,7 @@
             ],
         ],
         [
-            'label' => 'Transaksi',
+            'label' => $user->isRwOfficial() ? 'Rekap Keuangan RW' : 'Transaksi',
             'items' => [
                 [
                     'label' => 'Kas Masuk',
@@ -65,7 +72,7 @@
                     'active' => 'kas-masuk*',
                     'icon' => 'fa-money-bill-trend-up',
                     'iconClass' => 'text-emerald-600',
-                    'visible' => true,
+                    'visible' => ! $user->isRwOfficial() && $user->canViewFinance(),
                 ],
                 [
                     'label' => 'Kas Keluar',
@@ -73,7 +80,7 @@
                     'active' => 'kas-keluar*',
                     'icon' => 'fa-money-bill-transfer',
                     'iconClass' => 'text-green-600',
-                    'visible' => true,
+                    'visible' => ! $user->isRwOfficial() && $user->canViewFinance(),
                 ],
                 [
                     'label' => 'Tagihan',
@@ -81,7 +88,7 @@
                     'active' => 'tagihan*',
                     'icon' => 'fa-receipt',
                     'iconClass' => 'text-lime-600',
-                    'visible' => true,
+                    'visible' => ! $user->isRwOfficial(),
                 ],
                 [
                     'label' => 'Laporan Kas',
@@ -89,12 +96,12 @@
                     'active' => 'admin/laporan-kas*',
                     'icon' => 'fa-chart-pie',
                     'iconClass' => 'text-emerald-600',
-                    'visible' => $user->canManageFinance(),
+                    'visible' => $user->canViewFinance(),
                 ],
             ],
         ],
         [
-            'label' => 'Pengurus RT',
+            'label' => 'Pengelolaan RT',
             'items' => [
                 [
                     'label' => 'Iuran Bulanan',

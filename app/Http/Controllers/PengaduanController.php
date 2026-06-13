@@ -16,7 +16,7 @@ class PengaduanController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $query = Pengaduan::with(['user', 'responder']);
+        $query = Pengaduan::with(['user', 'responder'])->visibleTo($user);
 
         // Filter tab berdasarkan peran
         $filter = $request->query('filter', 'semua');
@@ -38,7 +38,8 @@ class PengaduanController extends Controller
 
         $pengaduans = $query->latest()->paginate(10)->withQueryString();
 
-        $rawStats = Pengaduan::selectRaw('status, COUNT(*) as total')
+        $rawStats = Pengaduan::visibleTo($user)
+            ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
 
@@ -89,6 +90,8 @@ class PengaduanController extends Controller
      */
     public function show(Pengaduan $pengaduan)
     {
+        abort_unless($pengaduan->isVisibleTo(Auth::user()), 404);
+
         $pengaduan->load(['user', 'responder']);
         return view('pengaduan.show', compact('pengaduan'));
     }
@@ -96,6 +99,7 @@ class PengaduanController extends Controller
     public function foto(Pengaduan $pengaduan)
     {
         abort_unless(Auth::check(), 403);
+        abort_unless($pengaduan->isVisibleTo(Auth::user()), 404);
 
         if (! $pengaduan->foto) {
             abort(404);
@@ -115,6 +119,8 @@ class PengaduanController extends Controller
      */
     public function updateStatus(Request $request, Pengaduan $pengaduan)
     {
+        abort_unless($pengaduan->isVisibleTo(Auth::user()), 404);
+
         $request->validate([
             'status' => 'required|string|in:pending,proses,selesai,ditolak',
             'tanggapan' => 'required|string|min:5',
@@ -140,6 +146,8 @@ class PengaduanController extends Controller
     public function destroy(Pengaduan $pengaduan)
     {
         $user = Auth::user();
+
+        abort_unless($pengaduan->isVisibleTo($user), 404);
 
         // Warga hanya boleh menghapus pengaduan miliknya sendiri yang masih bertatus 'pending'
         if (!$user->canManagePengaduan()) {

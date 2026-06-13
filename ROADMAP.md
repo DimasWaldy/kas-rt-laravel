@@ -99,7 +99,7 @@ Kriteria selesai:
 
 ### Fase 1 - Stabilkan Modul Inti yang Sudah Ada
 
-Status: prioritas tertinggi.
+Status: **selesai pada 13 Juni 2026**.
 
 Modul:
 
@@ -129,6 +129,15 @@ Kriteria selesai:
 - Kas otomatis terupdate setelah pembayaran valid.
 - Sekretaris/admin bisa mengelola warga dan rumah.
 - Warga hanya melihat tagihan dan pengaduan miliknya.
+
+Hasil finalisasi:
+
+- Alur generate tagihan, pembayaran warga, verifikasi bendahara, dan pencatatan kas masuk sudah teruji end-to-end.
+- Dashboard, laporan kas, tagihan, kas, warga, rumah, dan pengaduan sudah memakai scope RT untuk pengurus RT.
+- Pengurus RW mendapat rekap lintas RT tanpa akses mutasi kas atau verifikasi tagihan RT.
+- Role legacy dan role Smart RW aktif serta tetap kompatibel.
+- `php artisan migrate:fresh --seed` berhasil.
+- Seluruh 76 test lulus dengan 372 assertions.
 
 ### Fase 2 - Surat Menyurat
 

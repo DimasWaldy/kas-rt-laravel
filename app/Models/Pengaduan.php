@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -40,5 +41,19 @@ class Pengaduan extends Model
     public function responder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'tanggapan_oleh');
+    }
+
+    public function scopeVisibleTo(Builder $query, User $actor): Builder
+    {
+        if ($actor->canAccessAllRts()) {
+            return $query;
+        }
+
+        return $query->whereHas('user', fn (Builder $userQuery) => $userQuery->where('rt_id', $actor->rt_id));
+    }
+
+    public function isVisibleTo(User $actor): bool
+    {
+        return $actor->canAccessAllRts() || $this->user()->where('rt_id', $actor->rt_id)->exists();
     }
 }

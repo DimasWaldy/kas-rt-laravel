@@ -141,9 +141,14 @@ class TagihanController extends Controller
                 'Pembayaran diajukan via ' . $tagihan->payment_method
             );
 
-            // Kirim Notifikasi ke Admin
-            $admins = User::whereRelation('role', 'name', 'admin')->get();
-            Notification::send($admins, new PaymentReceived($tagihan));
+            $financeManagers = User::whereHas('role.permissions', fn ($query) => $query->where('name', 'manage-finance'))
+                ->where(function ($query) use ($tagihan) {
+                    $query->whereHas('role', fn ($roleQuery) => $roleQuery->whereIn('name', ['admin', 'super_admin']))
+                        ->orWhere('rt_id', $tagihan->rt_id);
+                })
+                ->get();
+
+            Notification::send($financeManagers, new PaymentReceived($tagihan));
 
             return redirect()->route('tagihan.index')->with('success', 'Pembayaran tagihan telah dikirim. Tunggu konfirmasi RT.');
         });
@@ -174,6 +179,7 @@ class TagihanController extends Controller
         $filterTahun = $request->filled('tahun') ? (int) $request->query('tahun') : null;
 
         $tagihans = Tagihan::with(['user', 'rumah', 'verifier', 'rejecter'])
+            ->visibleTo($request->user())
             ->when($filterBulan, fn ($query) => $query->where('bulan', $filterBulan))
             ->when($filterTahun, fn ($query) => $query->where('tahun', $filterTahun))
             ->orderByDesc('tahun')
@@ -181,6 +187,7 @@ class TagihanController extends Controller
             ->paginate(20);
 
         $users = User::whereRelation('role', 'name', 'warga')
+            ->visibleTo($request->user())
             ->where('is_kepala_keluarga', true)
             ->orderBy('name')
             ->get();
@@ -205,7 +212,7 @@ class TagihanController extends Controller
             'rejection_reason.min' => 'Alasan penolakan minimal 5 karakter.',
         ]);
 
-        $tagihan = Tagihan::findOrFail($request->tagihan_id);
+        $tagihan = Tagihan::visibleTo($request->user())->findOrFail($request->tagihan_id);
 
         $oldValues = $tagihan->getOriginal();
 
@@ -260,6 +267,7 @@ class TagihanController extends Controller
                     ['tagihan_id' => $tagihan->id],
                     [
                         'user_id' => $tagihan->user_id,
+                        'rt_id' => $tagihan->rt_id,
                         'keterangan' => "Pembayaran " . $tagihan->display_title . " " . \Carbon\Carbon::create(null, $tagihan->bulan)->translatedFormat('F') . " " . $tagihan->tahun,
                         'jumlah' => $tagihan->total,
                         'tanggal' => now(),
@@ -294,7 +302,11 @@ class TagihanController extends Controller
 
     public function create(): View
     {
-        $users = User::whereRelation('role', 'name', 'warga')->where('is_kepala_keluarga', true)->orderBy('name')->get();
+        $users = User::whereRelation('role', 'name', 'warga')
+            ->visibleTo(Auth::user())
+            ->where('is_kepala_keluarga', true)
+            ->orderBy('name')
+            ->get();
         $bulanList = [];
         for ($i = 1; $i <= 12; $i++) {
             $bulanList[$i] = \Carbon\Carbon::create(null, $i)->translatedFormat('F');
@@ -308,7 +320,7 @@ class TagihanController extends Controller
     {
         $validated = $request->validated();
 
-        $user = User::findOrFail($validated['user_id']);
+        $user = User::visibleTo($request->user())->findOrFail($validated['user_id']);
         if ($user->role?->name !== 'warga' || !$user->is_kepala_keluarga) {
             return redirect()->back()->with('error', 'User harus kepala keluarga.');
         }
@@ -333,6 +345,7 @@ class TagihanController extends Controller
         $tagihan = new Tagihan([
             'user_id' => $user->id,
             'rumah_id' => $user->rumah_id,
+            'rt_id' => $user->rumah?->rt_id ?? $user->rt_id,
             'bulan' => $validated['bulan'],
             'tahun' => $validated['tahun'],
             'billing_group' => Tagihan::BILLING_GROUP_MANUAL,
@@ -354,7 +367,13 @@ class TagihanController extends Controller
 
     public function edit(Tagihan $tagihan): View
     {
-        $users = User::whereRelation('role', 'name', 'warga')->where('is_kepala_keluarga', true)->orderBy('name')->get();
+        abort_unless($tagihan->isVisibleTo(Auth::user()), 404);
+
+        $users = User::whereRelation('role', 'name', 'warga')
+            ->visibleTo(Auth::user())
+            ->where('is_kepala_keluarga', true)
+            ->orderBy('name')
+            ->get();
         $bulanList = [];
         for ($i = 1; $i <= 12; $i++) {
             $bulanList[$i] = \Carbon\Carbon::create(null, $i)->translatedFormat('F');
@@ -366,6 +385,8 @@ class TagihanController extends Controller
 
     public function update(Request $request, Tagihan $tagihan): RedirectResponse
     {
+        abort_unless($tagihan->isVisibleTo($request->user()), 404);
+
         $request->validate([
             'total' => ['required', 'integer', 'min:1000'],
             'note' => ['nullable', 'string', 'max:500'],
@@ -390,6 +411,8 @@ class TagihanController extends Controller
 
     public function destroy(Tagihan $tagihan): RedirectResponse
     {
+        abort_unless($tagihan->isVisibleTo(Auth::user()), 404);
+
         if ($tagihan->status === 'lunas') {
             return redirect()->back()->with('error', 'Tagihan yang sudah lunas tidak dapat dihapus.');
         }
@@ -415,7 +438,7 @@ class TagihanController extends Controller
             return false;
         }
 
-        if ($user->canManageFinance()) {
+        if ($user->canManageFinance() && $tagihan->isVisibleTo($user)) {
             return true;
         }
 

@@ -22,6 +22,7 @@ class RumahController extends Controller
         $tahun = (int) $request->query('tahun', now()->year);
 
         $rumahs = Rumah::with(['penanggungJawab', 'warga'])
+            ->visibleTo($request->user())
             ->withCount([
                 'warga',
                 'warga as kepala_keluarga_count' => fn($query) => $query->where('is_kepala_keluarga', true),
@@ -37,7 +38,8 @@ class RumahController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $tagihanByRumah = Tagihan::where('bulan', $bulan)
+        $tagihanByRumah = Tagihan::visibleTo($request->user())
+            ->where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->whereNotNull('rumah_id')
             ->get()
@@ -62,10 +64,10 @@ class RumahController extends Controller
             });
 
         $stats = [
-            'total' => Rumah::count(),
-            'aktif' => Rumah::where('status', 'aktif')->count(),
-            'tanpa_pj' => Rumah::whereNull('penanggung_jawab_id')->count(),
-            'belum_lunas' => Tagihan::where('bulan', $bulan)
+            'total' => Rumah::visibleTo($request->user())->count(),
+            'aktif' => Rumah::visibleTo($request->user())->where('status', 'aktif')->count(),
+            'tanpa_pj' => Rumah::visibleTo($request->user())->whereNull('penanggung_jawab_id')->count(),
+            'belum_lunas' => Tagihan::visibleTo($request->user())->where('bulan', $bulan)
                 ->where('tahun', $tahun)
                 ->whereNotNull('rumah_id')
                 ->where('status', '!=', 'lunas')
@@ -78,6 +80,8 @@ class RumahController extends Controller
 
     public function show(Request $request, Rumah $rumah): View
     {
+        abort_unless($rumah->isVisibleTo($request->user()), 404);
+
         $bulan = (int) $request->query('bulan', now()->month);
         $tahun = (int) $request->query('tahun', now()->year);
 
@@ -93,14 +97,17 @@ class RumahController extends Controller
             ->get();
 
         $rumahOptions = Rumah::whereKeyNot($rumah->id)
+            ->visibleTo($request->user())
             ->orderBy('kode_rumah')
             ->get();
 
         return view('admin.rumah.show', compact('rumah', 'tagihans', 'rumahOptions', 'bulan', 'tahun'));
     }
 
-    public function edit(Rumah $rumah): View
+    public function edit(Request $request, Rumah $rumah): View
     {
+        abort_unless($rumah->isVisibleTo($request->user()), 404);
+
         $rumah->load(['warga' => fn ($query) => $query->orderBy('name')]);
 
         return view('admin.rumah.edit', compact('rumah'));
@@ -108,6 +115,8 @@ class RumahController extends Controller
 
     public function update(Request $request, Rumah $rumah): RedirectResponse
     {
+        abort_unless($rumah->isVisibleTo($request->user()), 404);
+
         $validated = $request->validate([
             'kode_rumah' => ['required', 'string', 'max:50', Rule::unique('rumahs', 'kode_rumah')->ignore($rumah->id)],
             'alamat' => ['nullable', 'string', 'max:500'],
@@ -153,6 +162,7 @@ class RumahController extends Controller
             if ($penanggungJawabId) {
                 User::whereKey($penanggungJawabId)->update([
                     'is_penanggung_jawab_rumah' => true,
+                    'rt_id' => $rumah->rt_id,
                     'rt' => $rumah->rt,
                     'rw' => $rumah->rw,
                 ]);
@@ -164,12 +174,23 @@ class RumahController extends Controller
 
     public function moveWarga(Request $request, Rumah $rumah, User $user): RedirectResponse
     {
-        if ($user->role_name !== 'warga' || $user->rumah_id !== $rumah->id) {
+        if (! $rumah->isVisibleTo($request->user())
+            || $user->role_name !== 'warga'
+            || $user->rumah_id !== $rumah->id
+            || ! User::visibleTo($request->user())->whereKey($user->id)->exists()) {
             abort(404);
         }
 
         $validated = $request->validate([
-            'target_rumah_id' => ['nullable', 'integer', Rule::exists('rumahs', 'id')->where('status', 'aktif')],
+            'target_rumah_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('rumahs', 'id')
+                    ->where('status', 'aktif')
+                    ->where(fn ($query) => $request->user()->canAccessAllRts()
+                        ? $query
+                        : $query->where('rt_id', $request->user()->rt_id)),
+            ],
             'make_penanggung_jawab' => ['nullable', 'boolean'],
         ], [
             'target_rumah_id.exists' => 'Warga hanya bisa dipindahkan ke rumah yang berstatus aktif.',
@@ -178,12 +199,15 @@ class RumahController extends Controller
         $targetRumahId = $validated['target_rumah_id'] ?? null;
 
         DB::transaction(function () use ($rumah, $user, $targetRumahId, $request) {
+            $targetRumah = $targetRumahId ? Rumah::visibleTo($request->user())->findOrFail($targetRumahId) : null;
+
             if ($rumah->penanggung_jawab_id === $user->id) {
                 $rumah->update(['penanggung_jawab_id' => null]);
             }
 
             $user->update([
                 'rumah_id' => $targetRumahId,
+                'rt_id' => $targetRumah?->rt_id ?? $user->rt_id,
                 'is_penanggung_jawab_rumah' => false,
             ]);
 

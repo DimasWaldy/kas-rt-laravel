@@ -15,6 +15,7 @@ class KasKeluarController extends Controller
         $tahun = $request->query('tahun', date('Y'));
 
         $data = KasKeluar::query()
+            ->visibleTo($request->user())
             ->when($search, function ($query) use ($search) {
                 $query->where('keterangan', 'like', '%' . $search . '%');
             })
@@ -48,6 +49,7 @@ class KasKeluarController extends Controller
         }
 
         KasKeluar::create([
+            'rt_id' => $request->user()->rt_id,
             'keterangan' => $validated['keterangan'],
             'jumlah' => $validated['jumlah'],
             'tanggal' => $validated['tanggal'],
@@ -60,6 +62,8 @@ class KasKeluarController extends Controller
 
     public function bukti(KasKeluar $kasKeluar)
     {
+        abort_unless($kasKeluar->isVisibleTo(request()->user()), 403);
+
         if (! $kasKeluar->bukti) {
             abort(404);
         }

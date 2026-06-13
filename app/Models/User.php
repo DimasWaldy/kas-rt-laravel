@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'no_kk', 'is_kepala_keluarga', 'is_penanggung_jawab_rumah', 'jumlah_anggota_keluarga', 'phone', 'rt', 'rw'])]
+#[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'rt_id', 'no_kk', 'is_kepala_keluarga', 'is_penanggung_jawab_rumah', 'jumlah_anggota_keluarga', 'phone', 'rt', 'rw'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -45,6 +45,7 @@ class User extends Authenticatable
             'jumlah_anggota_keluarga' => 'integer',
             'role_id' => 'integer',
             'rumah_id' => 'integer',
+            'rt_id' => 'integer',
         ];
     }
 
@@ -75,6 +76,15 @@ class User extends Authenticatable
         });
     }
 
+    public function scopeVisibleTo(Builder $query, User $actor): Builder
+    {
+        if ($actor->canAccessAllRts()) {
+            return $query;
+        }
+
+        return $query->where('rt_id', $actor->rt_id);
+    }
+
     public function getRtAttribute(mixed $value): Rt|string|null
     {
         if (! $this->rt_id) {
@@ -95,7 +105,22 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return $this->role_name === 'admin';
+        return $this->isGlobalOperator();
+    }
+
+    public function isGlobalOperator(): bool
+    {
+        return in_array($this->role_name, ['admin', 'super_admin'], true);
+    }
+
+    public function isRwOfficial(): bool
+    {
+        return in_array($this->role_name, ['ketua_rw', 'sekretaris_rw', 'bendahara_rw'], true);
+    }
+
+    public function canAccessAllRts(): bool
+    {
+        return $this->isGlobalOperator() || $this->isRwOfficial();
     }
 
     public function hasPermission(string $permission): bool
@@ -136,29 +161,34 @@ class User extends Authenticatable
 
     public function isSekretaris(): bool
     {
-        return $this->role_name === 'sekretaris';
+        return in_array($this->role_name, ['sekretaris', 'sekretaris_rt'], true);
     }
 
     public function isBendahara(): bool
     {
-        return $this->role_name === 'bendahara';
+        return in_array($this->role_name, ['bendahara', 'bendahara_rt'], true);
     }
 
     public function canManageFinance(): bool
     {
         return $this->hasPermission('manage-finance')
-            || in_array($this->role_name, ['admin', 'bendahara']);
+            || in_array($this->role_name, ['admin', 'super_admin', 'bendahara', 'bendahara_rt'], true);
     }
 
     public function canManageWarga(): bool
     {
         return $this->hasPermission('manage-warga')
-            || in_array($this->role_name, ['admin', 'sekretaris']);
+            || in_array($this->role_name, ['admin', 'super_admin', 'sekretaris', 'sekretaris_rt'], true);
     }
 
     public function canManagePengaduan(): bool
     {
         return $this->hasPermission('manage-pengaduan')
-            || in_array($this->role_name, ['admin', 'sekretaris']);
+            || in_array($this->role_name, ['admin', 'super_admin', 'sekretaris', 'sekretaris_rt', 'ketua_rt'], true);
+    }
+
+    public function canViewFinance(): bool
+    {
+        return $this->hasPermission('view-finance') || $this->canManageFinance();
     }
 }

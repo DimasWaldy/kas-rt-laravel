@@ -79,6 +79,26 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-finance',
                 ],
             ],
+            'bendahara_rt' => [
+                'description' => 'Bendahara RT, pengelola keuangan RT',
+                'permissions' => [
+                    'view-dashboard',
+                    'view-finance',
+                    'manage-finance',
+                    'verify-payment',
+                    'export-finance',
+                    'submit-pengaduan',
+                ],
+            ],
+            'sekretaris_rt' => [
+                'description' => 'Sekretaris RT, administrasi level RT',
+                'permissions' => [
+                    'view-dashboard',
+                    'manage-warga',
+                    'manage-pengaduan',
+                    'submit-pengaduan',
+                ],
+            ],
             'bendahara' => [
                 'description' => 'Bendahara RT',
                 'permissions' => [

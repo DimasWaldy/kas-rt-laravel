@@ -54,7 +54,7 @@ class IuranBulananController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        Tagihan::generate($data['bulan'], $data['tahun']);
+        Tagihan::generate($data['bulan'], $data['tahun'], Auth::user());
 
         return redirect()->route('iuran-bulanan.index')->with('success', 'Iuran bulanan berhasil ditambahkan dan tagihan dibuat untuk warga.');
     }
@@ -101,7 +101,7 @@ class IuranBulananController extends Controller
             }
 
             // 2. Trigger generate/update tagihan untuk seluruh Kepala Keluarga
-            Tagihan::generate($bulan, $tahun);
+            Tagihan::generate($bulan, $tahun, Auth::user());
 
             // Tambahkan Audit Log agar terekam siapa admin yang melakukan generate massal via UI
             AuditLog::create([

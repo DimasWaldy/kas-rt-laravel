@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasRtScope;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,13 +15,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tagihan extends Model
 {
-    use Auditable, SoftDeletes;
+    use Auditable, HasRtScope, SoftDeletes;
 
     public const BILLING_GROUP_MANUAL = 'manual';
 
     protected $fillable = [
         'user_id',
         'rumah_id',
+        'rt_id',
         'bulan',
         'tahun',
         'billing_group',
@@ -186,9 +188,9 @@ class Tagihan extends Model
         return 'bg-slate-100 text-slate-700';
     }
 
-    public static function generate(int $bulan, int $tahun): array
+    public static function generate(int $bulan, int $tahun, ?User $actor = null): array
     {
-        return app(TagihanService::class)->generateForMonth($bulan, $tahun);
+        return app(TagihanService::class)->generateForMonth($bulan, $tahun, $actor);
     }
 
     /**

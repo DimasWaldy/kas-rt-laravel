@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasRtScope;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,9 +10,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class KasMasuk extends Model
 {
-    use Auditable, SoftDeletes;
+    use Auditable, HasRtScope, SoftDeletes;
     protected $fillable = [
         'user_id',
+        'rt_id',
         'keterangan',
         'jumlah',
         'tanggal',

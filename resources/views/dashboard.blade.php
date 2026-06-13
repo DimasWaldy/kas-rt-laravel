@@ -19,7 +19,7 @@
 {{-- =============================================
      SECTION 0: STATUS PERSONAL (KHUSUS WARGA)
      ============================================= --}}
-@if(!auth()->user()->isAdmin())
+@if(auth()->user()->role_name === 'warga')
 <div class="mb-6">
     <div class="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-6 text-white shadow-lg shadow-indigo-100">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -45,7 +45,9 @@
      SECTION 1: KEUANGAN KESELURUHAN
      ============================================= --}}
 <div class="mb-2">
-    <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Keuangan keseluruhan</p>
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+        {{ auth()->user()->isRwOfficial() ? 'Rekap Keuangan RW' : (auth()->user()->role_name === 'warga' ? 'Ringkasan Keuangan RT' : 'Keuangan RT') }}
+    </p>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -142,7 +144,7 @@
         <div class="bg-indigo-50 w-9 h-9 rounded-xl flex items-center justify-center mb-3">
             <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
         </div>
-        <p class="text-xs font-medium text-slate-500">Warga RT</p>
+        <p class="text-xs font-medium text-slate-500">{{ auth()->user()->isRwOfficial() ? 'Total Warga RW' : 'Warga RT' }}</p>
         <p class="text-2xl font-semibold text-slate-900 mt-0.5">{{ $totalWarga ?? 0 }}</p>
         <p class="text-xs text-slate-400 mt-1">orang terdaftar</p>
     </div>
@@ -236,7 +238,7 @@
             </div>
 
             {{-- Alert bukti transfer pending --}}
-            @if(auth()->user()->isAdmin() && ($pendingTransferCount ?? 0) > 0)
+            @if(auth()->user()->canManageFinance() && ($pendingTransferCount ?? 0) > 0)
                 <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
                     <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div>
@@ -292,7 +294,7 @@
             </div>
         </div>
 
-        @if(auth()->user()->isAdmin())
+        @if(auth()->user()->role_name !== 'warga')
             {{-- Aktivitas terakhir --}}
             <div class="bg-white rounded-2xl border border-slate-200 p-5">
                 <p class="text-sm font-semibold text-slate-800 mb-4">Aktivitas terakhir</p>
