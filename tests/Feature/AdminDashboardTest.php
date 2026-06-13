@@ -2,6 +2,7 @@
 
 use App\Models\KasKeluar;
 use App\Models\KasMasuk;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Rumah;
 use App\Models\Tagihan;
@@ -101,6 +102,11 @@ test('admin dashboard exposes actionable finance and billing data', function () 
 test('main dashboard remains stable after visiting admin dashboard', function () {
     $adminRole = Role::firstOrCreate(['name' => 'admin'], ['description' => 'Admin']);
     $wargaRole = Role::firstOrCreate(['name' => 'warga'], ['description' => 'Warga']);
+    $viewFinance = Permission::firstOrCreate(
+        ['name' => 'view-finance'],
+        ['description' => 'Melihat laporan kas dan tagihan']
+    );
+    $adminRole->permissions()->syncWithoutDetaching([$viewFinance->id]);
 
     $admin = User::factory()->create(['role_id' => $adminRole->id]);
     $warga = User::factory()->create([

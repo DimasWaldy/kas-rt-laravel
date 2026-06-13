@@ -36,6 +36,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['permission:manage-finance'])->group(function () {
         Route::get('/kas-keluar/create', [KasKeluarController::class, 'create'])->name('kas-keluar.create');
         Route::post('/kas-keluar/store', [KasKeluarController::class, 'store'])->name('kas-keluar.store');
+        Route::get('/kas-keluar/{kasKeluar}/bukti', [KasKeluarController::class, 'bukti'])->name('kas-keluar.bukti');
 
         Route::get('/admin/tagihan', [TagihanController::class, 'adminIndex'])->name('tagihan.admin');
         Route::get('/tagihan/create', [TagihanController::class, 'create'])->name('tagihan.create');

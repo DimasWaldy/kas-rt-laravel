@@ -25,6 +25,55 @@ Role dasar:
 - `sekretaris`: modul administrasi.
 - `warga`: akses data pribadi/rumah/publik.
 
+<!-- BARU -->
+Setiap fitur yang melibatkan data warga, tagihan, atau kas wajib mempertimbangkan data scope RT. Query pengurus RT wajib difilter berdasarkan `rt_id`, sedangkan query pengurus RW boleh mengambil data lintas RT dalam satu RW untuk kebutuhan monitoring dan rekap.
+
+<!-- BARU -->
+## 1A. Modul Wilayah — RW dan RT
+
+Tujuan:
+
+- Mengelola data RW dan RT sebagai entitas wilayah yang menjadi dasar scope data seluruh modul.
+
+Aktor:
+
+- `super_admin`: kelola RW dan semua RT.
+- `ketua_rw` / `sekretaris_rw`: lihat data RW dan semua RT.
+- `ketua_rt`: lihat data RT-nya sendiri.
+
+Permission:
+
+- `manage-wilayah`: create/update/delete RW dan RT.
+- `view-wilayah`: lihat daftar RW dan RT.
+
+Data utama:
+
+- `rws`: `id`, `name`, `description`, `address`, `kelurahan`, `kecamatan`, `kota`, `is_active`.
+- `rts`: `id`, `rw_id`, `name`, `description`, `is_active`.
+
+Relasi:
+
+- `rts.rw_id` -> `rws.id`.
+- `users.rt_id` -> `rts.id`.
+- `rumahs.rt_id` -> `rts.id`.
+
+Halaman:
+
+- Super admin: daftar RT, tambah/edit RT.
+- Pengurus RW: lihat daftar RT dalam RW-nya.
+- Tidak ada halaman publik untuk warga.
+
+Validasi penting:
+
+- Nama RT unik dalam satu RW.
+- RT tidak bisa dihapus jika masih ada warga aktif.
+
+Test minimal:
+
+- Super admin bisa CRUD RT.
+- Warga tidak bisa akses halaman kelola RT.
+- Pengurus RT tidak bisa melihat data RT lain.
+
 ## 2. Modul Warga dan Rumah
 
 Tujuan:
@@ -655,6 +704,8 @@ Test minimal:
 
 Urutan implementasi yang disarankan:
 
+<!-- BARU -->
+0. Migrasi Smart RW: tabel `rws`, `rts`, dan tambah `rt_id` ke tabel inti.
 1. Stabilkan modul inti: warga, rumah, tagihan, kas, laporan, pengaduan.
 2. Surat menyurat.
 3. Kegiatan.

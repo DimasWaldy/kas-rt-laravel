@@ -6,6 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -55,6 +56,36 @@ class User extends Authenticatable
     public function rumah(): BelongsTo
     {
         return $this->belongsTo(Rumah::class);
+    }
+
+    public function rt(): BelongsTo
+    {
+        return $this->belongsTo(Rt::class);
+    }
+
+    public function scopeInRt(Builder $query, int $rtId): Builder
+    {
+        return $query->where('rt_id', $rtId);
+    }
+
+    public function scopeInRw(Builder $query, int $rwId): Builder
+    {
+        return $query->whereHas('rt', function (Builder $query) use ($rwId) {
+            $query->where('rw_id', $rwId);
+        });
+    }
+
+    public function getRtAttribute(mixed $value): Rt|string|null
+    {
+        if (! $this->rt_id) {
+            return $value;
+        }
+
+        if (! $this->relationLoaded('rt')) {
+            $this->setRelation('rt', $this->rt()->first());
+        }
+
+        return $this->getRelation('rt');
     }
 
     public function getRoleNameAttribute(): ?string

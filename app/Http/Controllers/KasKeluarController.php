@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\KasKeluar;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class KasKeluarController extends Controller
 {
@@ -43,7 +44,7 @@ class KasKeluarController extends Controller
 
         $path = null;
         if ($request->hasFile('bukti')) {
-            $path = $request->file('bukti')->store('uploads', 'public');
+            $path = $request->file('bukti')->store('kaskeluar-bukti', 'local');
         }
 
         KasKeluar::create([
@@ -55,5 +56,16 @@ class KasKeluarController extends Controller
 
         return redirect()->route('kas-keluar.index')
             ->with('success', 'Data pengeluaran berhasil dicatat.');
+    }
+
+    public function bukti(KasKeluar $kasKeluar)
+    {
+        if (! $kasKeluar->bukti) {
+            abort(404);
+        }
+
+        abort_unless(Storage::disk('local')->exists($kasKeluar->bukti), 404);
+
+        return Storage::disk('local')->response($kasKeluar->bukti);
     }
 }

@@ -16,12 +16,19 @@ class DashboardController extends Controller
     public function index()
     {
         $stats = Cache::remember('dashboard.stats.user.v2.' . Auth::id(), 300, function () {
-            $kasMasuk = KasMasuk::sum('jumlah');
-            $kasKeluar = KasKeluar::sum('jumlah');
+            $user = Auth::user();
+            $canViewGlobalFinance = $user->hasPermission('view-finance') || $user->hasPermission('manage-finance');
 
-            $tanggal = KasMasuk::pluck('tanggal')->all();
-            $dataMasuk = KasMasuk::pluck('jumlah')->map(fn ($jumlah) => (int) $jumlah)->all();
-            $dataKeluar = KasKeluar::pluck('jumlah')->map(fn ($jumlah) => (int) $jumlah)->all();
+            $kasMasuk = $canViewGlobalFinance ? KasMasuk::sum('jumlah') : null;
+            $kasKeluar = $canViewGlobalFinance ? KasKeluar::sum('jumlah') : null;
+
+            $tanggal = $canViewGlobalFinance ? KasMasuk::pluck('tanggal')->all() : [];
+            $dataMasuk = $canViewGlobalFinance
+                ? KasMasuk::pluck('jumlah')->map(fn ($jumlah) => (int) $jumlah)->all()
+                : [];
+            $dataKeluar = $canViewGlobalFinance
+                ? KasKeluar::pluck('jumlah')->map(fn ($jumlah) => (int) $jumlah)->all()
+                : [];
 
             $totalWarga = User::whereRelation('role', 'name', 'warga')->count();
             $totalRumah = Rumah::count();
@@ -30,26 +37,26 @@ class DashboardController extends Controller
             $totalRegistrations = User::count();
             $totalWargaByKK = $totalWarga;
 
-            $rumahAktifBulanIni = Tagihan::where('bulan', now()->month)
+            $rumahAktifBulanIni = $canViewGlobalFinance ? Tagihan::where('bulan', now()->month)
                 ->where('tahun', now()->year)
                 ->where('status', 'lunas')
                 ->whereNotNull('rumah_id')
                 ->distinct('rumah_id')
-                ->count('rumah_id');
+                ->count('rumah_id') : 0;
 
-            $kepalaKeluargaAktif = $totalRumah
+            $kepalaKeluargaAktif = $canViewGlobalFinance && $totalRumah
                 ? $rumahAktifBulanIni
-                : User::whereIn('id', KasMasuk::whereMonth('tanggal', now()->month)->whereYear('tanggal', now()->year)->pluck('user_id')->unique())
+                : ($canViewGlobalFinance ? User::whereIn('id', KasMasuk::whereMonth('tanggal', now()->month)->whereYear('tanggal', now()->year)->pluck('user_id')->unique())
                     ->where('is_kepala_keluarga', true)
-                    ->count();
+                    ->count() : 0);
 
-            $keluargaBelumBayar = $totalRumah
+            $keluargaBelumBayar = $canViewGlobalFinance && $totalRumah
                 ? max($totalRumah - $rumahAktifBulanIni, 0)
-                : User::where('is_kepala_keluarga', true)
+                : ($canViewGlobalFinance ? User::where('is_kepala_keluarga', true)
                     ->whereNotIn('id', KasMasuk::whereMonth('tanggal', now()->month)->whereYear('tanggal', now()->year)->pluck('user_id')->unique())
-                    ->count();
+                    ->count() : 0);
 
-            $iuranPerKK = KasMasuk::selectRaw('users.no_kk, users.name as kepala_keluarga, SUM(kas_masuks.jumlah) as total_iuran')
+            $iuranPerKK = $canViewGlobalFinance ? KasMasuk::selectRaw('users.no_kk, users.name as kepala_keluarga, SUM(kas_masuks.jumlah) as total_iuran')
                 ->join('users', 'kas_masuks.user_id', '=', 'users.id')
                 ->groupBy('users.no_kk', 'users.name')
                 ->orderByDesc('total_iuran')
@@ -60,9 +67,9 @@ class DashboardController extends Controller
                     'kepala_keluarga' => $item->kepala_keluarga,
                     'total_iuran' => (int) $item->total_iuran,
                 ])
-                ->all();
+                ->all() : [];
 
-            $leaderboard = KasMasuk::selectRaw('user_id, SUM(jumlah) as total')
+            $leaderboard = $canViewGlobalFinance ? KasMasuk::selectRaw('user_id, SUM(jumlah) as total')
                 ->groupBy('user_id')
                 ->orderByDesc('total')
                 ->with('user')
@@ -72,26 +79,8 @@ class DashboardController extends Controller
                     'user_name' => $item->user?->name,
                     'total' => (int) $item->total,
                 ])
-                ->all();
+                ->all() : [];
 
-            $dueSoon = Tagihan::whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline'])
-                ->get()
-                ->filter(fn($tagihan) => $tagihan->isDueSoon())
-                ->count();
-
-            $overdueCount = Tagihan::whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline'])
-                ->get()
-                ->filter(fn($tagihan) => $tagihan->isOverdue())
-                ->count();
-
-            $totalPaidTagihan = Tagihan::where('status', 'lunas')->count();
-            $totalUnpaidTagihan = Tagihan::whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline'])->count();
-            $monthlyRevenue = KasMasuk::whereMonth('tanggal', now()->month)
-                ->whereYear('tanggal', now()->year)
-                ->sum('jumlah');
-            $pendingTransferCount = Tagihan::where('status', 'pending_transfer')->count();
-
-            $user = Auth::user();
             $statusOwnerId = $user->id;
             $statusQuery = Tagihan::query();
 
@@ -106,12 +95,40 @@ class DashboardController extends Controller
                 $statusQuery->where('user_id', $statusOwnerId);
             }
 
+            $unpaidStatuses = ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline'];
+            $dueSoonQuery = $canViewGlobalFinance
+                ? Tagihan::whereIn('status', $unpaidStatuses)
+                : (clone $statusQuery)->whereIn('status', $unpaidStatuses);
+
+            $dueSoon = $dueSoonQuery
+                ->get()
+                ->filter(fn($tagihan) => $tagihan->isDueSoon())
+                ->count();
+
+            $overdueQuery = $canViewGlobalFinance
+                ? Tagihan::whereIn('status', $unpaidStatuses)
+                : (clone $statusQuery)->whereIn('status', $unpaidStatuses);
+
+            $overdueCount = $overdueQuery
+                ->get()
+                ->filter(fn($tagihan) => $tagihan->isOverdue())
+                ->count();
+
+            $totalPaidTagihan = $canViewGlobalFinance ? Tagihan::where('status', 'lunas')->count() : 0;
+            $totalUnpaidTagihan = $canViewGlobalFinance
+                ? Tagihan::whereIn('status', $unpaidStatuses)->count()
+                : (clone $statusQuery)->whereIn('status', $unpaidStatuses)->count();
+            $monthlyRevenue = $canViewGlobalFinance ? KasMasuk::whereMonth('tanggal', now()->month)
+                ->whereYear('tanggal', now()->year)
+                ->sum('jumlah') : 0;
+            $pendingTransferCount = $canViewGlobalFinance ? Tagihan::where('status', 'pending_transfer')->count() : 0;
+
             $userStatus = $statusQuery
                 ->where('bulan', now()->month)
                 ->where('tahun', now()->year)
                 ->value('status');
 
-            $topKKIuran = KasMasuk::selectRaw('COALESCE(rumahs.kode_rumah, users.no_kk) as no_kk, COALESCE(rumahs.alamat, users.name) as kepala_keluarga, SUM(kas_masuks.jumlah) as total_iuran')
+            $topKKIuran = $canViewGlobalFinance ? KasMasuk::selectRaw('COALESCE(rumahs.kode_rumah, users.no_kk) as no_kk, COALESCE(rumahs.alamat, users.name) as kepala_keluarga, SUM(kas_masuks.jumlah) as total_iuran')
                 ->leftJoin('tagihans', 'kas_masuks.tagihan_id', '=', 'tagihans.id')
                 ->leftJoin('rumahs', 'tagihans.rumah_id', '=', 'rumahs.id')
                 ->join('users', 'kas_masuks.user_id', '=', 'users.id')
@@ -124,21 +141,9 @@ class DashboardController extends Controller
                     'kepala_keluarga' => $item->kepala_keluarga,
                     'total_iuran' => (int) $item->total_iuran,
                 ])
-                ->all();
+                ->all() : [];
 
-            $leaderboard = KasMasuk::selectRaw('user_id, SUM(jumlah) as total')
-                ->groupBy('user_id')
-                ->orderByDesc('total')
-                ->with('user')
-                ->limit(5)
-                ->get()
-                ->map(fn (KasMasuk $item) => [
-                    'user_name' => $item->user?->name,
-                    'total' => (int) $item->total,
-                ])
-                ->all();
-
-            $recentAuditLogs = AuditLog::with('user')
+            $recentAuditLogs = $canViewGlobalFinance ? AuditLog::with('user')
                 ->latest()
                 ->limit(5)
                 ->get()
@@ -148,7 +153,7 @@ class DashboardController extends Controller
                     'notes' => $log->notes,
                     'user_name' => $log->user?->name,
                 ])
-                ->all();
+                ->all() : [];
 
             return compact(
                 'kasMasuk',

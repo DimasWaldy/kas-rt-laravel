@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KAS RT - Dashboard</title>
+    <title>Smart RW - Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
@@ -113,7 +113,7 @@
                     'visible' => $user->canManageFinance(),
                 ],
                 [
-                    'label' => 'Demo UTS',
+                    'label' => 'Demo Aplikasi',
                     'route' => 'demo-uts.index',
                     'active' => 'admin/demo-uts*',
                     'icon' => 'fa-chalkboard-user',
@@ -142,7 +142,7 @@
             'label' => 'Layanan',
             'items' => [
                 [
-                    'label' => 'Pengaduan (Tambahan)',
+                    'label' => 'Pengaduan',
                     'route' => 'pengaduan.index',
                     'active' => 'pengaduan*',
                     'icon' => 'fa-bullhorn',
@@ -177,7 +177,7 @@
                 <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500 shadow-sm shadow-emerald-500/30">
                     <i class="fa-solid fa-wallet text-lg text-white"></i>
                 </span>
-                <span class="truncate text-xl font-extrabold tracking-wider text-emerald-950">KAS RT</span>
+                <span class="truncate text-xl font-extrabold tracking-wider text-emerald-950">Smart RW</span>
             </a>
 
             <button type="button" class="flex h-10 w-10 items-center justify-center rounded-lg text-emerald-700 hover:bg-emerald-100 hover:text-emerald-950 lg:hidden" x-on:click="mobileMenuOpen = false" aria-label="Tutup menu">
@@ -238,7 +238,7 @@
                 </button>
 
                 <div class="min-w-0 flex-1">
-                    <p class="truncate text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">KAS RT</p>
+                    <p class="truncate text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Smart RW</p>
                     <h1 class="truncate text-base font-bold text-slate-800">@yield('title', 'Dashboard')</h1>
                 </div>
 

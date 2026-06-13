@@ -125,7 +125,7 @@
                                         data-keterangan="{{ $item->keterangan }}"
                                         data-jumlah="{{ number_format($item->jumlah, 0, ',', '.') }}"
                                         data-tanggal="{{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d F Y') }}"
-                                        data-bukti="{{ asset('storage/'.$item->bukti) }}"
+                                        data-bukti="{{ route('kas-keluar.bukti', $item) }}"
                                         data-filetype="{{ pathinfo($item->bukti, PATHINFO_EXTENSION) }}"
                                         onclick="openExpenseModal(this)">
                                         <i class="fa-solid fa-eye mr-2"></i>

@@ -70,6 +70,68 @@ Kolom umum untuk tabel uang:
 - `created_at`
 - `updated_at`
 
+<!-- BARU: Struktur wilayah RW/RT dan kolom scope untuk migrasi Smart RW -->
+## 3A. Modul Wilayah (RW dan RT)
+
+### `rws`
+
+- `id`
+- `name` (contoh: `RW 05`)
+- `description`
+- `address`
+- `kelurahan`
+- `kecamatan`
+- `kota`
+- `is_active`
+- `created_at`
+- `updated_at`
+
+### `rts`
+
+- `id`
+- `rw_id` (foreign key ke `rws.id`)
+- `name` (contoh: `RT 01`)
+- `description`
+- `is_active`
+- `created_at`
+- `updated_at`
+
+Relasi:
+
+- `rts.rw_id` -> `rws.id`
+
+### Kolom Baru pada Tabel yang Sudah Ada
+
+Kolom berikut ditambahkan melalui migration baru, bukan dengan mengubah migration lama:
+
+Tabel `users`:
+
+- `rt_id` (nullable, foreign key ke `rts.id`) untuk menentukan warga atau pengurus ini terhubung ke RT mana.
+
+Tabel `rumahs`:
+
+- `rt_id` (nullable, foreign key ke `rts.id`) untuk menentukan rumah ini berada di RT mana.
+
+Tabel `tagihans`:
+
+- `rt_id` (nullable, foreign key ke `rts.id`) untuk menentukan tagihan ini milik RT mana.
+
+Tabel `kas_masuks`:
+
+- `rt_id` (nullable, foreign key ke `rts.id`) untuk menentukan kas masuk ini dicatat untuk RT mana.
+
+Tabel `kas_keluars`:
+
+- `rt_id` (nullable, foreign key ke `rts.id`) untuk menentukan kas keluar ini dicatat untuk RT mana.
+
+### Catatan Desain
+
+- Semua kolom `rt_id` dibuat nullable agar data lama sebelum migrasi RT tidak rusak.
+- Data lama secara default dianggap berada di RT 1 atau di-assign secara manual melalui proses migrasi data.
+- Query pengurus RT wajib memakai filter `WHERE rt_id = auth()->user()->rt_id`.
+- Query rekap RW tidak perlu membatasi satu `rt_id`; query mengambil semua RT yang berelasi dengan `rw_id` deployment aktif.
+- Kas dan tagihan tetap merupakan data operasional per RT. Level RW hanya melakukan monitoring dan rekap lintas RT.
+
 ## 4. Modul Surat Menyurat
 
 ### `surats`

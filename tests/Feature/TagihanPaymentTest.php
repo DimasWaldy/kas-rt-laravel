@@ -362,6 +362,49 @@ test('admin can reject payment proof with reason and resident can resubmit', fun
     expect($tagihan->transaction_number)->toBe($firstTransactionNumber);
 });
 
+test('admin can confirm bill through ajax and receives json payload', function () {
+    $admin = User::factory()->create([
+        'role_id' => $this->adminRole->id,
+    ]);
+
+    $resident = User::factory()->create([
+        'role_id' => $this->wargaRole->id,
+        'is_kepala_keluarga' => true,
+        'no_kk' => '1234567890123456',
+    ]);
+
+    $tagihan = Tagihan::create([
+        'user_id' => $resident->id,
+        'bulan' => 5,
+        'tahun' => 2026,
+        'total' => 50000,
+        'status' => 'pending_transfer',
+        'payment_method' => 'transfer',
+        'verification_status' => 'menunggu',
+        'bukti' => 'tagihan-bukti/proof.jpg',
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->withHeader('X-Requested-With', 'XMLHttpRequest')
+        ->postJson(route('tagihan.confirm'), [
+            'tagihan_id' => $tagihan->id,
+            'status' => 'lunas',
+            'verification_note' => 'Bukti sudah sesuai.',
+        ]);
+
+    $response->assertOk()
+        ->assertJson([
+            'success' => true,
+            'message' => 'Status tagihan berhasil diperbarui.',
+            'new_status' => 'lunas',
+            'new_status_label' => 'Lunas',
+            'new_verification_status_label' => 'Bukti Valid',
+            'has_bukti' => true,
+        ]);
+
+    expect($tagihan->fresh()->status)->toBe('lunas');
+});
+
 test('manual bill uses deterministic billing group and rejects duplicate manual bill only', function () {
     $admin = User::factory()->create([
         'role_id' => $this->adminRole->id,

@@ -12,12 +12,30 @@ Dokumen ini adalah aturan standar AI dan developer untuk membangun, menambah, at
 
 ## 2. Kondisi Sistem Saat Ini
 
+<!-- BARU: Status transisi aplikasi dari Kas RT menuju Smart RW -->
+Aplikasi sedang bertransisi dari "Kas RT" menjadi "Smart RW", yaitu sistem informasi untuk satu RW yang menaungi banyak RT. Satu deployment tetap hanya melayani satu RW, sedangkan pemisahan dan pembatasan data operasional dilakukan per RT.
+
+Role aktif lama berikut tetap dipertahankan untuk backward compatibility dengan kode, middleware, seeder, dan test yang sudah ada:
+
 Role aktif yang sudah dipakai aplikasi:
 
 - `admin`: pengurus utama dengan akses penuh.
 - `bendahara`: pengurus keuangan.
 - `sekretaris`: pengurus administrasi, warga, surat, dan pengaduan.
 - `warga`: pengguna warga biasa.
+
+<!-- BARU: Role hierarkis Smart RW yang akan diaktifkan -->
+Role baru yang akan diaktifkan dalam transisi Smart RW:
+
+- `super_admin`: developer/god mode dengan akses penuh ke semua data RT dan RW tanpa filter wilayah.
+- `ketua_rw`: monitoring lintas RT, approval surat level RW, dan rekap RW.
+- `sekretaris_rw`: administrasi level RW dan pengelolaan kegiatan RW.
+- `bendahara_rw`: rekap keuangan lintas RT tanpa mengelola kas RT secara langsung.
+- `ketua_rt`: approval surat level RT dan validasi pengaduan pada RT-nya.
+- `sekretaris_rt`: fungsi `sekretaris` yang sudah ada, tetapi di-scope ke RT tertentu.
+- `bendahara_rt`: fungsi `bendahara` yang sudah ada, tetapi di-scope ke RT tertentu.
+
+Selama masa transisi, role lama dan role baru boleh hidup berdampingan. Implementasi baru harus mengarah ke role hierarkis dan scope wilayah, tanpa memutus akses fitur lama sebelum migrasi role selesai.
 
 Permission aktif yang sudah ada:
 
@@ -43,17 +61,23 @@ AI wajib mempertahankan kompatibilitas permission di atas. Jika menambah fitur, 
 
 ## 4. Role Standar
 
+<!-- BARU: Role aktif Smart RW dan pemetaan role legacy -->
 | Role         | Tanggung Jawab                                                                                 | Batasan Utama                                                            |
 | ------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `super_admin` | Akses penuh semua data semua RT dan RW, dipakai developer/operator sistem                     | Tetap mengikuti validasi bisnis dan audit untuk aksi sensitif            |
 | `admin`      | Konfigurasi sistem, dashboard utama, manajemen role, user, modul lintas bidang                 | Tidak boleh dipakai sebagai alasan melewati validasi data                |
 | `bendahara`  | Kas RT, tagihan, iuran, koperasi, bank sampah bernilai uang, laporan keuangan                  | Tidak mengelola identitas warga kecuali data pendukung transaksi         |
 | `sekretaris` | Warga, rumah, surat menyurat, posyandu, kegiatan, pengaduan, administrasi RT/RW                | Tidak mengubah transaksi keuangan final kecuali diberi permission khusus |
+| `ketua_rw` | Monitoring lintas RT, approval surat level RW, rekap warga, kegiatan, dan laporan strategis RW | Tidak mengelola transaksi kas RT secara langsung tanpa permission khusus |
+| `sekretaris_rw` | Administrasi level RW, surat level RW, dan kegiatan RW                                    | Akses operasional RT hanya untuk kebutuhan rekap atau permission khusus  |
+| `bendahara_rw` | Rekap dan monitoring keuangan lintas RT                                                    | Tidak membuat atau mengubah kas RT secara langsung                        |
+| `ketua_rt` | Approval surat level RT, validasi pengaduan, kegiatan, aset, dan laporan strategis RT-nya       | Hanya mengakses data RT sendiri                                           |
+| `sekretaris_rt` | Administrasi warga, rumah, surat, kegiatan, dan pengaduan pada RT tertentu                 | Hanya mengakses data RT sendiri; ekuivalen scoped dari `sekretaris`       |
+| `bendahara_rt` | Kas, tagihan, iuran, dan laporan keuangan pada RT tertentu                                  | Hanya mengakses data RT sendiri; ekuivalen scoped dari `bendahara`        |
 | `warga`      | Melihat profil, tagihan, kas publik, kegiatan, mengirim pembayaran, surat, pengaduan, aspirasi | Hanya data sendiri/keluarga/rumah, bukan data warga lain                 |
 
 Role opsional untuk pengembangan berikutnya:
 
-- `ketua_rt`: validasi final surat, kegiatan, aset, pengaduan penting, dan laporan strategis.
-- `ketua_rw`: monitoring lintas RT, validasi surat tingkat RW, rekap warga dan kegiatan.
 - `petugas_ronda`: jadwal ronda, presensi ronda, laporan keamanan.
 - `kader_posyandu`: data posyandu, jadwal, hasil pemeriksaan, rekap kesehatan.
 - `pengelola_umkm`: data UMKM, produk, katalog, status verifikasi.
@@ -61,7 +85,7 @@ Role opsional untuk pengembangan berikutnya:
 - `pengelola_aset`: inventaris, peminjaman, pengembalian, kondisi aset.
 - `pengurus_koperasi`: simpan pinjam, transaksi koperasi, laporan anggota.
 
-Catatan: role opsional jangan dibuat jika modulnya belum membutuhkan pemisahan tanggung jawab. Untuk UAS, boleh tetap memakai `admin`, `bendahara`, `sekretaris`, dan `warga` dulu, lalu role opsional menjadi blueprint ekspansi.
+Catatan: role opsional jangan dibuat jika modulnya belum membutuhkan pemisahan tanggung jawab. Untuk UAS, role legacy `admin`, `bendahara`, `sekretaris`, dan `warga` tetap dipertahankan, sedangkan `super_admin`, role pengurus RW, dan role pengurus RT menjadi role aktif dalam migrasi Smart RW.
 
 ## 5. Pola Permission
 
@@ -152,6 +176,31 @@ Aturan query:
 - Jangan tampilkan nomor HP, alamat lengkap, NIK, KK, bukti pembayaran, dan dokumen surat kepada user yang tidak berwenang.
 - Untuk warga, filter minimal memakai `user_id`, `rumah_id`, `no_kk`, `rt`, atau `rw` sesuai konteks fitur.
 - Untuk pengurus RT/RW, filter wilayah jika sistem sudah mendukung multi RT/RW.
+
+<!-- BARU: Aturan eksplisit scope wilayah Smart RW -->
+Aturan scope wilayah Smart RW:
+
+- Pengurus RT hanya bisa mengakses data RT-nya sendiri dan query wajib difilter dengan `rt_id = auth()->user()->rt_id`.
+- Pengurus RW bisa mengakses monitoring dan rekap semua RT dalam RW-nya, dengan data dibatasi berdasarkan `rw_id` deployment aktif.
+- `super_admin` tidak diberi filter wilayah dan dapat mengakses seluruh data dalam sistem.
+- `warga` hanya bisa mengakses data RT-nya sendiri yang terkait dirinya/rumahnya, ditambah data yang berstatus publik.
+- Kas, tagihan, kas masuk, dan kas keluar tetap dimiliki serta dikelola per RT. Pengurus RW hanya memonitor dan merekap lintas RT.
+
+<!-- BARU: Hierarki wilayah dan aktor Smart RW -->
+## 8A. Hierarki Wilayah
+
+Satu deployment Smart RW melayani tepat satu RW dengan satu atau lebih RT. Hierarki aksesnya adalah:
+
+```text
+Super Admin
+└── RW (1 RW dalam sistem ini)
+    ├── Pengurus RW (ketua_rw, sekretaris_rw, bendahara_rw)
+    └── RT 1..N
+        ├── Pengurus RT (ketua_rt, sekretaris_rt, bendahara_rt)
+        └── Warga RT
+```
+
+Hierarki ini adalah batas otorisasi dan pelaporan, bukan model multi-tenant banyak RW. Pengurus RW memiliki fungsi monitoring, administrasi RW, dan rekap lintas RT; pengelolaan kas dan tagihan tetap berada di masing-masing RT.
 
 ## 9. Aturan Standar AI Saat Membuat Fitur
 

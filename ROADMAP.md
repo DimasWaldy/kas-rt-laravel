@@ -65,6 +65,38 @@ Kriteria selesai:
 - Sekretaris hanya mengelola administrasi.
 - Admin punya akses penuh melalui permission, bukan bypass asal-asalan.
 
+<!-- BARU: Fase wajib migrasi scope aplikasi dari Kas RT menjadi Smart RW -->
+### Fase 0.5 - Migrasi ke Smart RW
+
+Status: dikerjakan **SEBELUM fitur UAS apa pun** dan sebelum Fase 1.
+
+Tujuan:
+
+- Tambah entitas RW dan RT ke database.
+- Tambah `rt_id` ke tabel inti (`users`, `rumahs`, `tagihans`, `kas_masuks`, `kas_keluars`).
+- Aktifkan role `ketua_rw` dan `ketua_rt` di seeder.
+- Tambah role `super_admin`.
+- Update middleware scope agar pengurus RT hanya mengakses data RT-nya.
+- Rename label UI dari "Kas RT" menjadi "Smart RW" di `app.blade.php`.
+
+Pekerjaan:
+
+- Migration: `create_rws_table`, `create_rts_table`.
+- Migration: `add_rt_id_to_users_and_rumahs_table`.
+- Migration: `add_rt_id_to_tagihans_kas_masuks_kas_keluars_table`.
+- Seeder: tambah RW dan RT dummy untuk development.
+- Seeder: tambah role `super_admin`, `ketua_rw`, dan `ketua_rt` ke `RoleAndPermissionSeeder`.
+- Middleware atau helper: tambah method `rtScope()` di model `User` untuk filter data per RT.
+- Test: pastikan pengurus RT tidak bisa melihat data RT lain.
+
+Kriteria selesai:
+
+- Tabel `rws` dan `rts` sudah ada.
+- `rt_id` sudah ada di tabel inti, semuanya nullable, dan data lama tetap aman.
+- Role `super_admin`, `ketua_rw`, dan `ketua_rt` sudah ada di seeder.
+- Kode lama pada Fase 1 masih berjalan tanpa error.
+- Test yang sudah ada (64 test) tetap pass.
+
 ### Fase 1 - Stabilkan Modul Inti yang Sudah Ada
 
 Status: prioritas tertinggi.

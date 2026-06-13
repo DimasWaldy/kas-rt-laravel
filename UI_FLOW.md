@@ -10,6 +10,10 @@ Dokumen ini mengatur alur layar aplikasi RT/RW berdasarkan role. Semua AI wajib 
 - Jangan menambahkan menu untuk fitur yang route/controller-nya belum siap.
 - Warga harus diarahkan ke aksi praktis: bayar tagihan, lihat status, ajukan pengaduan/surat.
 - Pengurus harus diarahkan ke pekerjaan operasional: verifikasi, rekap, proses pengajuan.
+<!-- BARU -->
+- Pengurus RT hanya melihat data warga dan transaksi RT-nya sendiri. Jangan tampilkan data RT lain walaupun secara teknis bisa diakses.
+<!-- BARU -->
+- Pengurus RW melihat rekap lintas RT, bukan detail per warga.
 
 ## 2. Flow Login
 
@@ -42,6 +46,40 @@ Admin:
 1. Login.
 2. Masuk dashboard admin.
 3. Bisa akses semua modul.
+
+<!-- BARU -->
+## 2A. Flow Login per Role Smart RW
+
+Super Admin:
+
+1. Login.
+2. Dashboard super admin menampilkan ringkasan seluruh sistem.
+3. Bisa mengakses semua RT dan semua modul tanpa filter wilayah.
+
+Ketua RW / Sekretaris RW / Bendahara RW:
+
+1. Login.
+2. Dashboard RW menampilkan ringkasan lintas RT: total warga, total kas, dan kegiatan aktif.
+3. Tidak bisa masuk ke pengelolaan detail per RT.
+
+Ketua RT:
+
+1. Login.
+2. Dashboard RT hanya menampilkan data RT-nya.
+3. Bisa approve surat dan pengaduan RT-nya.
+4. Tidak bisa melihat data RT lain.
+
+Sekretaris RT (`sekretaris` lama):
+
+1. Login.
+2. Dashboard administrasi hanya menampilkan data RT-nya.
+3. Menu: warga RT-nya, rumah RT-nya, pengaduan, surat, dan kegiatan.
+
+Bendahara RT (`bendahara` lama):
+
+1. Login.
+2. Dashboard keuangan hanya menampilkan data RT-nya.
+3. Menu: tagihan RT-nya, kas RT-nya, dan laporan kas RT-nya.
 
 ## 3. Navigasi Warga
 
@@ -365,6 +403,37 @@ Pengurus:
 4. Kelola angsuran.
 5. Lihat laporan.
 
+<!-- BARU -->
+## 8A. Navigasi Pengurus RW
+
+Menu utama `ketua_rw`:
+
+- Dashboard RW.
+- Rekap Warga (lintas RT, read-only).
+- Rekap Kas (lintas RT, read-only).
+- Surat (approve surat level RW).
+- Kegiatan RW.
+
+Menu utama `sekretaris_rw`:
+
+- Dashboard RW.
+- Rekap Warga.
+- Surat.
+- Kegiatan RW.
+- Pengaduan (tanggap level RW).
+
+Menu utama `bendahara_rw`:
+
+- Dashboard RW.
+- Rekap Kas (lintas RT).
+- Laporan Kas RW.
+
+Aturan UI pengurus RW:
+
+- Tidak ada tombol edit data per warga.
+- Tidak ada tombol verifikasi tagihan karena itu tanggung jawab bendahara RT.
+- Hanya tampilkan agregat dan rekap, bukan detail transaksi per orang.
+
 ## 9. Flow Demo UAS
 
 Urutan demo:
@@ -384,6 +453,12 @@ Urutan demo:
 13. Login sekretaris/admin.
 14. Proses pengaduan atau surat.
 15. Tunjukkan satu modul tambahan paling matang.
+<!-- BARU -->
+16. Login `ketua_rw` atau `super_admin`.
+<!-- BARU -->
+17. Tunjukkan dashboard rekap lintas RT.
+<!-- BARU -->
+18. Tunjukkan bahwa pengurus RT tidak bisa melihat data RT lain.
 
 ## 10. Checklist UI
 

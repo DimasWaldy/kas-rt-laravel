@@ -19,6 +19,10 @@ class RoleAndPermissionSeeder extends Seeder
             'view-finance' => 'Melihat laporan kas dan tagihan',
             'submit-payment' => 'Mengajukan pembayaran tagihan',
             'submit-pengaduan' => 'Membuat pengaduan warga',
+            'verify-payment' => 'Memverifikasi bukti pembayaran tagihan warga',
+            'export-finance' => 'Mengekspor laporan keuangan',
+            'manage-wilayah' => 'Mengelola data RW dan RT',
+            'view-wilayah' => 'Melihat daftar RW dan RT',
         ];
 
         $permissionModels = collect($permissions)->mapWithKeys(function (string $description, string $name) {
@@ -31,9 +35,49 @@ class RoleAndPermissionSeeder extends Seeder
         });
 
         $roles = [
+            'super_admin' => [
+                'description' => 'Developer/operator sistem, akses penuh',
+                'permissions' => array_keys($permissions),
+            ],
             'admin' => [
                 'description' => 'Administrator RT',
                 'permissions' => array_keys($permissions),
+            ],
+            'ketua_rw' => [
+                'description' => 'Ketua RW, monitoring lintas RT',
+                'permissions' => [
+                    'view-wilayah',
+                    'view-dashboard',
+                    'view-finance',
+                    'manage-pengaduan',
+                ],
+            ],
+            'sekretaris_rw' => [
+                'description' => 'Sekretaris RW, administrasi level RW',
+                'permissions' => [
+                    'view-wilayah',
+                    'view-dashboard',
+                    'manage-pengaduan',
+                    'manage-warga',
+                ],
+            ],
+            'bendahara_rw' => [
+                'description' => 'Bendahara RW, rekap keuangan lintas RT',
+                'permissions' => [
+                    'view-wilayah',
+                    'view-dashboard',
+                    'view-finance',
+                    'export-finance',
+                ],
+            ],
+            'ketua_rt' => [
+                'description' => 'Ketua RT, approve surat dan pengaduan RT',
+                'permissions' => [
+                    'view-wilayah',
+                    'view-dashboard',
+                    'manage-pengaduan',
+                    'view-finance',
+                ],
             ],
             'bendahara' => [
                 'description' => 'Bendahara RT',
@@ -41,6 +85,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-dashboard',
                     'view-finance',
                     'manage-finance',
+                    'verify-payment',
+                    'export-finance',
                     'submit-pengaduan',
                 ],
             ],

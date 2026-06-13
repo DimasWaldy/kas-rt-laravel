@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(WilayahSeeder::class);
         $this->call(RoleAndPermissionSeeder::class);
 
         $wargaRole = Role::where('name', 'warga')->first();
