@@ -8,7 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class KegiatanController extends Controller
 {
@@ -22,7 +22,7 @@ class KegiatanController extends Controller
 
         $status = $request->string('status')->toString();
         if (in_array($status, $this->statuses(), true)) {
-            $query->where('status', $status);
+            $this->applyStatusFilter($query, $status);
         }
 
         return view('kegiatan.index', [
@@ -42,7 +42,7 @@ class KegiatanController extends Controller
     public function store(Request $request)
     {
         abort_unless($request->user()->hasPermission('manage-kegiatan'), 403);
-        $validated = $this->validateKegiatan($request);
+        $validated = $this->validateKegiatan($request, true);
         $rwId = $this->resolveRwId($request->user());
 
         $fotoPath = $request->hasFile('foto')
@@ -84,12 +84,24 @@ class KegiatanController extends Controller
         return Storage::disk('local')->response($kegiatan->foto);
     }
 
+    public function dokumentasi(Kegiatan $kegiatan)
+    {
+        abort_unless(Auth::check(), 403);
+        $this->authorizeInRw($kegiatan, Auth::user());
+        abort_unless(
+            $kegiatan->foto_dokumentasi && Storage::disk('local')->exists($kegiatan->foto_dokumentasi),
+            404
+        );
+
+        return Storage::disk('local')->response($kegiatan->foto_dokumentasi);
+    }
+
     public function konfirmasiHadir(Request $request, Kegiatan $kegiatan)
     {
         abort_unless($request->user()->hasPermission('view-kegiatan'), 403);
         $this->authorizeInRw($kegiatan, $request->user());
 
-        if (in_array($kegiatan->status, ['dibatalkan', 'selesai'], true)) {
+        if (in_array($kegiatan->effective_status, ['dibatalkan', 'selesai'], true)) {
             return back()->with('error', 'Kegiatan yang sudah selesai atau dibatalkan tidak dapat dikonfirmasi.');
         }
 
@@ -120,12 +132,27 @@ class KegiatanController extends Controller
         $this->authorizeOwner($kegiatan, $request->user());
         $validated = $this->validateKegiatan($request);
 
+        if ($request->hasFile('foto_dokumentasi') && now()->isBefore($validated['tanggal_mulai'])) {
+            throw ValidationException::withMessages([
+                'foto_dokumentasi' => 'Dokumentasi baru dapat ditambahkan setelah kegiatan dimulai.',
+            ]);
+        }
+
         if ($request->hasFile('foto')) {
             if ($kegiatan->foto) {
                 Storage::disk('local')->delete($kegiatan->foto);
             }
 
             $validated['foto'] = $request->file('foto')->store('kegiatan', 'local');
+        }
+
+        if ($request->hasFile('foto_dokumentasi')) {
+            if ($kegiatan->foto_dokumentasi) {
+                Storage::disk('local')->delete($kegiatan->foto_dokumentasi);
+            }
+
+            $validated['foto_dokumentasi'] = $request->file('foto_dokumentasi')
+                ->store('kegiatan/dokumentasi', 'local');
         }
 
         $validated['estimasi_biaya'] = $validated['estimasi_biaya'] ?? 0;
@@ -142,6 +169,10 @@ class KegiatanController extends Controller
 
         if ($kegiatan->foto) {
             Storage::disk('local')->delete($kegiatan->foto);
+        }
+
+        if ($kegiatan->foto_dokumentasi) {
+            Storage::disk('local')->delete($kegiatan->foto_dokumentasi);
         }
 
         $kegiatan->delete();
@@ -167,15 +198,20 @@ class KegiatanController extends Controller
         return back()->with('success', 'Kegiatan RW berhasil dibatalkan.');
     }
 
-    private function validateKegiatan(Request $request): array
+    private function validateKegiatan(Request $request, bool $creating = false): array
     {
         return $request->validate([
             'nama' => ['required', 'string', 'max:255'],
             'deskripsi' => ['nullable', 'string', 'max:2000'],
-            'tanggal_mulai' => ['required', 'date', 'after_or_equal:today'],
+            'tanggal_mulai' => array_filter([
+                'required',
+                'date',
+                $creating ? 'after_or_equal:today' : null,
+            ]),
             'tanggal_selesai' => ['nullable', 'date', 'after_or_equal:tanggal_mulai'],
             'lokasi' => ['nullable', 'string', 'max:255'],
             'foto' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'foto_dokumentasi' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
             'estimasi_biaya' => ['nullable', 'integer', 'min:0'],
             'realisasi_biaya' => ['nullable', 'integer', 'min:0'],
         ]);
@@ -212,5 +248,30 @@ class KegiatanController extends Controller
     private function statuses(): array
     {
         return ['akan_datang', 'berlangsung', 'selesai', 'dibatalkan'];
+    }
+
+    private function applyStatusFilter($query, string $status): void
+    {
+        $now = now();
+
+        match ($status) {
+            'dibatalkan' => $query->where('status', 'dibatalkan'),
+            'selesai' => $query
+                ->where('status', '!=', 'dibatalkan')
+                ->where(function ($query) use ($now) {
+                    $query->where('status', 'selesai')
+                        ->orWhere('tanggal_selesai', '<=', $now);
+                }),
+            'berlangsung' => $query
+                ->whereNotIn('status', ['dibatalkan', 'selesai'])
+                ->where('tanggal_mulai', '<=', $now)
+                ->where(function ($query) use ($now) {
+                    $query->whereNull('tanggal_selesai')
+                        ->orWhere('tanggal_selesai', '>', $now);
+                }),
+            'akan_datang' => $query
+                ->whereNotIn('status', ['dibatalkan', 'selesai'])
+                ->where('tanggal_mulai', '>', $now),
+        };
     }
 }

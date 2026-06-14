@@ -35,11 +35,20 @@
 </div>
 
 <div>
-    <label for="foto" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Foto Kegiatan <span class="font-normal normal-case text-slate-400">(opsional)</span></label>
+    <label for="foto" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Poster / Gambar Ajakan <span class="font-normal normal-case text-slate-400">(opsional)</span></label>
     <input id="foto" name="foto" type="file" accept=".jpg,.jpeg,.png" class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm">
-    <p class="mt-2 text-xs text-slate-400">JPG/JPEG/PNG, maksimal 2 MB. Foto disimpan privat.</p>
+    <p class="mt-2 text-xs text-slate-400">Dipakai sebagai poster atau ajakan sebelum kegiatan. JPG/JPEG/PNG, maksimal 2 MB.</p>
     @error('foto')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
 </div>
+
+@if($kegiatan && now()->greaterThanOrEqualTo($kegiatan->tanggal_mulai))
+    <div>
+        <label for="foto_dokumentasi" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Dokumentasi Kegiatan <span class="font-normal normal-case text-slate-400">(opsional)</span></label>
+        <input id="foto_dokumentasi" name="foto_dokumentasi" type="file" accept=".jpg,.jpeg,.png" class="w-full rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-5 text-sm">
+        <p class="mt-2 text-xs text-emerald-700">Unggah foto saat kegiatan berlangsung atau setelah selesai. Foto baru akan mengganti dokumentasi sebelumnya.</p>
+        @error('foto_dokumentasi')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+    </div>
+@endif
 
 <div class="grid gap-5 sm:grid-cols-2">
     <div>

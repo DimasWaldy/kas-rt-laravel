@@ -7,6 +7,7 @@ use App\Models\Rt;
 use App\Models\Rw;
 use App\Models\User;
 use Database\Seeders\RoleAndPermissionSeeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -170,6 +171,63 @@ test('foto kegiatan disimpan di local disk dan diakses melalui controller', func
 
     $this->actingAs($this->warga)
         ->get(route('kegiatan.foto', $kegiatan))
+        ->assertOk()
+        ->assertHeader('content-type', 'image/jpeg');
+});
+
+test('status kegiatan otomatis selesai ketika waktu selesai sudah lewat', function () {
+    Carbon::setTestNow(Carbon::parse('2026-06-14 23:51:00', 'Asia/Jakarta'));
+
+    $kegiatan = ($this->makeKegiatan)([
+        'tanggal_mulai' => Carbon::parse('2026-06-14 06:00:00', 'Asia/Jakarta'),
+        'tanggal_selesai' => Carbon::parse('2026-06-14 10:00:00', 'Asia/Jakarta'),
+        'status' => 'akan_datang',
+    ]);
+
+    expect(config('app.timezone'))->toBe('Asia/Jakarta')
+        ->and($kegiatan->effective_status)->toBe('selesai')
+        ->and($kegiatan->status_label)->toBe('Selesai');
+
+    $this->actingAs($this->warga)
+        ->get(route('kegiatan.index', ['status' => 'selesai']))
+        ->assertOk()
+        ->assertSee($kegiatan->nama);
+
+    $this->actingAs($this->warga)
+        ->get(route('kegiatan.index', ['status' => 'akan_datang']))
+        ->assertOk()
+        ->assertDontSee($kegiatan->nama);
+});
+
+test('pengurus dapat menambah dokumentasi setelah kegiatan dimulai', function () {
+    Storage::fake('local');
+    Carbon::setTestNow(Carbon::parse('2026-06-14 23:51:00', 'Asia/Jakarta'));
+
+    $kegiatan = ($this->makeKegiatan)([
+        'tanggal_mulai' => Carbon::parse('2026-06-14 06:00:00', 'Asia/Jakarta'),
+        'tanggal_selesai' => Carbon::parse('2026-06-14 10:00:00', 'Asia/Jakarta'),
+    ]);
+
+    $this->actingAs($this->ketuaRw)
+        ->put(route('kegiatan.update', $kegiatan), [
+            'nama' => $kegiatan->nama,
+            'deskripsi' => $kegiatan->deskripsi,
+            'tanggal_mulai' => '2026-06-14 06:00:00',
+            'tanggal_selesai' => '2026-06-14 10:00:00',
+            'lokasi' => $kegiatan->lokasi,
+            'estimasi_biaya' => $kegiatan->estimasi_biaya,
+            'realisasi_biaya' => 900000,
+            'foto_dokumentasi' => UploadedFile::fake()->image('dokumentasi.jpg'),
+        ])
+        ->assertRedirect(route('kegiatan.show', $kegiatan));
+
+    $kegiatan->refresh();
+
+    expect($kegiatan->foto_dokumentasi)->toStartWith('kegiatan/dokumentasi/');
+    Storage::disk('local')->assertExists($kegiatan->foto_dokumentasi);
+
+    $this->actingAs($this->warga)
+        ->get(route('kegiatan.dokumentasi', $kegiatan))
         ->assertOk()
         ->assertHeader('content-type', 'image/jpeg');
 });

@@ -11,15 +11,28 @@
                 @if(auth()->user()->isGlobalOperator() || $kegiatan->created_by === auth()->id())
                     <a href="{{ route('kegiatan.edit', $kegiatan) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-pen mr-1"></i> Edit</a>
                 @endif
-                @if($kegiatan->status !== 'dibatalkan')
+                @if(! in_array($kegiatan->effective_status, ['dibatalkan', 'selesai'], true))
                     <button type="button" @click="showCancel = !showCancel" class="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-100"><i class="fa-solid fa-ban mr-1"></i> Batalkan</button>
                 @endif
             </div>
         @endif
     </div>
 
-    @if($kegiatan->foto)
-        <div class="overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-sm"><img src="{{ route('kegiatan.foto', $kegiatan) }}" alt="Foto {{ $kegiatan->nama }}" class="max-h-[480px] w-full object-cover"></div>
+    @if($kegiatan->foto || ($kegiatan->foto_dokumentasi && $kegiatan->effective_status !== 'akan_datang'))
+        <section class="grid gap-5 {{ $kegiatan->foto && $kegiatan->foto_dokumentasi && $kegiatan->effective_status !== 'akan_datang' ? 'lg:grid-cols-2' : '' }}">
+            @if($kegiatan->foto)
+                <figure class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                    <img src="{{ route('kegiatan.foto', $kegiatan) }}" alt="Poster {{ $kegiatan->nama }}" class="h-72 w-full object-cover">
+                    <figcaption class="p-4 text-sm font-bold text-slate-600"><i class="fa-solid fa-bullhorn mr-2 text-emerald-600"></i>Poster / Gambar Ajakan</figcaption>
+                </figure>
+            @endif
+            @if($kegiatan->foto_dokumentasi && $kegiatan->effective_status !== 'akan_datang')
+                <figure class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm">
+                    <img src="{{ route('kegiatan.dokumentasi', $kegiatan) }}" alt="Dokumentasi {{ $kegiatan->nama }}" class="h-72 w-full object-cover">
+                    <figcaption class="p-4 text-sm font-bold text-emerald-700"><i class="fa-solid fa-camera mr-2"></i>Dokumentasi Kegiatan</figcaption>
+                </figure>
+            @endif
+        </section>
     @endif
 
     <div class="grid gap-6 lg:grid-cols-3">
@@ -64,7 +77,7 @@
             <section class="rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
                 @if($sudahHadir)
                     <div class="text-center text-emerald-800"><i class="fa-solid fa-circle-check text-3xl"></i><p class="mt-3 font-bold">Anda sudah konfirmasi hadir</p></div>
-                @elseif(! in_array($kegiatan->status, ['dibatalkan', 'selesai'], true))
+                @elseif(! in_array($kegiatan->effective_status, ['dibatalkan', 'selesai'], true))
                     <h2 class="font-bold text-emerald-950">Akan hadir?</h2><p class="mt-1 text-sm text-emerald-800">Konfirmasi membantu pengurus menyiapkan kegiatan.</p>
                     <form method="POST" action="{{ route('kegiatan.hadir', $kegiatan) }}" class="mt-4 space-y-3">@csrf<textarea name="catatan" rows="2" maxlength="255" class="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm" placeholder="Catatan opsional"></textarea><button class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-800"><i class="fa-solid fa-user-check mr-1"></i> Konfirmasi Hadir</button></form>
                 @else

@@ -123,6 +123,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/kegiatan', [KegiatanController::class, 'index'])->name('kegiatan.index');
         Route::get('/kegiatan/{kegiatan}', [KegiatanController::class, 'show'])->name('kegiatan.show');
         Route::get('/kegiatan/{kegiatan}/foto', [KegiatanController::class, 'foto'])->name('kegiatan.foto');
+        Route::get('/kegiatan/{kegiatan}/dokumentasi', [KegiatanController::class, 'dokumentasi'])->name('kegiatan.dokumentasi');
         Route::post('/kegiatan/{kegiatan}/hadir', [KegiatanController::class, 'konfirmasiHadir'])->name('kegiatan.hadir');
     });
 });

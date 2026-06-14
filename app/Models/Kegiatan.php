@@ -21,6 +21,7 @@ class Kegiatan extends Model
         'tanggal_selesai',
         'lokasi',
         'foto',
+        'foto_dokumentasi',
         'estimasi_biaya',
         'realisasi_biaya',
         'status',
@@ -55,15 +56,17 @@ class Kegiatan extends Model
     public function scopeUpcoming(Builder $query): Builder
     {
         return $query
-            ->whereDate('tanggal_mulai', '>=', today())
+            ->whereNotIn('status', ['dibatalkan', 'selesai'])
+            ->where('tanggal_mulai', '>', now())
             ->orderBy('tanggal_mulai');
     }
 
     public function scopePast(Builder $query): Builder
     {
         return $query
+            ->where('status', '!=', 'dibatalkan')
             ->where(function (Builder $query) {
-                $query->whereDate('tanggal_selesai', '<', today())
+                $query->where('tanggal_selesai', '<=', now())
                     ->orWhere('status', 'selesai');
             })
             ->orderByDesc('tanggal_mulai');
@@ -71,7 +74,7 @@ class Kegiatan extends Model
 
     public function getStatusLabelAttribute(): string
     {
-        return match ($this->status) {
+        return match ($this->effective_status) {
             'akan_datang' => 'Akan Datang',
             'berlangsung' => 'Berlangsung',
             'selesai' => 'Selesai',
@@ -82,12 +85,29 @@ class Kegiatan extends Model
 
     public function getStatusColorAttribute(): string
     {
-        return match ($this->status) {
+        return match ($this->effective_status) {
             'akan_datang' => 'bg-blue-50 text-blue-700 border-blue-200',
             'berlangsung' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
             'selesai' => 'bg-slate-50 text-slate-600 border-slate-200',
             'dibatalkan' => 'bg-red-50 text-red-700 border-red-200',
             default => 'bg-slate-50 text-slate-600 border-slate-200',
         };
+    }
+
+    public function getEffectiveStatusAttribute(): string
+    {
+        if ($this->status === 'dibatalkan') {
+            return 'dibatalkan';
+        }
+
+        if ($this->status === 'selesai' || ($this->tanggal_selesai && now()->greaterThanOrEqualTo($this->tanggal_selesai))) {
+            return 'selesai';
+        }
+
+        if (now()->greaterThanOrEqualTo($this->tanggal_mulai)) {
+            return 'berlangsung';
+        }
+
+        return 'akan_datang';
     }
 }

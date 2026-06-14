@@ -10,12 +10,20 @@
         <p class="text-sm font-semibold text-emerald-700">Perbarui agenda</p>
         <h1 class="text-2xl font-black text-slate-900">Edit Kegiatan RW</h1>
 
-        @if($kegiatan->foto)
-            <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                <img src="{{ route('kegiatan.foto', $kegiatan) }}" alt="Foto {{ $kegiatan->nama }}" class="h-56 w-full object-cover">
-                <p class="p-3 text-xs text-slate-500">Unggah foto baru pada form untuk mengganti foto ini.</p>
-            </div>
-        @endif
+        <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            @if($kegiatan->foto)
+                <div class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                    <img src="{{ route('kegiatan.foto', $kegiatan) }}" alt="Poster {{ $kegiatan->nama }}" class="h-48 w-full object-cover">
+                    <p class="p-3 text-xs font-semibold text-slate-500">Poster / gambar ajakan saat ini</p>
+                </div>
+            @endif
+            @if($kegiatan->foto_dokumentasi)
+                <div class="overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50">
+                    <img src="{{ route('kegiatan.dokumentasi', $kegiatan) }}" alt="Dokumentasi {{ $kegiatan->nama }}" class="h-48 w-full object-cover">
+                    <p class="p-3 text-xs font-semibold text-emerald-700">Dokumentasi kegiatan saat ini</p>
+                </div>
+            @endif
+        </div>
 
         <form method="POST" action="{{ route('kegiatan.update', $kegiatan) }}" enctype="multipart/form-data" class="mt-7 space-y-5">
             @csrf

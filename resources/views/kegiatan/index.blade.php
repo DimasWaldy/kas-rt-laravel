@@ -35,14 +35,23 @@
     @else
         <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             @foreach($kegiatans as $kegiatan)
+                @php
+                    $gunakanDokumentasi = $kegiatan->foto_dokumentasi
+                        && in_array($kegiatan->effective_status, ['berlangsung', 'selesai'], true);
+                @endphp
                 <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
                     <div class="relative h-48 bg-slate-100">
-                        @if($kegiatan->foto)
-                            <img src="{{ route('kegiatan.foto', $kegiatan) }}" alt="Foto {{ $kegiatan->nama }}" class="h-full w-full object-cover">
+                        @if($gunakanDokumentasi)
+                            <img src="{{ route('kegiatan.dokumentasi', $kegiatan) }}" alt="Dokumentasi {{ $kegiatan->nama }}" class="h-full w-full object-cover">
+                        @elseif($kegiatan->foto)
+                            <img src="{{ route('kegiatan.foto', $kegiatan) }}" alt="Poster {{ $kegiatan->nama }}" class="h-full w-full object-cover">
                         @else
                             <div class="flex h-full items-center justify-center text-slate-300"><i class="fa-regular fa-image text-5xl"></i></div>
                         @endif
                         <span class="absolute left-4 top-4 rounded-full border px-3 py-1.5 text-xs font-bold {{ $kegiatan->status_color }}">{{ $kegiatan->status_label }}</span>
+                        @if($gunakanDokumentasi)
+                            <span class="absolute bottom-3 right-3 rounded-full bg-slate-950/70 px-3 py-1 text-[10px] font-bold text-white">Dokumentasi</span>
+                        @endif
                     </div>
 
                     <div class="p-5">
