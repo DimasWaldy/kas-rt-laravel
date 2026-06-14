@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Smart RW - Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -155,6 +156,14 @@
                     'icon' => 'fa-bullhorn',
                     'iconClass' => 'text-emerald-600',
                     'visible' => true,
+                ],
+                [
+                    'label' => 'Surat Menyurat',
+                    'route' => 'surat.index',
+                    'active' => 'surat*',
+                    'icon' => 'fa-envelope-open-text',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->canViewSurat(),
                 ],
             ],
         ],

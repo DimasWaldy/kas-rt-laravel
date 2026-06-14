@@ -9,6 +9,7 @@ use App\Http\Controllers\LaporanKasController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\SuratController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -87,8 +88,30 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/pengaduan/{pengaduan}/status', [\App\Http\Controllers\PengaduanController::class, 'updateStatus'])
         ->middleware('permission:manage-pengaduan')
         ->name('pengaduan.status');
+
+    Route::get('/surat', [SuratController::class, 'index'])
+        ->middleware('permission:view-surat')
+        ->name('surat.index');
+    Route::get('/surat/create', [SuratController::class, 'create'])
+        ->middleware('permission:submit-surat')
+        ->name('surat.create');
+    Route::post('/surat', [SuratController::class, 'store'])
+        ->middleware('permission:submit-surat')
+        ->name('surat.store');
+    Route::get('/surat/{surat}', [SuratController::class, 'show'])
+        ->middleware('permission:view-surat')
+        ->name('surat.show');
+    Route::get('/surat/{surat}/lampiran/{attachment}', [SuratController::class, 'attachment'])->name('surat.attachment');
+    Route::patch('/surat/{surat}/verifikasi-rt', [SuratController::class, 'verifyRt'])->name('surat.verify-rt');
+    Route::patch('/surat/{surat}/setujui-rt', [SuratController::class, 'approveRt'])->name('surat.approve-rt');
+    Route::patch('/surat/{surat}/verifikasi-rw', [SuratController::class, 'verifyRw'])->name('surat.verify-rw');
+    Route::patch('/surat/{surat}/setujui-rw', [SuratController::class, 'approveRw'])->name('surat.approve-rw');
+    Route::patch('/surat/{surat}/tolak', [SuratController::class, 'reject'])->name('surat.reject');
+    Route::get('/surat/{surat}/cetak', [SuratController::class, 'print'])->name('surat.print');
 });
 
 Route::get('/', [WelcomeController::class, 'index']);
+
+Route::get('/verifikasi-surat/{code}', [SuratController::class, 'verifyPublic'])->name('surat.verify-public');
 
 require __DIR__ . '/auth.php';
