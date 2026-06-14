@@ -14,6 +14,7 @@ class Kegiatan extends Model
 
     protected $fillable = [
         'rw_id',
+        'rt_id',
         'created_by',
         'nama',
         'deskripsi',
@@ -31,6 +32,7 @@ class Kegiatan extends Model
     protected function casts(): array
     {
         return [
+            'rt_id' => 'integer',
             'tanggal_mulai' => 'datetime',
             'tanggal_selesai' => 'datetime',
             'estimasi_biaya' => 'integer',
@@ -41,6 +43,11 @@ class Kegiatan extends Model
     public function rw(): BelongsTo
     {
         return $this->belongsTo(Rw::class);
+    }
+
+    public function rt(): BelongsTo
+    {
+        return $this->belongsTo(Rt::class);
     }
 
     public function creator(): BelongsTo
@@ -70,6 +77,44 @@ class Kegiatan extends Model
                     ->orWhere('status', 'selesai');
             })
             ->orderByDesc('tanggal_mulai');
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        $rwId = $user->rt()->value('rw_id');
+
+        if (! $rwId && ($user->isGlobalOperator() || $user->isRwOfficial())) {
+            $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
+        }
+
+        if (! $rwId) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->isGlobalOperator() || $user->isRwOfficial()) {
+            return $query->where('rw_id', $rwId);
+        }
+
+        if (! $user->rt_id) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query
+            ->where('rw_id', $rwId)
+            ->where(function (Builder $query) use ($user) {
+                $query->whereNull('rt_id')
+                    ->orWhere('rt_id', $user->rt_id);
+            });
+    }
+
+    public function isRtKegiatan(): bool
+    {
+        return ! is_null($this->rt_id);
+    }
+
+    public function isRwKegiatan(): bool
+    {
+        return is_null($this->rt_id);
     }
 
     public function getStatusLabelAttribute(): string

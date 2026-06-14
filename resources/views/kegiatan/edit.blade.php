@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Kegiatan RW')
+@section('title', 'Edit Kegiatan')
 
 @section('content')
 <div class="mx-auto max-w-3xl">
@@ -8,7 +8,7 @@
 
     <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <p class="text-sm font-semibold text-emerald-700">Perbarui agenda</p>
-        <h1 class="text-2xl font-black text-slate-900">Edit Kegiatan RW</h1>
+        <h1 class="text-2xl font-black text-slate-900">Edit Kegiatan</h1>
 
         <div class="mt-6 grid gap-4 sm:grid-cols-2">
             @if($kegiatan->foto)

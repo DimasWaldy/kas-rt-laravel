@@ -3,6 +3,27 @@
     $tanggalSelesai = old('tanggal_selesai', $kegiatan?->tanggal_selesai?->format('Y-m-d\TH:i'));
 @endphp
 
+@if($isRwOfficial)
+    <div>
+        <label for="rt_id" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Lingkup Kegiatan</label>
+        <select id="rt_id" name="rt_id" class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-emerald-500 focus:ring-emerald-500">
+            <option value="">Kegiatan RW (semua RT)</option>
+            @foreach($rts as $rt)
+                <option value="{{ $rt->id }}" @selected((string) old('rt_id', $kegiatan?->rt_id) === (string) $rt->id)>
+                    Kegiatan {{ $rt->name }} saja
+                </option>
+            @endforeach
+        </select>
+        <p class="mt-2 text-xs text-slate-400">Pilih RT tertentu atau biarkan Kegiatan RW agar terlihat oleh seluruh warga.</p>
+        @error('rt_id')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+    </div>
+@else
+    <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-700">
+        <i class="fa-solid fa-circle-info mr-1"></i>
+        Kegiatan ini akan dibuat untuk {{ auth()->user()->rt?->name ?? 'RT Anda' }}.
+    </div>
+@endif
+
 <div>
     <label for="nama" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Nama Kegiatan</label>
     <input id="nama" name="nama" value="{{ old('nama', $kegiatan?->nama) }}" required maxlength="255" class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-emerald-500 focus:ring-emerald-500" placeholder="Contoh: Kerja Bakti Lingkungan RW 05">

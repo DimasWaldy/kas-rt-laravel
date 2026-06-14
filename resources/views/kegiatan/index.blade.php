@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Kegiatan RW')
+@section('title', 'Kegiatan')
 
 @section('content')
 <div class="mx-auto max-w-7xl space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <p class="text-sm font-semibold text-emerald-700">Agenda bersama lintas RT</p>
-            <h1 class="text-2xl font-black text-slate-900">Kegiatan RW</h1>
-            <p class="mt-1 text-sm text-slate-500">Temukan kegiatan lingkungan dan konfirmasikan kehadiran Anda.</p>
+            <p class="text-sm font-semibold text-emerald-700">Agenda lingkungan Smart RW</p>
+            <h1 class="text-2xl font-black text-slate-900">Kegiatan RT & RW</h1>
+            <p class="mt-1 text-sm text-slate-500">Temukan kegiatan RW dan kegiatan khusus RT Anda.</p>
         </div>
 
         @if(auth()->user()->hasPermission('manage-kegiatan'))
@@ -30,7 +30,7 @@
         <div class="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
             <span class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-2xl text-slate-400"><i class="fa-regular fa-calendar-xmark"></i></span>
             <h2 class="mt-4 font-bold text-slate-800">Belum ada kegiatan</h2>
-            <p class="mt-1 text-sm text-slate-500">Kegiatan RW yang dibuat pengurus akan tampil di sini.</p>
+            <p class="mt-1 text-sm text-slate-500">Kegiatan RW dan kegiatan RT Anda akan tampil di sini.</p>
         </div>
     @else
         <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -55,6 +55,15 @@
                     </div>
 
                     <div class="p-5">
+                        @if($kegiatan->isRtKegiatan())
+                            <span class="mb-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-700">
+                                <i class="fa-solid fa-house-flag mr-1.5"></i>Kegiatan {{ $kegiatan->rt->name }}
+                            </span>
+                        @else
+                            <span class="mb-3 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
+                                <i class="fa-solid fa-people-roof mr-1.5"></i>Kegiatan RW
+                            </span>
+                        @endif
                         <h2 class="line-clamp-2 text-lg font-black text-slate-900">{{ $kegiatan->nama }}</h2>
                         <div class="mt-4 space-y-2 text-sm text-slate-600">
                             <p class="flex items-start gap-2"><i class="fa-regular fa-calendar mt-0.5 w-4 text-emerald-600"></i><span>{{ $kegiatan->tanggal_mulai->translatedFormat('l, d F Y') }}<br><span class="text-xs text-slate-400">Pukul {{ $kegiatan->tanggal_mulai->format('H:i') }} WIB</span></span></p>

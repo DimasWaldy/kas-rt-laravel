@@ -26,6 +26,11 @@ beforeEach(function () {
         'name' => 'RT 01',
         'is_active' => true,
     ]);
+    $this->rtTwo = Rt::create([
+        'rw_id' => $this->rw->id,
+        'name' => 'RT 02',
+        'is_active' => true,
+    ]);
 
     $makeUser = function (string $role, ?Rt $rt = null): User {
         return User::factory()->create([
@@ -35,6 +40,7 @@ beforeEach(function () {
     };
 
     $this->ketuaRw = $makeUser('ketua_rw');
+    $this->ketuaRt = $makeUser('ketua_rt', $this->rt);
     $this->warga = $makeUser('warga', $this->rt);
 
     $this->makeKegiatan = function (array $attributes = []): Kegiatan {
@@ -230,4 +236,84 @@ test('pengurus dapat menambah dokumentasi setelah kegiatan dimulai', function ()
         ->get(route('kegiatan.dokumentasi', $kegiatan))
         ->assertOk()
         ->assertHeader('content-type', 'image/jpeg');
+});
+
+test('pengurus rt membuat kegiatan untuk rt sendiri dan tidak dapat override rt id', function () {
+    $this->actingAs($this->ketuaRt)
+        ->post(route('kegiatan.store'), [
+            'nama' => 'Ronda Malam RT 01',
+            'tanggal_mulai' => now()->addDays(2)->format('Y-m-d H:i:s'),
+            'rt_id' => $this->rtTwo->id,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('kegiatans', [
+        'nama' => 'Ronda Malam RT 01',
+        'rw_id' => $this->rw->id,
+        'rt_id' => $this->rt->id,
+        'created_by' => $this->ketuaRt->id,
+    ]);
+
+    $this->assertDatabaseMissing('kegiatans', [
+        'nama' => 'Ronda Malam RT 01',
+        'rt_id' => $this->rtTwo->id,
+    ]);
+});
+
+test('warga rt 01 tidak dapat melihat kegiatan rt 02', function () {
+    $kegiatanRtDua = ($this->makeKegiatan)([
+        'rt_id' => $this->rtTwo->id,
+        'nama' => 'Kegiatan Khusus RT 02',
+    ]);
+
+    $this->actingAs($this->warga)
+        ->get(route('kegiatan.index'))
+        ->assertOk()
+        ->assertDontSee($kegiatanRtDua->nama);
+
+    $this->actingAs($this->warga)
+        ->get(route('kegiatan.show', $kegiatanRtDua))
+        ->assertForbidden();
+});
+
+test('warga rt 01 dapat melihat kegiatan rw', function () {
+    $kegiatanRw = ($this->makeKegiatan)([
+        'rt_id' => null,
+        'nama' => 'Festival Seluruh RW',
+    ]);
+
+    $this->actingAs($this->warga)
+        ->get(route('kegiatan.index'))
+        ->assertOk()
+        ->assertSee($kegiatanRw->nama)
+        ->assertSee('Kegiatan RW');
+});
+
+test('pengurus rw dapat membuat kegiatan rw dan kegiatan rt tertentu', function () {
+    $this->actingAs($this->ketuaRw)
+        ->post(route('kegiatan.store'), [
+            'nama' => 'Pelatihan RT 01',
+            'tanggal_mulai' => now()->addDays(3)->format('Y-m-d H:i:s'),
+            'rt_id' => $this->rt->id,
+        ])
+        ->assertRedirect();
+
+    $this->actingAs($this->ketuaRw)
+        ->post(route('kegiatan.store'), [
+            'nama' => 'Musyawarah Seluruh RW',
+            'tanggal_mulai' => now()->addDays(4)->format('Y-m-d H:i:s'),
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('kegiatans', [
+        'nama' => 'Pelatihan RT 01',
+        'rw_id' => $this->rw->id,
+        'rt_id' => $this->rt->id,
+    ]);
+
+    $this->assertDatabaseHas('kegiatans', [
+        'nama' => 'Musyawarah Seluruh RW',
+        'rw_id' => $this->rw->id,
+        'rt_id' => null,
+    ]);
 });

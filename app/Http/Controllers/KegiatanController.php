@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kegiatan;
+use App\Models\Rt;
 use App\Models\Rw;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -14,10 +16,9 @@ class KegiatanController extends Controller
 {
     public function index(Request $request)
     {
-        $rwId = $this->resolveRwId($request->user());
-        $query = Kegiatan::with(['rw', 'creator'])
+        $query = Kegiatan::visibleTo($request->user())
+            ->with(['rw', 'rt', 'creator'])
             ->withCount('hadirs')
-            ->where('rw_id', $rwId)
             ->orderByDesc('tanggal_mulai');
 
         $status = $request->string('status')->toString();
@@ -33,25 +34,33 @@ class KegiatanController extends Controller
 
     public function create()
     {
-        abort_unless(Auth::user()->hasPermission('manage-kegiatan'), 403);
-        $this->resolveRwId(Auth::user());
+        $user = Auth::user();
+        abort_unless($user->hasPermission('manage-kegiatan'), 403);
+        $rwId = $this->resolveRwId($user);
+        $isRwOfficial = $user->isRwOfficial() || $user->isGlobalOperator();
+        $rts = $isRwOfficial
+            ? Rt::where('rw_id', $rwId)->where('is_active', true)->orderBy('name')->get()
+            : collect();
 
-        return view('kegiatan.create');
+        return view('kegiatan.create', compact('rts', 'isRwOfficial'));
     }
 
     public function store(Request $request)
     {
         abort_unless($request->user()->hasPermission('manage-kegiatan'), 403);
         $validated = $this->validateKegiatan($request, true);
-        $rwId = $this->resolveRwId($request->user());
+        [$rwId, $rtId] = $this->resolveActivityScope($request->user(), $validated['rt_id'] ?? null);
 
         $fotoPath = $request->hasFile('foto')
             ? $request->file('foto')->store('kegiatan', 'local')
             : null;
 
+        unset($validated['foto'], $validated['foto_dokumentasi'], $validated['rt_id']);
+
         $kegiatan = Kegiatan::create([
             ...$validated,
             'rw_id' => $rwId,
+            'rt_id' => $rtId,
             'created_by' => Auth::id(),
             'foto' => $fotoPath,
             'estimasi_biaya' => $validated['estimasi_biaya'] ?? 0,
@@ -60,13 +69,13 @@ class KegiatanController extends Controller
         ]);
 
         return redirect()->route('kegiatan.show', $kegiatan)
-            ->with('success', 'Kegiatan RW berhasil dibuat.');
+            ->with('success', 'Kegiatan berhasil dibuat.');
     }
 
     public function show(Kegiatan $kegiatan)
     {
-        $this->authorizeInRw($kegiatan, Auth::user());
-        $kegiatan->load(['rw', 'creator', 'hadirs.user']);
+        $this->authorizeVisible($kegiatan, Auth::user());
+        $kegiatan->load(['rw', 'rt', 'creator', 'hadirs.user']);
 
         $sudahHadir = $kegiatan->hadirs()
             ->where('user_id', Auth::id())
@@ -78,7 +87,7 @@ class KegiatanController extends Controller
     public function foto(Kegiatan $kegiatan)
     {
         abort_unless(Auth::check(), 403);
-        $this->authorizeInRw($kegiatan, Auth::user());
+        $this->authorizeVisible($kegiatan, Auth::user());
         abort_unless($kegiatan->foto && Storage::disk('local')->exists($kegiatan->foto), 404);
 
         return Storage::disk('local')->response($kegiatan->foto);
@@ -87,7 +96,7 @@ class KegiatanController extends Controller
     public function dokumentasi(Kegiatan $kegiatan)
     {
         abort_unless(Auth::check(), 403);
-        $this->authorizeInRw($kegiatan, Auth::user());
+        $this->authorizeVisible($kegiatan, Auth::user());
         abort_unless(
             $kegiatan->foto_dokumentasi && Storage::disk('local')->exists($kegiatan->foto_dokumentasi),
             404
@@ -99,7 +108,7 @@ class KegiatanController extends Controller
     public function konfirmasiHadir(Request $request, Kegiatan $kegiatan)
     {
         abort_unless($request->user()->hasPermission('view-kegiatan'), 403);
-        $this->authorizeInRw($kegiatan, $request->user());
+        $this->authorizeVisible($kegiatan, $request->user());
 
         if (in_array($kegiatan->effective_status, ['dibatalkan', 'selesai'], true)) {
             return back()->with('error', 'Kegiatan yang sudah selesai atau dibatalkan tidak dapat dikonfirmasi.');
@@ -122,15 +131,22 @@ class KegiatanController extends Controller
 
     public function edit(Kegiatan $kegiatan)
     {
-        $this->authorizeOwner($kegiatan, Auth::user());
+        $this->authorizeManage($kegiatan, Auth::user());
 
-        return view('kegiatan.edit', compact('kegiatan'));
+        $user = Auth::user();
+        $isRwOfficial = $user->isRwOfficial() || $user->isGlobalOperator();
+        $rts = $isRwOfficial
+            ? Rt::where('rw_id', $this->resolveRwId($user))->where('is_active', true)->orderBy('name')->get()
+            : collect();
+
+        return view('kegiatan.edit', compact('kegiatan', 'rts', 'isRwOfficial'));
     }
 
     public function update(Request $request, Kegiatan $kegiatan)
     {
-        $this->authorizeOwner($kegiatan, $request->user());
+        $this->authorizeManage($kegiatan, $request->user());
         $validated = $this->validateKegiatan($request);
+        [$rwId, $rtId] = $this->resolveActivityScope($request->user(), $validated['rt_id'] ?? null);
 
         if ($request->hasFile('foto_dokumentasi') && now()->isBefore($validated['tanggal_mulai'])) {
             throw ValidationException::withMessages([
@@ -138,34 +154,45 @@ class KegiatanController extends Controller
             ]);
         }
 
+        $fotoPath = null;
         if ($request->hasFile('foto')) {
             if ($kegiatan->foto) {
                 Storage::disk('local')->delete($kegiatan->foto);
             }
 
-            $validated['foto'] = $request->file('foto')->store('kegiatan', 'local');
+            $fotoPath = $request->file('foto')->store('kegiatan', 'local');
         }
 
+        $dokumentasiPath = null;
         if ($request->hasFile('foto_dokumentasi')) {
             if ($kegiatan->foto_dokumentasi) {
                 Storage::disk('local')->delete($kegiatan->foto_dokumentasi);
             }
 
-            $validated['foto_dokumentasi'] = $request->file('foto_dokumentasi')
+            $dokumentasiPath = $request->file('foto_dokumentasi')
                 ->store('kegiatan/dokumentasi', 'local');
         }
 
+        unset($validated['foto'], $validated['foto_dokumentasi'], $validated['rt_id']);
+        if ($fotoPath) {
+            $validated['foto'] = $fotoPath;
+        }
+        if ($dokumentasiPath) {
+            $validated['foto_dokumentasi'] = $dokumentasiPath;
+        }
+        $validated['rw_id'] = $rwId;
+        $validated['rt_id'] = $rtId;
         $validated['estimasi_biaya'] = $validated['estimasi_biaya'] ?? 0;
         $validated['realisasi_biaya'] = $validated['realisasi_biaya'] ?? 0;
         $kegiatan->update($validated);
 
         return redirect()->route('kegiatan.show', $kegiatan)
-            ->with('success', 'Kegiatan RW berhasil diperbarui.');
+            ->with('success', 'Kegiatan berhasil diperbarui.');
     }
 
     public function destroy(Kegiatan $kegiatan)
     {
-        $this->authorizeOwner($kegiatan, Auth::user());
+        $this->authorizeManage($kegiatan, Auth::user());
 
         if ($kegiatan->foto) {
             Storage::disk('local')->delete($kegiatan->foto);
@@ -178,13 +205,13 @@ class KegiatanController extends Controller
         $kegiatan->delete();
 
         return redirect()->route('kegiatan.index')
-            ->with('success', 'Kegiatan RW berhasil dihapus.');
+            ->with('success', 'Kegiatan berhasil dihapus.');
     }
 
     public function batalkan(Request $request, Kegiatan $kegiatan)
     {
         abort_unless($request->user()->hasPermission('manage-kegiatan'), 403);
-        $this->authorizeInRw($kegiatan, $request->user());
+        $this->authorizeManage($kegiatan, $request->user());
 
         $validated = $request->validate([
             'catatan_pembatalan' => ['required', 'string', 'min:10', 'max:2000'],
@@ -195,7 +222,7 @@ class KegiatanController extends Controller
             'catatan_pembatalan' => $validated['catatan_pembatalan'],
         ]);
 
-        return back()->with('success', 'Kegiatan RW berhasil dibatalkan.');
+        return back()->with('success', 'Kegiatan berhasil dibatalkan.');
     }
 
     private function validateKegiatan(Request $request, bool $creating = false): array
@@ -214,6 +241,7 @@ class KegiatanController extends Controller
             'foto_dokumentasi' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
             'estimasi_biaya' => ['nullable', 'integer', 'min:0'],
             'realisasi_biaya' => ['nullable', 'integer', 'min:0'],
+            'rt_id' => ['nullable', 'integer', 'exists:rts,id'],
         ]);
     }
 
@@ -230,19 +258,48 @@ class KegiatanController extends Controller
         return (int) $rwId;
     }
 
-    private function authorizeInRw(Kegiatan $kegiatan, User $user): void
+    private function resolveActivityScope(User $user, mixed $requestedRtId): array
     {
-        abort_unless($kegiatan->rw_id === $this->resolveRwId($user), 404);
+        $rwId = $this->resolveRwId($user);
+
+        if (! ($user->isRwOfficial() || $user->isGlobalOperator())) {
+            abort_unless($user->rt_id, 403, 'Akun belum terhubung ke RT.');
+
+            return [$rwId, (int) $user->rt_id];
+        }
+
+        if (! filled($requestedRtId)) {
+            return [$rwId, null];
+        }
+
+        $rt = Rt::whereKey($requestedRtId)
+            ->where('rw_id', $rwId)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        return [$rwId, $rt->id];
     }
 
-    private function authorizeOwner(Kegiatan $kegiatan, User $user): void
+    private function authorizeVisible(Kegiatan $kegiatan, User $user): void
     {
-        $this->authorizeInRw($kegiatan, $user);
         abort_unless(
-            $user->hasPermission('manage-kegiatan')
-                && ($user->isGlobalOperator() || $kegiatan->created_by === $user->id),
+            Kegiatan::visibleTo($user)->whereKey($kegiatan->getKey())->exists(),
             403
         );
+    }
+
+    private function authorizeManage(Kegiatan $kegiatan, User $user): void
+    {
+        abort_unless(
+            $user->hasPermission('manage-kegiatan'),
+            403
+        );
+
+        $this->authorizeVisible($kegiatan, $user);
+
+        if (! ($user->isRwOfficial() || $user->isGlobalOperator())) {
+            abort_unless($kegiatan->rt_id === $user->rt_id, 403);
+        }
     }
 
     private function statuses(): array
@@ -250,7 +307,7 @@ class KegiatanController extends Controller
         return ['akan_datang', 'berlangsung', 'selesai', 'dibatalkan'];
     }
 
-    private function applyStatusFilter($query, string $status): void
+    private function applyStatusFilter(Builder $query, string $status): void
     {
         $now = now();
 

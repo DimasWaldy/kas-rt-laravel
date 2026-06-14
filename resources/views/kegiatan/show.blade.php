@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Kegiatan RW')
+@section('title', 'Detail Kegiatan')
 
 @section('content')
 <div class="mx-auto max-w-6xl space-y-6" x-data="{ showCancel: {{ $errors->has('catatan_pembatalan') ? 'true' : 'false' }} }">
@@ -8,9 +8,7 @@
         <a href="{{ route('kegiatan.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke daftar</a>
         @if(auth()->user()->hasPermission('manage-kegiatan'))
             <div class="flex flex-wrap gap-2">
-                @if(auth()->user()->isGlobalOperator() || $kegiatan->created_by === auth()->id())
-                    <a href="{{ route('kegiatan.edit', $kegiatan) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-pen mr-1"></i> Edit</a>
-                @endif
+                <a href="{{ route('kegiatan.edit', $kegiatan) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-pen mr-1"></i> Edit</a>
                 @if(! in_array($kegiatan->effective_status, ['dibatalkan', 'selesai'], true))
                     <button type="button" @click="showCancel = !showCancel" class="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-100"><i class="fa-solid fa-ban mr-1"></i> Batalkan</button>
                 @endif
@@ -39,7 +37,18 @@
         <div class="space-y-6 lg:col-span-2">
             <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                 <span class="inline-flex rounded-full border px-3 py-1.5 text-xs font-bold {{ $kegiatan->status_color }}">{{ $kegiatan->status_label }}</span>
+                @if($kegiatan->isRtKegiatan())
+                    <span class="ml-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">Kegiatan {{ $kegiatan->rt->name }}</span>
+                @else
+                    <span class="ml-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">Kegiatan RW</span>
+                @endif
                 <h1 class="mt-4 text-2xl font-black text-slate-900 sm:text-3xl">{{ $kegiatan->nama }}</h1>
+
+                <p class="mt-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    <i class="fa-solid fa-map-location-dot mr-2 text-emerald-600"></i>
+                    Kegiatan ini diselenggarakan untuk
+                    <strong>{{ $kegiatan->isRtKegiatan() ? $kegiatan->rt->name : 'seluruh '.$kegiatan->rw->name }}</strong>.
+                </p>
 
                 <div class="mt-6 grid gap-4 rounded-2xl bg-slate-50 p-5 text-sm sm:grid-cols-2">
                     <div class="flex gap-3"><i class="fa-regular fa-calendar mt-1 text-emerald-600"></i><div><p class="text-xs text-slate-400">Waktu mulai</p><p class="font-bold text-slate-800">{{ $kegiatan->tanggal_mulai->translatedFormat('l, d F Y') }}</p><p class="text-slate-500">{{ $kegiatan->tanggal_mulai->format('H:i') }} WIB</p></div></div>

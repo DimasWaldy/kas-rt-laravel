@@ -28,8 +28,8 @@ class RoleAndPermissionSeeder extends Seeder
             'manage-surat' => 'Memverifikasi dan memproses surat',
             'approve-surat' => 'Menyetujui atau menolak surat',
             'export-surat' => 'Mencetak surat yang sudah disetujui',
-            'manage-kegiatan' => 'Membuat dan mengelola kegiatan RW',
-            'view-kegiatan' => 'Melihat daftar kegiatan RW',
+            'manage-kegiatan' => 'Membuat dan mengelola kegiatan RT atau RW',
+            'view-kegiatan' => 'Melihat daftar kegiatan sesuai wilayah',
         ];
 
         $permissionModels = collect($permissions)->mapWithKeys(function (string $description, string $name) {
@@ -98,6 +98,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-surat',
                     'approve-surat',
                     'export-surat',
+                    'manage-kegiatan',
                     'view-kegiatan',
                 ],
             ],
@@ -123,6 +124,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-surat',
                     'manage-surat',
                     'export-surat',
+                    'manage-kegiatan',
                     'view-kegiatan',
                 ],
             ],
@@ -148,6 +150,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-surat',
                     'manage-surat',
                     'export-surat',
+                    'manage-kegiatan',
                     'view-kegiatan',
                 ],
             ],
