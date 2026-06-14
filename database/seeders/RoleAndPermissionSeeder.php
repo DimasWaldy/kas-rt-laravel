@@ -28,6 +28,8 @@ class RoleAndPermissionSeeder extends Seeder
             'manage-surat' => 'Memverifikasi dan memproses surat',
             'approve-surat' => 'Menyetujui atau menolak surat',
             'export-surat' => 'Mencetak surat yang sudah disetujui',
+            'manage-kegiatan' => 'Membuat dan mengelola kegiatan RW',
+            'view-kegiatan' => 'Melihat daftar kegiatan RW',
         ];
 
         $permissionModels = collect($permissions)->mapWithKeys(function (string $description, string $name) {
@@ -58,6 +60,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-surat',
                     'approve-surat',
                     'export-surat',
+                    'manage-kegiatan',
+                    'view-kegiatan',
                 ],
             ],
             'sekretaris_rw' => [
@@ -70,6 +74,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-surat',
                     'manage-surat',
                     'export-surat',
+                    'manage-kegiatan',
+                    'view-kegiatan',
                 ],
             ],
             'bendahara_rw' => [
@@ -79,6 +85,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-dashboard',
                     'view-finance',
                     'export-finance',
+                    'view-kegiatan',
                 ],
             ],
             'ketua_rt' => [
@@ -91,6 +98,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-surat',
                     'approve-surat',
                     'export-surat',
+                    'view-kegiatan',
                 ],
             ],
             'bendahara_rt' => [
@@ -102,6 +110,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'verify-payment',
                     'export-finance',
                     'submit-pengaduan',
+                    'view-kegiatan',
                 ],
             ],
             'sekretaris_rt' => [
@@ -114,6 +123,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-surat',
                     'manage-surat',
                     'export-surat',
+                    'view-kegiatan',
                 ],
             ],
             'bendahara' => [
@@ -125,6 +135,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'verify-payment',
                     'export-finance',
                     'submit-pengaduan',
+                    'view-kegiatan',
                 ],
             ],
             'sekretaris' => [
@@ -137,6 +148,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-surat',
                     'manage-surat',
                     'export-surat',
+                    'view-kegiatan',
                 ],
             ],
             'warga' => [
@@ -148,6 +160,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'submit-pengaduan',
                     'submit-surat',
                     'view-surat',
+                    'view-kegiatan',
                 ],
             ],
         ];

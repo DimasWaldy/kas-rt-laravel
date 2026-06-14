@@ -165,6 +165,14 @@
                     'iconClass' => 'text-emerald-600',
                     'visible' => $user->canViewSurat(),
                 ],
+                [
+                    'label' => 'Kegiatan',
+                    'route' => 'kegiatan.index',
+                    'active' => 'kegiatan*',
+                    'icon' => 'fa-calendar-days',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('view-kegiatan'),
+                ],
             ],
         ],
     ];

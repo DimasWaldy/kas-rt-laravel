@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoUtsController;
 use App\Http\Controllers\IuranBulananController;
+use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\KasKeluarController;
 use App\Http\Controllers\KasMasukController;
 use App\Http\Controllers\LaporanKasController;
@@ -108,6 +109,22 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/surat/{surat}/setujui-rw', [SuratController::class, 'approveRw'])->name('surat.approve-rw');
     Route::patch('/surat/{surat}/tolak', [SuratController::class, 'reject'])->name('surat.reject');
     Route::get('/surat/{surat}/cetak', [SuratController::class, 'print'])->name('surat.print');
+
+    Route::middleware('permission:manage-kegiatan')->group(function () {
+        Route::get('/kegiatan/create', [KegiatanController::class, 'create'])->name('kegiatan.create');
+        Route::post('/kegiatan', [KegiatanController::class, 'store'])->name('kegiatan.store');
+        Route::get('/kegiatan/{kegiatan}/edit', [KegiatanController::class, 'edit'])->name('kegiatan.edit');
+        Route::put('/kegiatan/{kegiatan}', [KegiatanController::class, 'update'])->name('kegiatan.update');
+        Route::delete('/kegiatan/{kegiatan}', [KegiatanController::class, 'destroy'])->name('kegiatan.destroy');
+        Route::patch('/kegiatan/{kegiatan}/batalkan', [KegiatanController::class, 'batalkan'])->name('kegiatan.batalkan');
+    });
+
+    Route::middleware('permission:view-kegiatan')->group(function () {
+        Route::get('/kegiatan', [KegiatanController::class, 'index'])->name('kegiatan.index');
+        Route::get('/kegiatan/{kegiatan}', [KegiatanController::class, 'show'])->name('kegiatan.show');
+        Route::get('/kegiatan/{kegiatan}/foto', [KegiatanController::class, 'foto'])->name('kegiatan.foto');
+        Route::post('/kegiatan/{kegiatan}/hadir', [KegiatanController::class, 'konfirmasiHadir'])->name('kegiatan.hadir');
+    });
 });
 
 Route::get('/', [WelcomeController::class, 'index']);
