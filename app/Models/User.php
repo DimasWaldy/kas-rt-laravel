@@ -154,6 +154,16 @@ class User extends Authenticatable
         return $this->hasMany(Pengaduan::class);
     }
 
+    public function surats(): HasMany
+    {
+        return $this->hasMany(Surat::class);
+    }
+
+    public function canViewSurat(): bool
+    {
+        return $this->hasPermission('view-surat') || $this->hasPermission('submit-surat');
+    }
+
     public function kas(): HasMany
     {
         return $this->hasMany(Kas::class);
