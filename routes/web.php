@@ -98,7 +98,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/surat', [SuratController::class, 'store'])
         ->middleware('permission:submit-surat')
         ->name('surat.store');
-    Route::get('/surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
+    Route::get('/surat/{surat}', [SuratController::class, 'show'])
+        ->middleware('permission:view-surat')
+        ->name('surat.show');
     Route::get('/surat/{surat}/lampiran/{attachment}', [SuratController::class, 'attachment'])->name('surat.attachment');
     Route::patch('/surat/{surat}/verifikasi-rt', [SuratController::class, 'verifyRt'])->name('surat.verify-rt');
     Route::patch('/surat/{surat}/setujui-rt', [SuratController::class, 'approveRt'])->name('surat.approve-rt');

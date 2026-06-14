@@ -217,3 +217,14 @@ test('legacy create route redirects residents to the alpine modal page', functio
         ->assertRedirect(route('surat.index'))
         ->assertSessionHas('info', 'Gunakan tombol Ajukan Surat.');
 });
+
+test('expanded letter catalogue is available in the submission modal', function () {
+    $this->actingAs($this->wargaOne)
+        ->get(route('surat.index'))
+        ->assertOk()
+        ->assertSee('Surat Keterangan Kelahiran')
+        ->assertSee('Surat Keterangan Kematian')
+        ->assertSee('Surat Pengantar Nikah')
+        ->assertSee('Surat Pengantar SKCK')
+        ->assertSee('Surat Keterangan Penghasilan');
+});

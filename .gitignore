@@ -22,3 +22,16 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# User uploads (never commit)
+public/uploads/
+storage/app/local/
+storage/app/surat/
+storage/app/tagihan-bukti/
+storage/app/kaskeluar-bukti/
+storage/app/kasmasuk-bukti/
+storage/app/pengaduan/
+
+# AI notes
+gemini-summary.txt
+*.summary.txt

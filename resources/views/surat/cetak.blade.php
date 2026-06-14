@@ -335,7 +335,47 @@
                     <p>Surat keterangan domisili ini dibuat untuk keperluan: <strong>{{ $surat->purpose }}</strong>.</p>
                     @break
 
+                @case('kelahiran')
+                    <p>Yang bertanda tangan di bawah ini, pengurus {{ $namaRt }} {{ $namaRw }}, menerangkan bahwa telah terjadi kelahiran warga yang tercatat di wilayah kami.</p>
+                    <p>Data kelahiran dan hubungan keluarga dicantumkan berdasarkan keterangan pemohon:</p>
+                    <p><strong>{{ $surat->content ?: 'Keterangan kelahiran belum dicantumkan' }}</strong></p>
+                    <p>Surat ini dibuat untuk keperluan: <strong>{{ $surat->purpose }}</strong>.</p>
+                    @break
+
+                @case('kematian')
+                    <p>Yang bertanda tangan di bawah ini, pengurus {{ $namaRt }} {{ $namaRw }}, menerangkan bahwa telah terjadi peristiwa kematian warga yang tercatat di wilayah kami.</p>
+                    <p>Data almarhum/almarhumah dan keterangan kejadian:</p>
+                    <p><strong>{{ $surat->content ?: 'Keterangan kematian belum dicantumkan' }}</strong></p>
+                    <p>Surat ini dibuat untuk keperluan: <strong>{{ $surat->purpose }}</strong>.</p>
+                    @break
+
+                @case('pindah_masuk')
+                @case('pindah_keluar')
+                    <p>Yang bertanda tangan di bawah ini, pengurus {{ $namaRt }} {{ $namaRw }}, menerangkan bahwa:</p>
+                    <table class="identity-table">
+                        <tr><td class="label">Nama</td><td class="separator">:</td><td>{{ $pemohon?->name ?? '-' }}</td></tr>
+                        <tr><td class="label">Alamat</td><td class="separator">:</td><td>{{ $alamatPemohon }}</td></tr>
+                        <tr><td class="label">Wilayah</td><td class="separator">:</td><td>{{ $namaRt }} / {{ $namaRw }}</td></tr>
+                    </table>
+                    <p>adalah benar warga yang mengajukan administrasi {{ $surat->type === 'pindah_masuk' ? 'pindah masuk ke' : 'pindah keluar dari' }} wilayah kami untuk keperluan: <strong>{{ $surat->purpose }}</strong>.</p>
+                    @break
+
+                @case('belum_menikah')
+                    <p>Yang bertanda tangan di bawah ini, pengurus {{ $namaRt }} {{ $namaRw }}, menerangkan bahwa <strong>{{ $pemohon?->name ?? 'nama pemohon belum tersedia' }}</strong> berdasarkan keterangan dan data yang disampaikan adalah benar belum menikah.</p>
+                    <p>Surat ini dibuat untuk keperluan: <strong>{{ $surat->purpose }}</strong>.</p>
+                    @break
+
+                @case('beda_nama')
+                    <p>Yang bertanda tangan di bawah ini, pengurus {{ $namaRt }} {{ $namaRw }}, menerangkan bahwa perbedaan penulisan nama pada dokumen pemohon merujuk kepada orang yang sama.</p>
+                    <p>Rincian perbedaan nama:</p>
+                    <p><strong>{{ $surat->content ?: 'Rincian perbedaan nama belum dicantumkan' }}</strong></p>
+                    <p>Surat ini dibuat untuk keperluan: <strong>{{ $surat->purpose }}</strong>.</p>
+                    @break
+
                 @case('pengantar')
+                @case('pengantar_nikah')
+                @case('pengantar_skck')
+                @case('pengantar_beasiswa')
                     <p>Yang bertanda tangan di bawah ini, pengurus {{ $namaRt }} {{ $namaRw }}, menerangkan bahwa nama tersebut di atas adalah benar warga kami dan bermaksud mengurus keperluan: <strong>{{ $surat->purpose }}</strong>.</p>
                     <p>Kami mohon kepada pihak yang berwenang untuk dapat memberikan bantuan seperlunya.</p>
                     @break
@@ -352,8 +392,21 @@
                     <p>di alamat tersebut di atas. Surat ini dibuat untuk keperluan: <strong>{{ $surat->purpose }}</strong>.</p>
                     @break
 
+                @case('tidak_mampu')
                 @case('keterangan_tidak_mampu')
                     <p>Yang bertanda tangan di bawah ini menerangkan bahwa warga tersebut di atas adalah benar termasuk dalam kategori warga tidak mampu berdasarkan data yang ada di wilayah kami.</p>
+                    <p>Surat ini dibuat untuk keperluan: <strong>{{ $surat->purpose }}</strong>.</p>
+                    @break
+
+                @case('penghasilan')
+                    <p>Yang bertanda tangan di bawah ini, pengurus {{ $namaRt }} {{ $namaRw }}, menerangkan bahwa:</p>
+                    <table class="identity-table">
+                        <tr><td class="label">Nama</td><td class="separator">:</td><td>{{ $pemohon?->name ?? '-' }}</td></tr>
+                        <tr><td class="label">Alamat</td><td class="separator">:</td><td>{{ $alamatPemohon }}</td></tr>
+                        <tr><td class="label">Wilayah</td><td class="separator">:</td><td>{{ $namaRt }} / {{ $namaRw }}</td></tr>
+                    </table>
+                    <p>berdasarkan keterangan yang disampaikan memiliki penghasilan:</p>
+                    <p><strong>{{ $surat->content ?: 'Keterangan penghasilan belum dicantumkan' }}</strong></p>
                     <p>Surat ini dibuat untuk keperluan: <strong>{{ $surat->purpose }}</strong>.</p>
                     @break
 
@@ -361,7 +414,7 @@
                     <p>Yang bertanda tangan di bawah ini, pengurus {{ $namaRt }} {{ $namaRw }}, menerangkan bahwa nama tersebut di atas adalah benar warga kami. Surat ini diterbitkan untuk keperluan: <strong>{{ $surat->purpose }}</strong>.</p>
             @endswitch
 
-            @if($surat->content && $surat->type !== 'keterangan_usaha')
+            @if($surat->content && ! in_array($surat->type, ['kelahiran', 'kematian', 'beda_nama', 'keterangan_usaha', 'penghasilan'], true))
                 <p>Keterangan tambahan: {{ $surat->content }}</p>
             @endif
 

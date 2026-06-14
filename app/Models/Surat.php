@@ -14,11 +14,73 @@ class Surat extends Model
     use Auditable, HasFactory, HasRtScope;
 
     public const TYPES = [
-        'domisili' => ['label' => 'Surat Keterangan Domisili', 'requires_rw' => false],
-        'pengantar' => ['label' => 'Surat Pengantar Administrasi', 'requires_rw' => true],
-        'keterangan_usaha' => ['label' => 'Surat Keterangan Usaha', 'requires_rw' => true],
-        'keterangan_tidak_mampu' => ['label' => 'Surat Keterangan Tidak Mampu', 'requires_rw' => true],
-        'umum' => ['label' => 'Surat Keterangan Umum', 'requires_rw' => false],
+        // Keterangan Kependudukan (hanya RT)
+        'domisili' => [
+            'label' => 'Surat Keterangan Domisili',
+            'requires_rw' => false,
+        ],
+        'kelahiran' => [
+            'label' => 'Surat Keterangan Kelahiran',
+            'requires_rw' => false,
+        ],
+        'kematian' => [
+            'label' => 'Surat Keterangan Kematian',
+            'requires_rw' => false,
+        ],
+        'pindah_masuk' => [
+            'label' => 'Surat Keterangan Pindah Masuk',
+            'requires_rw' => false,
+        ],
+        'pindah_keluar' => [
+            'label' => 'Surat Keterangan Pindah Keluar',
+            'requires_rw' => false,
+        ],
+        'belum_menikah' => [
+            'label' => 'Surat Keterangan Belum Menikah',
+            'requires_rw' => false,
+        ],
+        'beda_nama' => [
+            'label' => 'Surat Keterangan Beda Nama',
+            'requires_rw' => false,
+        ],
+
+        // Keterangan Sosial-Ekonomi (butuh RW)
+        'tidak_mampu' => [
+            'label' => 'Surat Keterangan Tidak Mampu',
+            'requires_rw' => true,
+        ],
+        'keterangan_usaha' => [
+            'label' => 'Surat Keterangan Usaha',
+            'requires_rw' => true,
+        ],
+        'penghasilan' => [
+            'label' => 'Surat Keterangan Penghasilan',
+            'requires_rw' => true,
+        ],
+
+        // Pengantar dan Umum (butuh RW)
+        'pengantar' => [
+            'label' => 'Surat Pengantar Administrasi',
+            'requires_rw' => true,
+        ],
+        'pengantar_nikah' => [
+            'label' => 'Surat Pengantar Nikah',
+            'requires_rw' => true,
+        ],
+        'pengantar_skck' => [
+            'label' => 'Surat Pengantar SKCK',
+            'requires_rw' => true,
+        ],
+        'pengantar_beasiswa' => [
+            'label' => 'Surat Pengantar Beasiswa',
+            'requires_rw' => true,
+        ],
+
+        // Umum
+        'umum' => [
+            'label' => 'Surat Keterangan Umum',
+            'requires_rw' => false,
+        ],
     ];
 
     protected $fillable = [

@@ -171,6 +171,20 @@ Kriteria selesai:
 - Admin bisa menyetujui atau menolak.
 - Data surat warga lain tidak terlihat oleh warga biasa.
 
+Status: selesai dan difinalisasi.
+
+Hasil finalisasi:
+
+- Pengajuan surat tersedia melalui modal Alpine.js dengan validasi dan old input.
+- Workflow persetujuan mendukung jalur RT-only dan jalur RT dilanjutkan ke RW.
+- Pengurus RT hanya dapat melihat dan memproses surat dari RT-nya sendiri.
+- Warga hanya dapat melihat pengajuan surat miliknya sendiri.
+- Katalog tersedia untuk 15 jenis surat kependudukan, sosial-ekonomi, pengantar, dan umum.
+- Lampiran disimpan secara privat dan hanya dapat diakses oleh pihak berwenang.
+- Surat selesai mendapat nomor serta kode verifikasi dan dapat dicetak dalam format resmi.
+- Route detail surat dilindungi permission `view-surat`.
+- Seluruh 86 test lulus dengan 425 assertions.
+
 ### Fase 3 - Kegiatan RT/RW
 
 Tujuan:
