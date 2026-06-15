@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoUtsController;
 use App\Http\Controllers\IuranBulananController;
+use App\Http\Controllers\IuranKhususController;
 use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\KasKeluarController;
 use App\Http\Controllers\KasMasukController;
@@ -52,6 +53,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/iuran-bulanan/create', [IuranBulananController::class, 'create'])->name('iuran-bulanan.create');
         Route::post('/admin/iuran-bulanan/store', [IuranBulananController::class, 'store'])->name('iuran-bulanan.store');
         Route::post('/admin/iuran-bulanan/generate', [IuranBulananController::class, 'generateMassal'])->name('iuran-bulanan.generate');
+
+        Route::get('/iuran-khusus', [IuranKhususController::class, 'index'])->name('iuran-khusus.index');
+        Route::get('/iuran-khusus/create', [IuranKhususController::class, 'create'])->name('iuran-khusus.create');
+        Route::post('/iuran-khusus', [IuranKhususController::class, 'store'])->name('iuran-khusus.store');
+        Route::get('/iuran-khusus/{iuranKhusus}', [IuranKhususController::class, 'show'])->name('iuran-khusus.show');
+        Route::patch('/iuran-khusus/tagihan/{tagihan}/kecualikan', [IuranKhususController::class, 'kecualikan'])->name('iuran-khusus.kecualikan');
+        Route::patch('/iuran-khusus/tagihan/{tagihan}/batal-kecualikan', [IuranKhususController::class, 'batalKecualikan'])->name('iuran-khusus.batal-kecualikan');
+
         Route::get('/admin/demo-uts', [DemoUtsController::class, 'index'])->name('demo-uts.index');
     });
 

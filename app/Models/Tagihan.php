@@ -41,12 +41,16 @@ class Tagihan extends Model
         'verified_by',
         'verified_at',
         'paid_at',
+        'dikecualikan_at',
+        'dikecualikan_oleh',
+        'alasan_dikecualikan',
     ];
 
     protected $casts = [
         'paid_at' => 'datetime',
         'verified_at' => 'datetime',
         'rejected_at' => 'datetime',
+        'dikecualikan_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -152,6 +156,16 @@ class Tagihan extends Model
 
         $now = now()->startOfDay();
         return $now->lte($this->due_date) && $now->diffInDays($this->due_date) <= 5;
+    }
+
+    public function isDikecualikan(): bool
+    {
+        return ! is_null($this->dikecualikan_at);
+    }
+
+    public function isInsidental(): bool
+    {
+        return str_starts_with((string) $this->billing_group, 'insidental_');
     }
 
     public function getDueStatusLabelAttribute(): string

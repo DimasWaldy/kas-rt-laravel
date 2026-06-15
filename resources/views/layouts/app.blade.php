@@ -113,6 +113,14 @@
                     'visible' => $user->canManageFinance(),
                 ],
                 [
+                    'label' => 'Iuran Khusus',
+                    'route' => 'iuran-khusus.index',
+                    'active' => 'iuran-khusus*',
+                    'icon' => 'fa-hand-holding-heart',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->hasPermission('manage-finance'),
+                ],
+                [
                     'label' => 'Verifikasi Tagihan',
                     'route' => 'tagihan.admin',
                     'active' => 'admin/tagihan*',
