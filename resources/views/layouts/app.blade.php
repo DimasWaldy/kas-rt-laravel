@@ -121,6 +121,22 @@
                     'visible' => $user->hasPermission('manage-finance'),
                 ],
                 [
+                    'label' => 'Aset RT',
+                    'route' => 'aset.index',
+                    'active' => 'aset*',
+                    'icon' => 'fa-boxes-stacked',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->hasPermission('view-aset'),
+                ],
+                [
+                    'label' => 'Peminjaman Aset',
+                    'route' => 'peminjaman-aset.index',
+                    'active' => 'peminjaman-aset*',
+                    'icon' => 'fa-hand-holding',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->hasPermission('pinjam-aset'),
+                ],
+                [
                     'label' => 'Verifikasi Tagihan',
                     'route' => 'tagihan.admin',
                     'active' => 'admin/tagihan*',

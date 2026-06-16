@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoUtsController;
+use App\Http\Controllers\AsetController;
 use App\Http\Controllers\IuranBulananController;
 use App\Http\Controllers\IuranKhususController;
 use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\KasKeluarController;
 use App\Http\Controllers\KasMasukController;
 use App\Http\Controllers\LaporanKasController;
+use App\Http\Controllers\PeminjamanAsetController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\WelcomeController;
@@ -134,6 +136,56 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/kegiatan/{kegiatan}/foto', [KegiatanController::class, 'foto'])->name('kegiatan.foto');
         Route::get('/kegiatan/{kegiatan}/dokumentasi', [KegiatanController::class, 'dokumentasi'])->name('kegiatan.dokumentasi');
         Route::post('/kegiatan/{kegiatan}/hadir', [KegiatanController::class, 'konfirmasiHadir'])->name('kegiatan.hadir');
+    });
+
+    Route::middleware('permission:view-aset')->group(function () {
+        Route::get('/aset', [AsetController::class, 'index'])
+            ->name('aset.index');
+    });
+
+    Route::middleware('permission:manage-aset')->group(function () {
+        Route::get('/aset/create', [AsetController::class, 'create'])
+            ->name('aset.create');
+        Route::post('/aset', [AsetController::class, 'store'])
+            ->name('aset.store');
+    });
+
+    Route::middleware('permission:view-aset')->group(function () {
+        Route::get('/aset/{aset}', [AsetController::class, 'show'])
+            ->name('aset.show');
+        Route::get('/aset/{aset}/foto', [AsetController::class, 'foto'])
+            ->name('aset.foto');
+    });
+
+    Route::middleware('permission:manage-aset')->group(function () {
+        Route::get('/aset/{aset}/edit', [AsetController::class, 'edit'])
+            ->name('aset.edit');
+        Route::put('/aset/{aset}', [AsetController::class, 'update'])
+            ->name('aset.update');
+        Route::delete('/aset/{aset}', [AsetController::class, 'destroy'])
+            ->name('aset.destroy');
+    });
+
+    Route::middleware('permission:pinjam-aset')->group(function () {
+        Route::get('/peminjaman-aset', [PeminjamanAsetController::class, 'index'])
+            ->name('peminjaman-aset.index');
+        Route::get('/peminjaman-aset/create', [PeminjamanAsetController::class, 'create'])
+            ->name('peminjaman-aset.create');
+        Route::post('/peminjaman-aset', [PeminjamanAsetController::class, 'store'])
+            ->name('peminjaman-aset.store');
+        Route::get('/peminjaman-aset/{peminjamanAset}', [PeminjamanAsetController::class, 'show'])
+            ->name('peminjaman-aset.show');
+    });
+
+    Route::middleware('permission:manage-aset')->group(function () {
+        Route::patch('/peminjaman-aset/{peminjamanAset}/setujui', [PeminjamanAsetController::class, 'setujui'])
+            ->name('peminjaman-aset.setujui');
+        Route::patch('/peminjaman-aset/{peminjamanAset}/tolak', [PeminjamanAsetController::class, 'tolak'])
+            ->name('peminjaman-aset.tolak');
+        Route::patch('/peminjaman-aset/{peminjamanAset}/dipinjam', [PeminjamanAsetController::class, 'konfirmasiDipinjam'])
+            ->name('peminjaman-aset.dipinjam');
+        Route::patch('/peminjaman-aset/{peminjamanAset}/kembali', [PeminjamanAsetController::class, 'konfirmasiKembali'])
+            ->name('peminjaman-aset.kembali');
     });
 });
 
