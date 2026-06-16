@@ -4,12 +4,19 @@
 
 @section('content')
 @php
+    $isRw = $aset->isRwAsset();
+    $showRoute = $isRw ? 'aset-rw.show' : 'aset.show';
+    $updateRoute = $isRw ? 'aset-rw.update' : 'aset.update';
+    $fotoRoute = $isRw ? 'aset-rw.foto' : 'aset.foto';
     $kategoriLabels = [
         'furniture' => 'Furniture',
         'elektronik' => 'Elektronik',
         'tenda_dan_terpal' => 'Tenda & Terpal',
         'kebersihan' => 'Kebersihan',
         'olahraga' => 'Olahraga',
+        'gedung' => 'Gedung / Balai',
+        'lapangan' => 'Lapangan',
+        'panggung' => 'Panggung',
         'lainnya' => 'Lainnya',
     ];
     $kondisiLabels = [
@@ -20,15 +27,16 @@
 @endphp
 
 <div class="mx-auto max-w-4xl space-y-6">
-    <a href="{{ route('aset.show', $aset) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke detail aset</a>
+    <a href="{{ route($showRoute, $aset) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke detail aset</a>
 
-    <form method="POST" action="{{ route('aset.update', $aset) }}" enctype="multipart/form-data" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" x-data="{ preview: null }">
+    <form method="POST" action="{{ route($updateRoute, $aset) }}" enctype="multipart/form-data" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" x-data="{ preview: null }">
         @csrf
         @method('PUT')
+        <input type="hidden" name="scope" value="{{ $aset->scope }}">
         <div>
-            <p class="text-sm font-semibold text-emerald-700">Inventaris RT</p>
-            <h1 class="text-2xl font-black text-slate-900">Edit Aset</h1>
-            <p class="mt-1 text-sm text-slate-500">Perbarui data barang milik RT.</p>
+            <p class="text-sm font-semibold text-emerald-700">{{ $isRw ? 'Inventaris RW' : 'Inventaris RT' }}</p>
+            <h1 class="text-2xl font-black text-slate-900">Edit Aset {{ $isRw ? 'RW' : 'RT' }}</h1>
+            <p class="mt-1 text-sm text-slate-500">{{ $isRw ? 'Perbarui data fasilitas milik RW.' : 'Perbarui data barang milik RT.' }}</p>
         </div>
 
         <div class="mt-7 grid gap-5 sm:grid-cols-2">
@@ -101,13 +109,13 @@
                     <img :src="preview" alt="Preview foto aset" class="mt-4 h-52 w-full rounded-2xl object-cover">
                 </template>
                 @if($aset->foto)
-                    <img x-show="!preview" src="{{ route('aset.foto', $aset) }}" alt="Foto saat ini" class="mt-4 h-52 w-full rounded-2xl object-cover">
+                    <img x-show="!preview" src="{{ route($fotoRoute, $aset) }}" alt="Foto saat ini" class="mt-4 h-52 w-full rounded-2xl object-cover">
                 @endif
             </div>
         </div>
 
         <div class="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <a href="{{ route('aset.show', $aset) }}" class="rounded-xl border border-slate-200 px-5 py-3 text-center text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</a>
+            <a href="{{ route($showRoute, $aset) }}" class="rounded-xl border border-slate-200 px-5 py-3 text-center text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</a>
             <button class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800">Simpan Perubahan</button>
         </div>
     </form>

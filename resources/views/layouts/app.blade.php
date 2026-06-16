@@ -129,12 +129,28 @@
                     'visible' => $user->hasPermission('view-aset'),
                 ],
                 [
-                    'label' => 'Peminjaman Aset',
+                    'label' => 'Peminjaman Aset RT',
                     'route' => 'peminjaman-aset.index',
                     'active' => 'peminjaman-aset*',
                     'icon' => 'fa-hand-holding',
                     'iconClass' => 'text-teal-600',
                     'visible' => $user->hasPermission('pinjam-aset'),
+                ],
+                [
+                    'label' => 'Aset RW',
+                    'route' => 'aset-rw.index',
+                    'active' => 'aset-rw*',
+                    'icon' => 'fa-building-user',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->hasPermission('view-aset-rw'),
+                ],
+                [
+                    'label' => 'Peminjaman Aset RW',
+                    'route' => 'peminjaman-aset-rw.index',
+                    'active' => 'peminjaman-aset-rw*',
+                    'icon' => 'fa-hand-holding-hand',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->hasPermission('pinjam-aset-rw'),
                 ],
                 [
                     'label' => 'Verifikasi Tagihan',
@@ -241,7 +257,7 @@
                         @foreach($group['items'] as $item)
                             <li>
                                 <a
-                                    href="{{ route($item['route']) }}"
+                                    href="{{ route($item['route'], $item['params'] ?? []) }}"
                                     x-on:click="mobileMenuOpen = false"
                                     class="sidebar-item flex min-h-12 items-center gap-3 rounded-xl p-3 text-sm font-semibold hover:bg-emerald-100 hover:text-emerald-950 {{ request()->is($item['active']) ? 'active-menu' : '' }}"
                                 >

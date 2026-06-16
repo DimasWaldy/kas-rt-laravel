@@ -4,6 +4,10 @@
 
 @section('content')
 @php
+    $isRw = ($scope ?? 'rt') === 'rw';
+    $asetIndexRoute = $isRw ? 'aset-rw.index' : 'aset.index';
+    $storeRoute = $isRw ? 'peminjaman-aset-rw.store' : 'peminjaman-aset.store';
+    $indexRoute = $isRw ? 'peminjaman-aset-rw.index' : 'peminjaman-aset.index';
     $asetOptions = $asets->map(fn ($aset) => [
         'id' => $aset->id,
         'nama' => $aset->nama,
@@ -12,14 +16,15 @@
 @endphp
 
 <div class="mx-auto max-w-4xl space-y-6">
-    <a href="{{ route('aset.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke aset</a>
+    <a href="{{ route($asetIndexRoute) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke aset</a>
 
-    <form method="POST" action="{{ route('peminjaman-aset.store') }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" x-data="{ asetId: '{{ old('aset_id', $asetTerpilih?->id) }}', mulai: '{{ old('tanggal_mulai') }}', selesai: '{{ old('tanggal_selesai') }}', asets: @js($asetOptions), get selectedAset() { return this.asets.find((item) => String(item.id) === String(this.asetId)); }, get durasi() { if (!this.mulai || !this.selesai) return 0; const start = new Date(this.mulai); const end = new Date(this.selesai); const diff = Math.floor((end - start) / 86400000) + 1; return diff > 0 ? diff : 0; } }">
+    <form method="POST" action="{{ route($storeRoute) }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" x-data="{ asetId: '{{ old('aset_id', $asetTerpilih?->id) }}', mulai: '{{ old('tanggal_mulai') }}', selesai: '{{ old('tanggal_selesai') }}', asets: @js($asetOptions), get selectedAset() { return this.asets.find((item) => String(item.id) === String(this.asetId)); }, get durasi() { if (!this.mulai || !this.selesai) return 0; const start = new Date(this.mulai); const end = new Date(this.selesai); const diff = Math.floor((end - start) / 86400000) + 1; return diff > 0 ? diff : 0; } }">
         @csrf
+        <input type="hidden" name="scope" value="{{ $scope ?? 'rt' }}">
         <div>
             <p class="text-sm font-semibold text-emerald-700">Form peminjaman</p>
-            <h1 class="text-2xl font-black text-slate-900">Ajukan Peminjaman Aset</h1>
-            <p class="mt-1 text-sm text-slate-500">Pengurus RT akan memeriksa jadwal dan menyetujui pengajuan Anda.</p>
+            <h1 class="text-2xl font-black text-slate-900">Ajukan Peminjaman Aset {{ $isRw ? 'RW' : 'RT' }}</h1>
+            <p class="mt-1 text-sm text-slate-500">{{ $isRw ? 'Pengurus RW akan memeriksa jadwal dan menyetujui pengajuan Anda.' : 'Pengurus RT akan memeriksa jadwal dan menyetujui pengajuan Anda.' }}</p>
         </div>
 
         <div class="mt-7 grid gap-5 sm:grid-cols-2">
@@ -64,7 +69,7 @@
 
             <div class="sm:col-span-2">
                 <label class="text-sm font-bold text-slate-700">Keperluan</label>
-                <input type="text" name="keperluan" value="{{ old('keperluan') }}" required minlength="5" maxlength="255" placeholder="Contoh: acara kerja bakti RT" class="mt-2 w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                <input type="text" name="keperluan" value="{{ old('keperluan') }}" required minlength="5" maxlength="255" placeholder="{{ $isRw ? 'Contoh: acara bersama warga RW' : 'Contoh: acara kerja bakti RT' }}" class="mt-2 w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500">
                 @error('keperluan')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
             </div>
 
@@ -76,7 +81,7 @@
         </div>
 
         <div class="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <a href="{{ route('peminjaman-aset.index') }}" class="rounded-xl border border-slate-200 px-5 py-3 text-center text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</a>
+            <a href="{{ route($indexRoute) }}" class="rounded-xl border border-slate-200 px-5 py-3 text-center text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</a>
             <button class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800">Kirim Pengajuan</button>
         </div>
     </form>

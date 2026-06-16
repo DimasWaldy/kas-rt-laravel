@@ -4,21 +4,29 @@
 
 @section('content')
 @php
-    $canManage = auth()->user()->hasPermission('manage-aset');
+    $isRw = $peminjamanAset->aset->isRwAsset();
+    $canManage = auth()->user()->hasPermission($isRw ? 'manage-aset-rw' : 'manage-aset');
+    $indexRoute = $isRw ? 'peminjaman-aset-rw.index' : 'peminjaman-aset.index';
+    $asetShowRoute = $isRw ? 'aset-rw.show' : 'aset.show';
+    $asetFotoRoute = $isRw ? 'aset-rw.foto' : 'aset.foto';
+    $setujuiRoute = $isRw ? 'peminjaman-aset-rw.setujui' : 'peminjaman-aset.setujui';
+    $tolakRoute = $isRw ? 'peminjaman-aset-rw.tolak' : 'peminjaman-aset.tolak';
+    $dipinjamRoute = $isRw ? 'peminjaman-aset-rw.dipinjam' : 'peminjaman-aset.dipinjam';
+    $kembaliRoute = $isRw ? 'peminjaman-aset-rw.kembali' : 'peminjaman-aset.kembali';
     $steps = ['diajukan', 'disetujui', 'dipinjam', 'dikembalikan'];
     $currentIndex = array_search($peminjamanAset->status, $steps, true);
 @endphp
 
 <div class="mx-auto max-w-6xl space-y-6" x-data="{ modal: '{{ $errors->has('catatan_pengurus') ? 'tolak' : '' }}' }">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <a href="{{ route('peminjaman-aset.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke peminjaman</a>
+        <a href="{{ route($indexRoute) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke peminjaman</a>
         <span class="w-fit rounded-full border px-3 py-1.5 text-xs font-bold {{ $peminjamanAset->status_color }}">{{ $peminjamanAset->status_label }}</span>
     </div>
 
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
             <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                <p class="text-sm font-semibold text-emerald-700">Peminjaman Aset</p>
+                <p class="text-sm font-semibold text-emerald-700">Peminjaman Aset {{ $isRw ? 'RW' : 'RT' }}</p>
                 <h1 class="mt-2 text-2xl font-black text-slate-900">{{ $peminjamanAset->aset->nama }}</h1>
                 <p class="mt-2 text-sm text-slate-500">Diajukan oleh <strong>{{ $peminjamanAset->pemohon->name }}</strong></p>
 
@@ -66,9 +74,9 @@
             <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 class="font-bold text-slate-900">Info Aset</h2>
                 @if($peminjamanAset->aset->foto)
-                    <img src="{{ route('aset.foto', $peminjamanAset->aset) }}" alt="Foto {{ $peminjamanAset->aset->nama }}" class="mt-4 h-44 w-full rounded-2xl object-cover">
+                    <img src="{{ route($asetFotoRoute, $peminjamanAset->aset) }}" alt="Foto {{ $peminjamanAset->aset->nama }}" class="mt-4 h-44 w-full rounded-2xl object-cover">
                 @endif
-                <a href="{{ route('aset.show', $peminjamanAset->aset) }}" class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 hover:bg-emerald-100">Lihat Detail Aset</a>
+                <a href="{{ route($asetShowRoute, $peminjamanAset->aset) }}" class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 hover:bg-emerald-100">Lihat Detail Aset</a>
             </section>
 
             @if($canManage)
@@ -81,13 +89,13 @@
                             <button type="button" @click="modal = 'setujui'" class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-800">Setujui</button>
                             <button type="button" @click="modal = 'tolak'" class="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white hover:bg-red-700">Tolak</button>
                         @elseif($peminjamanAset->status === 'disetujui')
-                            <form method="POST" action="{{ route('peminjaman-aset.dipinjam', $peminjamanAset) }}">
+                            <form method="POST" action="{{ route($dipinjamRoute, $peminjamanAset) }}">
                                 @csrf
                                 @method('PATCH')
                                 <button class="w-full rounded-xl bg-amber-600 px-4 py-3 text-sm font-bold text-white hover:bg-amber-700">Konfirmasi Dipinjam</button>
                             </form>
                         @elseif($peminjamanAset->status === 'dipinjam')
-                            <form method="POST" action="{{ route('peminjaman-aset.kembali', $peminjamanAset) }}">
+                            <form method="POST" action="{{ route($kembaliRoute, $peminjamanAset) }}">
                                 @csrf
                                 @method('PATCH')
                                 <button class="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-white hover:bg-slate-900">Konfirmasi Dikembalikan</button>
@@ -108,7 +116,7 @@
                 <button type="button" @click="modal = ''" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <form method="POST" :action="modal === 'setujui' ? '{{ route('peminjaman-aset.setujui', $peminjamanAset) }}' : '{{ route('peminjaman-aset.tolak', $peminjamanAset) }}'" class="mt-5 space-y-4">
+            <form method="POST" :action="modal === 'setujui' ? '{{ route($setujuiRoute, $peminjamanAset) }}' : '{{ route($tolakRoute, $peminjamanAset) }}'" class="mt-5 space-y-4">
                 @csrf
                 @method('PATCH')
                 <div>

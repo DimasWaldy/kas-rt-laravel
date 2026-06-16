@@ -14,6 +14,8 @@ class Aset extends Model
 
     protected $fillable = [
         'rt_id',
+        'rw_id',
+        'scope',
         'nama',
         'kategori',
         'deskripsi',
@@ -33,12 +35,19 @@ class Aset extends Model
             'tanggal_pengadaan' => 'date',
             'is_active' => 'boolean',
             'jumlah_total' => 'integer',
+            'rt_id' => 'integer',
+            'rw_id' => 'integer',
         ];
     }
 
     public function rt(): BelongsTo
     {
         return $this->belongsTo(Rt::class);
+    }
+
+    public function rw(): BelongsTo
+    {
+        return $this->belongsTo(Rw::class);
     }
 
     public function peminjamanAset(): HasMany
@@ -54,6 +63,9 @@ class Aset extends Model
             'tenda_dan_terpal' => 'Tenda & Terpal',
             'kebersihan' => 'Kebersihan',
             'olahraga' => 'Olahraga',
+            'gedung' => 'Gedung / Balai',
+            'lapangan' => 'Lapangan',
+            'panggung' => 'Panggung',
             'lainnya' => 'Lainnya',
             default => str($this->kategori)->headline()->toString(),
         };
@@ -86,6 +98,33 @@ class Aset extends Model
             ->count();
 
         return max(0, $this->jumlah_total - $sedangDipinjam);
+    }
+
+    public function getScopeLabelAttribute(): string
+    {
+        return match ($this->scope) {
+            'rw' => 'Aset RW',
+            default => 'Aset RT',
+        };
+    }
+
+    public function getOwnerNameAttribute(): string
+    {
+        if ($this->isRwAsset()) {
+            return $this->rw?->name ?? 'RW';
+        }
+
+        return $this->rt?->name ?? 'RT';
+    }
+
+    public function isRtAsset(): bool
+    {
+        return $this->scope === 'rt';
+    }
+
+    public function isRwAsset(): bool
+    {
+        return $this->scope === 'rw';
     }
 
     public function isAvailableOn(Carbon $tanggalMulai, Carbon $tanggalSelesai, ?int $excludeId = null): bool

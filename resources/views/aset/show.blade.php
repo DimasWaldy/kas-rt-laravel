@@ -3,15 +3,26 @@
 @section('title', 'Detail Aset')
 
 @section('content')
+@php
+    $isRw = $aset->isRwAsset();
+    $indexRoute = $isRw ? 'aset-rw.index' : 'aset.index';
+    $editRoute = $isRw ? 'aset-rw.edit' : 'aset.edit';
+    $destroyRoute = $isRw ? 'aset-rw.destroy' : 'aset.destroy';
+    $fotoRoute = $isRw ? 'aset-rw.foto' : 'aset.foto';
+    $pinjamCreateRoute = $isRw ? 'peminjaman-aset-rw.create' : 'peminjaman-aset.create';
+    $peminjamanShowRoute = $isRw ? 'peminjaman-aset-rw.show' : 'peminjaman-aset.show';
+    $canManage = auth()->user()->hasPermission($isRw ? 'manage-aset-rw' : 'manage-aset');
+    $canPinjam = auth()->user()->hasPermission($isRw ? 'pinjam-aset-rw' : 'pinjam-aset');
+@endphp
 <div class="mx-auto max-w-6xl space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <a href="{{ route('aset.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke daftar aset</a>
+        <a href="{{ route($indexRoute) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke daftar aset</a>
         <div class="flex flex-wrap gap-2">
-            @if(auth()->user()->hasPermission('pinjam-aset') && $aset->jumlah_tersedia > 0 && $aset->is_active && $aset->kondisi !== 'rusak_berat')
-                <a href="{{ route('peminjaman-aset.create', ['aset_id' => $aset->id]) }}" class="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800"><i class="fa-solid fa-hand-holding mr-1"></i> Ajukan Peminjaman</a>
+            @if($canPinjam && $aset->jumlah_tersedia > 0 && $aset->is_active && $aset->kondisi !== 'rusak_berat')
+                <a href="{{ route($pinjamCreateRoute, ['aset_id' => $aset->id]) }}" class="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800"><i class="fa-solid fa-hand-holding mr-1"></i> Ajukan Peminjaman</a>
             @endif
-            @if(auth()->user()->hasPermission('manage-aset'))
-                <a href="{{ route('aset.edit', $aset) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-pen mr-1"></i> Edit</a>
+            @if($canManage)
+                <a href="{{ route($editRoute, $aset) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-pen mr-1"></i> Edit</a>
             @endif
         </div>
     </div>
@@ -21,7 +32,7 @@
             <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                 <div class="relative h-80 bg-slate-100">
                     @if($aset->foto)
-                        <img src="{{ route('aset.foto', $aset) }}" alt="Foto {{ $aset->nama }}" class="h-full w-full object-cover">
+                        <img src="{{ route($fotoRoute, $aset) }}" alt="Foto {{ $aset->nama }}" class="h-full w-full object-cover">
                     @else
                         <div class="flex h-full items-center justify-center text-slate-300"><i class="fa-solid fa-boxes-stacked text-6xl"></i></div>
                     @endif
@@ -30,6 +41,7 @@
 
                 <div class="p-6 sm:p-8">
                     <span class="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">{{ $aset->kategori_label }}</span>
+                    <span class="ml-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">{{ $aset->scope_label }}</span>
                     <h1 class="mt-4 text-2xl font-black text-slate-900 sm:text-3xl">{{ $aset->nama }}</h1>
                     <p class="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">{{ $aset->deskripsi ?: 'Belum ada deskripsi aset.' }}</p>
 
@@ -38,6 +50,7 @@
                         <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Kondisi</dt><dd class="mt-1 font-bold text-slate-800">{{ $aset->kondisi_label }}</dd></div>
                         <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Nilai perkiraan</dt><dd class="mt-1 font-bold text-slate-800">{{ $aset->nilai_perkiraan ? 'Rp '.number_format($aset->nilai_perkiraan, 0, ',', '.') : '-' }}</dd></div>
                         <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal pengadaan</dt><dd class="mt-1 font-bold text-slate-800">{{ $aset->tanggal_pengadaan?->translatedFormat('d F Y') ?: '-' }}</dd></div>
+                        <div class="rounded-2xl bg-slate-50 p-4"><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Pemilik</dt><dd class="mt-1 font-bold text-slate-800">{{ $aset->owner_name }}</dd></div>
                         <div class="rounded-2xl bg-slate-50 p-4 sm:col-span-2"><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Lokasi penyimpanan</dt><dd class="mt-1 font-bold text-slate-800">{{ $aset->lokasi_penyimpanan ?: '-' }}</dd></div>
                     </dl>
                 </div>
@@ -72,14 +85,14 @@
                 <h2 class="font-bold text-emerald-950">Status Aset</h2>
                 <p class="mt-3 text-3xl font-black text-emerald-800">{{ $aset->jumlah_tersedia }}</p>
                 <p class="text-sm font-semibold text-emerald-700">unit tersedia dari {{ $aset->jumlah_total }}</p>
-                <p class="mt-4 text-xs leading-relaxed text-emerald-700">Aset hanya dapat dipinjam warga RT yang sama dan tidak boleh bentrok jadwal.</p>
+                <p class="mt-4 text-xs leading-relaxed text-emerald-700">{{ $isRw ? 'Aset RW dapat dipinjam warga lintas RT dalam RW yang sama dan tidak boleh bentrok jadwal.' : 'Aset hanya dapat dipinjam warga RT yang sama dan tidak boleh bentrok jadwal.' }}</p>
             </section>
 
-            @if(auth()->user()->hasPermission('manage-aset'))
+            @if($canManage)
                 <section class="rounded-3xl border border-red-200 bg-white p-6 shadow-sm">
                     <h2 class="font-bold text-red-900">Hapus Aset</h2>
                     <p class="mt-1 text-xs text-red-600">Aset tidak bisa dihapus jika masih ada peminjaman aktif.</p>
-                    <form method="POST" action="{{ route('aset.destroy', $aset) }}" class="mt-4" onsubmit="return confirm('Hapus aset ini?')">
+                    <form method="POST" action="{{ route($destroyRoute, $aset) }}" class="mt-4" onsubmit="return confirm('Hapus aset ini?')">
                         @csrf
                         @method('DELETE')
                         <button class="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white hover:bg-red-700">Hapus Aset</button>
@@ -91,7 +104,7 @@
                 <h2 class="font-bold text-slate-900">Riwayat Peminjaman</h2>
                 <div class="mt-4 space-y-3">
                     @forelse($riwayat->whereIn('status', ['dikembalikan', 'ditolak']) as $peminjaman)
-                        <a href="{{ route('peminjaman-aset.show', $peminjaman) }}" class="block rounded-2xl border border-slate-100 bg-slate-50 p-4 hover:bg-slate-100">
+                        <a href="{{ route($peminjamanShowRoute, $peminjaman) }}" class="block rounded-2xl border border-slate-100 bg-slate-50 p-4 hover:bg-slate-100">
                             <div class="flex items-center justify-between gap-3">
                                 <p class="truncate text-sm font-bold text-slate-800">{{ $peminjaman->pemohon->name }}</p>
                                 <span class="shrink-0 rounded-full border px-2 py-1 text-[10px] font-bold {{ $peminjaman->status_color }}">{{ $peminjaman->status_label }}</span>

@@ -3,22 +3,29 @@
 @section('title', 'Peminjaman Aset')
 
 @section('content')
+@php
+    $isRw = ($scope ?? 'rt') === 'rw';
+    $indexRoute = $isRw ? 'peminjaman-aset-rw.index' : 'peminjaman-aset.index';
+    $createRoute = $isRw ? 'peminjaman-aset-rw.create' : 'peminjaman-aset.create';
+    $showRoute = $isRw ? 'peminjaman-aset-rw.show' : 'peminjaman-aset.show';
+    $canPinjam = auth()->user()->hasPermission($isRw ? 'pinjam-aset-rw' : 'pinjam-aset');
+@endphp
 <div class="mx-auto max-w-7xl space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <p class="text-sm font-semibold text-emerald-700">Pakai aset RT dengan tertib</p>
-            <h1 class="text-2xl font-black text-slate-900">Peminjaman Aset</h1>
-            <p class="mt-1 text-sm text-slate-500">{{ $canManage ? 'Pantau dan proses peminjaman aset RT.' : 'Lihat riwayat peminjaman aset Anda.' }}</p>
+            <p class="text-sm font-semibold text-emerald-700">{{ $isRw ? 'Pakai fasilitas RW dengan tertib' : 'Pakai aset RT dengan tertib' }}</p>
+            <h1 class="text-2xl font-black text-slate-900">Peminjaman Aset {{ $isRw ? 'RW' : 'RT' }}</h1>
+            <p class="mt-1 text-sm text-slate-500">{{ $canManage ? ($isRw ? 'Pantau dan proses peminjaman aset RW lintas RT.' : 'Pantau dan proses peminjaman aset RT.') : 'Lihat riwayat peminjaman aset Anda.' }}</p>
         </div>
 
-        @if(auth()->user()->hasPermission('pinjam-aset'))
-            <a href="{{ route('peminjaman-aset.create') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800">
+        @if($canPinjam)
+            <a href="{{ route($createRoute) }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800">
                 <i class="fa-solid fa-plus"></i> Ajukan Peminjaman
             </a>
         @endif
     </div>
 
-    <form method="GET" action="{{ route('peminjaman-aset.index') }}" class="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="GET" action="{{ route($indexRoute) }}" class="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <button type="submit" name="status" value="" class="rounded-xl px-4 py-2 text-xs font-bold transition {{ $status === '' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
             Semua
         </button>
@@ -51,7 +58,7 @@
                             <td class="px-5 py-4 text-slate-600">{{ $peminjaman->durasi_hari }} hari</td>
                             <td class="px-5 py-4"><span class="rounded-full border px-3 py-1 text-xs font-bold {{ $peminjaman->status_color }}">{{ $peminjaman->status_label }}</span></td>
                             <td class="px-5 py-4 text-right">
-                                <a href="{{ route('peminjaman-aset.show', $peminjaman) }}" class="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100">Detail</a>
+                                <a href="{{ route($showRoute, $peminjaman) }}" class="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100">Detail</a>
                             </td>
                         </tr>
                     @empty

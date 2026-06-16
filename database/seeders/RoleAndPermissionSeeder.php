@@ -33,6 +33,9 @@ class RoleAndPermissionSeeder extends Seeder
             'manage-aset' => 'Mengelola inventaris aset RT dan RW',
             'view-aset' => 'Melihat daftar aset',
             'pinjam-aset' => 'Mengajukan peminjaman aset',
+            'manage-aset-rw' => 'Mengelola inventaris aset milik RW',
+            'view-aset-rw' => 'Melihat daftar aset milik RW',
+            'pinjam-aset-rw' => 'Mengajukan peminjaman aset milik RW',
         ];
 
         $permissionModels = collect($permissions)->mapWithKeys(function (string $description, string $name) {
@@ -68,6 +71,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-aset',
                     'view-aset',
                     'pinjam-aset',
+                    'manage-aset-rw',
+                    'view-aset-rw',
+                    'pinjam-aset-rw',
                 ],
             ],
             'sekretaris_rw' => [
@@ -85,6 +91,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-aset',
                     'view-aset',
                     'pinjam-aset',
+                    'manage-aset-rw',
+                    'view-aset-rw',
+                    'pinjam-aset-rw',
                 ],
             ],
             'bendahara_rw' => [
@@ -96,6 +105,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'export-finance',
                     'view-kegiatan',
                     'view-aset',
+                    'view-aset-rw',
+                    'pinjam-aset-rw',
                 ],
             ],
             'ketua_rt' => [
@@ -113,6 +124,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-aset',
                     'view-aset',
                     'pinjam-aset',
+                    'view-aset-rw',
+                    'pinjam-aset-rw',
                 ],
             ],
             'bendahara_rt' => [
@@ -126,6 +139,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'submit-pengaduan',
                     'view-kegiatan',
                     'view-aset',
+                    'view-aset-rw',
+                    'pinjam-aset-rw',
                 ],
             ],
             'sekretaris_rt' => [
@@ -143,6 +158,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-aset',
                     'view-aset',
                     'pinjam-aset',
+                    'view-aset-rw',
+                    'pinjam-aset-rw',
                 ],
             ],
             'bendahara' => [
@@ -156,6 +173,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'submit-pengaduan',
                     'view-kegiatan',
                     'view-aset',
+                    'view-aset-rw',
+                    'pinjam-aset-rw',
                 ],
             ],
             'sekretaris' => [
@@ -173,6 +192,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-aset',
                     'view-aset',
                     'pinjam-aset',
+                    'view-aset-rw',
+                    'pinjam-aset-rw',
                 ],
             ],
             'warga' => [
@@ -187,6 +208,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-kegiatan',
                     'view-aset',
                     'pinjam-aset',
+                    'view-aset-rw',
+                    'pinjam-aset-rw',
                 ],
             ],
         ];

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Aset;
 use App\Models\PeminjamanAset;
+use App\Models\Rw;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -15,12 +16,25 @@ class PeminjamanAsetController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = PeminjamanAset::with(['aset.rt', 'pemohon', 'processor'])
+        $scope = $this->resolveScope($request);
+        $this->authorizePinjamScope($scope, $user);
+
+        $query = PeminjamanAset::with(['aset.rt', 'aset.rw', 'pemohon', 'processor'])
+            ->whereHas('aset', fn ($query) => $query->where('scope', $scope))
             ->latest();
 
-        if ($user->hasPermission('manage-aset')) {
-            $rtId = $this->resolveRtId($user);
-            $query->whereHas('aset', fn ($query) => $query->where('rt_id', $rtId));
+        if ($this->canManageScope($scope, $user)) {
+            $rwId = $this->resolveRwId($user);
+            $rtId = $scope === 'rt' ? $this->resolveRtId($user) : null;
+
+            $query->whereHas('aset', function ($query) use ($scope, $rwId, $rtId) {
+                if ($scope === 'rw') {
+                    $query->where('rw_id', $rwId);
+                    return;
+                }
+
+                $query->where('rt_id', $rtId);
+            });
         } else {
             $query->where('pemohon_id', $user->id);
         }
@@ -33,20 +47,26 @@ class PeminjamanAsetController extends Controller
         return view('peminjaman_aset.index', [
             'peminjamans' => $query->paginate(15)->withQueryString(),
             'status' => $status,
+            'scope' => $scope,
             'statuses' => $this->statuses(),
-            'canManage' => $user->hasPermission('manage-aset'),
+            'canManage' => $this->canManageScope($scope, $user),
         ]);
     }
 
     public function create(Request $request)
     {
-        abort_unless($request->user()->hasPermission('pinjam-aset'), 403);
+        $scope = $this->resolveScope($request);
+        $this->authorizePinjamScope($scope, $request->user());
 
-        $rtId = $this->resolveRtId($request->user());
-        $asets = Aset::where('rt_id', $rtId)
+        $asets = Aset::where('scope', $scope)
             ->where('is_active', true)
             ->where('kondisi', '!=', 'rusak_berat')
             ->orderBy('nama')
+            ->when(
+                $scope === 'rw',
+                fn ($query) => $query->where('rw_id', $this->resolveRwId($request->user())),
+                fn ($query) => $query->where('rt_id', $this->resolveRtId($request->user()))
+            )
             ->get();
 
         $asetTerpilih = null;
@@ -54,15 +74,14 @@ class PeminjamanAsetController extends Controller
             $asetTerpilih = $asets->firstWhere('id', (int) $request->integer('aset_id'));
         }
 
-        return view('peminjaman_aset.create', compact('asets', 'asetTerpilih'));
+        return view('peminjaman_aset.create', compact('asets', 'asetTerpilih', 'scope'));
     }
 
     public function store(Request $request)
     {
-        abort_unless($request->user()->hasPermission('pinjam-aset'), 403);
-
         $validated = $request->validate([
             'aset_id' => ['required', 'integer', 'exists:asets,id'],
+            'scope' => ['nullable', 'in:rt,rw'],
             'tanggal_mulai' => ['required', 'date', 'after_or_equal:today'],
             'tanggal_selesai' => ['required', 'date', 'after_or_equal:tanggal_mulai'],
             'keperluan' => ['required', 'string', 'min:5', 'max:255'],
@@ -71,7 +90,7 @@ class PeminjamanAsetController extends Controller
         ]);
 
         $aset = Aset::findOrFail($validated['aset_id']);
-        $this->authorizeSameRt($aset, $request->user());
+        $this->authorizeBorrowAset($aset, $request->user());
         $this->ensureAsetCanBeBorrowed($aset);
         $this->ensureAvailable($aset, $validated);
 
@@ -92,7 +111,7 @@ class PeminjamanAsetController extends Controller
 
     public function show(PeminjamanAset $peminjamanAset)
     {
-        $peminjamanAset->load(['aset.rt', 'pemohon', 'processor']);
+        $peminjamanAset->load(['aset.rt', 'aset.rw', 'pemohon', 'processor']);
         $this->authorizeView($peminjamanAset, Auth::user());
 
         return view('peminjaman_aset.show', compact('peminjamanAset'));
@@ -176,7 +195,7 @@ class PeminjamanAsetController extends Controller
             return;
         }
 
-        if ($user->hasPermission('manage-aset')) {
+        if ($this->canManageScope($peminjamanAset->aset->scope, $user)) {
             $this->authorizeManage($peminjamanAset, $user);
             return;
         }
@@ -186,18 +205,63 @@ class PeminjamanAsetController extends Controller
 
     private function authorizeManage(PeminjamanAset $peminjamanAset, User $user): void
     {
-        abort_unless($user->hasPermission('manage-aset'), 403);
-
         if (! $peminjamanAset->relationLoaded('aset')) {
             $peminjamanAset->load('aset');
         }
 
-        $this->authorizeSameRt($peminjamanAset->aset, $user);
+        $aset = $peminjamanAset->aset;
+        abort_unless($this->canManageScope($aset->scope, $user), 403);
+
+        if ($user->isGlobalOperator()) {
+            return;
+        }
+
+        if ($aset->isRwAsset()) {
+            abort_unless($aset->rw_id === $this->resolveRwId($user), 403);
+            return;
+        }
+
+        abort_unless($aset->rt_id === $this->resolveRtId($user), 403);
     }
 
-    private function authorizeSameRt(Aset $aset, User $user): void
+    private function authorizeBorrowAset(Aset $aset, User $user): void
     {
+        $this->authorizePinjamScope($aset->scope, $user);
+
+        if ($user->isGlobalOperator()) {
+            return;
+        }
+
+        if ($aset->isRwAsset()) {
+            abort_unless($aset->rw_id === $this->resolveRwId($user), 403);
+            return;
+        }
+
         abort_unless($aset->rt_id === $this->resolveRtId($user), 403);
+    }
+
+    private function canManageScope(string $scope, User $user): bool
+    {
+        return $scope === 'rw'
+            ? $user->hasPermission('manage-aset-rw')
+            : $user->hasPermission('manage-aset');
+    }
+
+    private function authorizePinjamScope(string $scope, User $user): void
+    {
+        abort_unless(
+            $scope === 'rw'
+                ? $user->hasPermission('pinjam-aset-rw')
+                : $user->hasPermission('pinjam-aset'),
+            403
+        );
+    }
+
+    private function resolveScope(Request $request): string
+    {
+        $scope = $request->route('scope') ?: $request->string('scope')->toString();
+
+        return in_array($scope, ['rt', 'rw'], true) ? $scope : 'rt';
     }
 
     private function resolveRtId(User $user): int
@@ -205,6 +269,19 @@ class PeminjamanAsetController extends Controller
         abort_unless($user->rt_id, 403, 'Akun belum terhubung ke RT.');
 
         return (int) $user->rt_id;
+    }
+
+    private function resolveRwId(User $user): int
+    {
+        $rwId = $user->rt()->value('rw_id');
+
+        if (! $rwId && ($user->isRwOfficial() || $user->isGlobalOperator())) {
+            $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
+        }
+
+        abort_unless($rwId, 403, 'Akun belum terhubung ke RW.');
+
+        return (int) $rwId;
     }
 
     private function ensureAsetCanBeBorrowed(Aset $aset): void

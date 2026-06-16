@@ -143,11 +143,23 @@ Route::middleware(['auth'])->group(function () {
             ->name('aset.index');
     });
 
+    Route::middleware('permission:view-aset-rw')->group(function () {
+        Route::get('/aset-rw', [AsetController::class, 'index'])
+            ->defaults('scope', 'rw')
+            ->name('aset-rw.index');
+    });
+
     Route::middleware('permission:manage-aset')->group(function () {
         Route::get('/aset/create', [AsetController::class, 'create'])
             ->name('aset.create');
         Route::post('/aset', [AsetController::class, 'store'])
             ->name('aset.store');
+    });
+
+    Route::middleware('permission:manage-aset-rw')->group(function () {
+        Route::get('/aset-rw/create', [AsetController::class, 'create'])
+            ->defaults('scope', 'rw')
+            ->name('aset-rw.create');
     });
 
     Route::middleware('permission:view-aset')->group(function () {
@@ -166,6 +178,25 @@ Route::middleware(['auth'])->group(function () {
             ->name('aset.destroy');
     });
 
+    Route::middleware('permission:view-aset-rw')->group(function () {
+        Route::get('/aset-rw/{aset}', [AsetController::class, 'show'])
+            ->name('aset-rw.show');
+        Route::get('/aset-rw/{aset}/foto', [AsetController::class, 'foto'])
+            ->name('aset-rw.foto');
+    });
+
+    Route::middleware('permission:manage-aset-rw')->group(function () {
+        Route::post('/aset-rw', [AsetController::class, 'store'])
+            ->defaults('scope', 'rw')
+            ->name('aset-rw.store');
+        Route::get('/aset-rw/{aset}/edit', [AsetController::class, 'edit'])
+            ->name('aset-rw.edit');
+        Route::put('/aset-rw/{aset}', [AsetController::class, 'update'])
+            ->name('aset-rw.update');
+        Route::delete('/aset-rw/{aset}', [AsetController::class, 'destroy'])
+            ->name('aset-rw.destroy');
+    });
+
     Route::middleware('permission:pinjam-aset')->group(function () {
         Route::get('/peminjaman-aset', [PeminjamanAsetController::class, 'index'])
             ->name('peminjaman-aset.index');
@@ -177,6 +208,20 @@ Route::middleware(['auth'])->group(function () {
             ->name('peminjaman-aset.show');
     });
 
+    Route::middleware('permission:pinjam-aset-rw')->group(function () {
+        Route::get('/peminjaman-aset-rw', [PeminjamanAsetController::class, 'index'])
+            ->defaults('scope', 'rw')
+            ->name('peminjaman-aset-rw.index');
+        Route::get('/peminjaman-aset-rw/create', [PeminjamanAsetController::class, 'create'])
+            ->defaults('scope', 'rw')
+            ->name('peminjaman-aset-rw.create');
+        Route::post('/peminjaman-aset-rw', [PeminjamanAsetController::class, 'store'])
+            ->defaults('scope', 'rw')
+            ->name('peminjaman-aset-rw.store');
+        Route::get('/peminjaman-aset-rw/{peminjamanAset}', [PeminjamanAsetController::class, 'show'])
+            ->name('peminjaman-aset-rw.show');
+    });
+
     Route::middleware('permission:manage-aset')->group(function () {
         Route::patch('/peminjaman-aset/{peminjamanAset}/setujui', [PeminjamanAsetController::class, 'setujui'])
             ->name('peminjaman-aset.setujui');
@@ -186,6 +231,17 @@ Route::middleware(['auth'])->group(function () {
             ->name('peminjaman-aset.dipinjam');
         Route::patch('/peminjaman-aset/{peminjamanAset}/kembali', [PeminjamanAsetController::class, 'konfirmasiKembali'])
             ->name('peminjaman-aset.kembali');
+    });
+
+    Route::middleware('permission:manage-aset-rw')->group(function () {
+        Route::patch('/peminjaman-aset-rw/{peminjamanAset}/setujui', [PeminjamanAsetController::class, 'setujui'])
+            ->name('peminjaman-aset-rw.setujui');
+        Route::patch('/peminjaman-aset-rw/{peminjamanAset}/tolak', [PeminjamanAsetController::class, 'tolak'])
+            ->name('peminjaman-aset-rw.tolak');
+        Route::patch('/peminjaman-aset-rw/{peminjamanAset}/dipinjam', [PeminjamanAsetController::class, 'konfirmasiDipinjam'])
+            ->name('peminjaman-aset-rw.dipinjam');
+        Route::patch('/peminjaman-aset-rw/{peminjamanAset}/kembali', [PeminjamanAsetController::class, 'konfirmasiKembali'])
+            ->name('peminjaman-aset-rw.kembali');
     });
 });
 

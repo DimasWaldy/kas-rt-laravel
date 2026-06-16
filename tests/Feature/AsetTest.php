@@ -41,6 +41,11 @@ beforeEach(function () {
         'rt_id' => $this->rtSatu->id,
     ]);
 
+    $this->ketuaRw = User::factory()->create([
+        'role_id' => $roleId('ketua_rw'),
+        'rt_id' => null,
+    ]);
+
     $this->warga = User::factory()->create([
         'role_id' => $roleId('warga'),
         'rt_id' => $this->rtSatu->id,
@@ -54,6 +59,8 @@ beforeEach(function () {
     $this->buatAset = function (array $attributes = []): Aset {
         return Aset::create(array_merge([
             'rt_id' => $this->rtSatu->id,
+            'rw_id' => $this->rw->id,
+            'scope' => 'rt',
             'nama' => 'Tenda Peleton',
             'kategori' => 'tenda_dan_terpal',
             'deskripsi' => 'Tenda untuk kegiatan warga.',
@@ -62,6 +69,23 @@ beforeEach(function () {
             'nilai_perkiraan' => 2500000,
             'tanggal_pengadaan' => now()->subMonth()->toDateString(),
             'lokasi_penyimpanan' => 'Gudang RT',
+            'is_active' => true,
+        ], $attributes));
+    };
+
+    $this->buatAsetRw = function (array $attributes = []): Aset {
+        return Aset::create(array_merge([
+            'rt_id' => null,
+            'rw_id' => $this->rw->id,
+            'scope' => 'rw',
+            'nama' => 'Balai RW',
+            'kategori' => 'gedung',
+            'deskripsi' => 'Balai serbaguna milik RW.',
+            'jumlah_total' => 1,
+            'kondisi' => 'baik',
+            'nilai_perkiraan' => 150000000,
+            'tanggal_pengadaan' => now()->subMonths(6)->toDateString(),
+            'lokasi_penyimpanan' => 'Kompleks Balai RW',
             'is_active' => true,
         ], $attributes));
     };
@@ -275,4 +299,111 @@ test('foto aset diakses via controller bukan url publik', function () {
         ->get(route('aset.foto', $aset))
         ->assertOk()
         ->assertHeader('content-type', 'image/jpeg');
+});
+
+test('pengurus rw dapat menambah aset rw', function () {
+    Storage::fake('local');
+
+    $response = $this->actingAs($this->ketuaRw)
+        ->post(route('aset-rw.store'), [
+            'scope' => 'rw',
+            'nama' => 'Lapangan RW',
+            'kategori' => 'lapangan',
+            'deskripsi' => 'Lapangan bersama untuk kegiatan warga lintas RT.',
+            'jumlah_total' => 1,
+            'kondisi' => 'baik',
+            'nilai_perkiraan' => 50000000,
+            'tanggal_pengadaan' => now()->toDateString(),
+            'lokasi_penyimpanan' => 'Area RW',
+            'foto' => UploadedFile::fake()->image('lapangan-rw.jpg', 800, 600),
+        ]);
+
+    $aset = Aset::where('scope', 'rw')->firstOrFail();
+
+    $response->assertRedirect(route('aset.show', $aset));
+    $this->assertDatabaseHas('asets', [
+        'id' => $aset->id,
+        'scope' => 'rw',
+        'rw_id' => $this->rw->id,
+        'rt_id' => null,
+        'nama' => 'Lapangan RW',
+    ]);
+    Storage::disk('local')->assertExists($aset->foto);
+});
+
+test('warga lintas rt dapat melihat dan mengajukan peminjaman aset rw', function () {
+    $asetRw = ($this->buatAsetRw)();
+
+    $this->actingAs($this->wargaRtDua)
+        ->get(route('aset-rw.index'))
+        ->assertOk()
+        ->assertSee($asetRw->nama);
+
+    $response = $this->actingAs($this->wargaRtDua)
+        ->post(route('peminjaman-aset-rw.store'), [
+            'scope' => 'rw',
+            'aset_id' => $asetRw->id,
+            'tanggal_mulai' => now()->addDays(3)->toDateString(),
+            'tanggal_selesai' => now()->addDays(3)->toDateString(),
+            'keperluan' => 'Rapat koordinasi warga RT 02',
+            'jumlah_dipinjam' => 1,
+        ]);
+
+    $peminjaman = PeminjamanAset::firstOrFail();
+
+    $response->assertRedirect(route('peminjaman-aset.show', $peminjaman));
+    $this->assertDatabaseHas('peminjaman_asets', [
+        'id' => $peminjaman->id,
+        'aset_id' => $asetRw->id,
+        'pemohon_id' => $this->wargaRtDua->id,
+        'status' => 'diajukan',
+    ]);
+});
+
+test('pengurus rw memproses peminjaman aset rw dan pengurus rt tidak bisa approve', function () {
+    $asetRw = ($this->buatAsetRw)();
+    $peminjaman = ($this->buatPeminjaman)($asetRw, [
+        'pemohon_id' => $this->wargaRtDua->id,
+        'tanggal_mulai' => now()->addDays(5)->toDateString(),
+        'tanggal_selesai' => now()->addDays(5)->toDateString(),
+    ]);
+
+    $this->actingAs($this->pengurus)
+        ->patch(route('peminjaman-aset-rw.setujui', $peminjaman))
+        ->assertForbidden();
+
+    $this->actingAs($this->ketuaRw)
+        ->patch(route('peminjaman-aset-rw.setujui', $peminjaman), [
+            'catatan_pengurus' => 'Disetujui untuk agenda lintas RT.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($peminjaman->fresh()->status)->toBe('disetujui')
+        ->and($peminjaman->fresh()->diproses_oleh)->toBe($this->ketuaRw->id);
+});
+
+test('aset rw menolak konflik jadwal lintas rt', function () {
+    $asetRw = ($this->buatAsetRw)([
+        'jumlah_total' => 2,
+    ]);
+    ($this->buatPeminjaman)($asetRw, [
+        'pemohon_id' => $this->warga->id,
+        'tanggal_mulai' => now()->addDays(7)->toDateString(),
+        'tanggal_selesai' => now()->addDays(8)->toDateString(),
+        'status' => 'disetujui',
+    ]);
+
+    $this->actingAs($this->wargaRtDua)
+        ->post(route('peminjaman-aset-rw.store'), [
+            'scope' => 'rw',
+            'aset_id' => $asetRw->id,
+            'tanggal_mulai' => now()->addDays(8)->toDateString(),
+            'tanggal_selesai' => now()->addDays(9)->toDateString(),
+            'keperluan' => 'Agenda RT 02 di balai RW',
+            'jumlah_dipinjam' => 1,
+        ])
+        ->assertSessionHasErrors('tanggal_mulai');
+
+    expect(PeminjamanAset::count())->toBe(1);
 });
