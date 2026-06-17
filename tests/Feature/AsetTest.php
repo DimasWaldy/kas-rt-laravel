@@ -157,7 +157,8 @@ test('warga dapat melihat aset dan mengajukan peminjaman', function () {
 
     $peminjaman = PeminjamanAset::firstOrFail();
 
-    $response->assertRedirect(route('peminjaman-aset.show', $peminjaman));
+    $response->assertRedirect(route('peminjaman-aset.index'));
+    $response->assertSessionHas('success', 'Peminjaman diajukan.');
     $this->assertDatabaseHas('peminjaman_asets', [
         'id' => $peminjaman->id,
         'aset_id' => $aset->id,
@@ -351,7 +352,8 @@ test('warga lintas rt dapat melihat dan mengajukan peminjaman aset rw', function
 
     $peminjaman = PeminjamanAset::firstOrFail();
 
-    $response->assertRedirect(route('peminjaman-aset.show', $peminjaman));
+    $response->assertRedirect(route('peminjaman-aset-rw.index'));
+    $response->assertSessionHas('success', 'Peminjaman diajukan.');
     $this->assertDatabaseHas('peminjaman_asets', [
         'id' => $peminjaman->id,
         'aset_id' => $asetRw->id,

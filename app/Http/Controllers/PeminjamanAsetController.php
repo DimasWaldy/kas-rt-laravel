@@ -94,7 +94,7 @@ class PeminjamanAsetController extends Controller
         $this->ensureAsetCanBeBorrowed($aset);
         $this->ensureAvailable($aset, $validated);
 
-        $peminjamanAset = PeminjamanAset::create([
+        PeminjamanAset::create([
             'aset_id' => $aset->id,
             'pemohon_id' => Auth::id(),
             'tanggal_mulai' => $validated['tanggal_mulai'],
@@ -105,8 +105,12 @@ class PeminjamanAsetController extends Controller
             'status' => 'diajukan',
         ]);
 
-        return redirect()->route('peminjaman-aset.show', $peminjamanAset)
-            ->with('success', 'Pengajuan peminjaman aset berhasil dikirim ke pengurus RT.');
+        $indexRoute = $aset->isRwAsset()
+            ? 'peminjaman-aset-rw.index'
+            : 'peminjaman-aset.index';
+
+        return redirect()->route($indexRoute)
+            ->with('success', 'Peminjaman diajukan.');
     }
 
     public function show(PeminjamanAset $peminjamanAset)
