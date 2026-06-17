@@ -225,7 +225,25 @@
         ->filter(fn($group) => count($group['items']) > 0)
         ->values();
 
-    $unreadNotifications = $user->canManageFinance() ? $user->unreadNotifications : collect();
+    $unreadNotifications = $user->unreadNotifications;
+    $visibleUnreadNotifications = $unreadNotifications->filter(function ($notification) use ($user) {
+        $type = class_basename($notification->type);
+        $url = $notification->data['url'] ?? '';
+        $isPeminjaman = str_starts_with($type, 'Peminjaman') || str_contains($url, 'peminjaman-aset');
+        $isTagihan = str_contains($type, 'Tagihan') || str_contains($url, 'tagihan') || array_key_exists('tagihan_id', $notification->data);
+
+        if ($isPeminjaman && in_array($user->role_name, ['bendahara', 'bendahara_rt', 'bendahara_rw'], true)) {
+            return false;
+        }
+
+        if ($isTagihan && ! $user->canManageFinance()) {
+            return false;
+        }
+
+        return true;
+    });
+    $notificationItems = $visibleUnreadNotifications->take(5);
+    $visibleUnreadCount = $visibleUnreadNotifications->count();
 @endphp
 <body class="bg-gray-50 font-sans text-slate-900" x-data="{ mobileMenuOpen: false }" x-on:keydown.escape.window="mobileMenuOpen = false">
 
@@ -306,16 +324,59 @@
                     <h1 class="truncate text-base font-bold text-slate-800">@yield('title', 'Dashboard')</h1>
                 </div>
 
-                @if($user->canManageFinance())
-                    <a href="{{ route('tagihan.admin') }}" class="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700" aria-label="Notifikasi pembayaran">
+                <div class="relative" x-data="{ open: false }">
+                    <button type="button" x-on:click="open = !open" class="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700" aria-label="Notifikasi">
                         <i class="fa-solid fa-bell"></i>
-                        @if($unreadNotifications->count())
+                        @if($visibleUnreadCount)
                             <span class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-bold text-white">
-                                {{ $unreadNotifications->count() }}
+                                {{ $visibleUnreadCount }}
                             </span>
                         @endif
-                    </a>
-                @endif
+                    </button>
+
+                    <div x-cloak x-show="open" x-transition x-on:click.outside="open = false" class="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                            <p class="text-sm font-black text-slate-800">Notifikasi</p>
+                            @if($visibleUnreadCount)
+                                <form method="POST" action="{{ route('notifications.read-all') }}">
+                                    @csrf
+                                    <button class="text-xs font-bold text-emerald-700 hover:text-emerald-900">Tandai semua dibaca</button>
+                                </form>
+                            @endif
+                        </div>
+                        <div class="max-h-96 overflow-y-auto">
+                            @forelse($notificationItems as $notification)
+                                @php
+                                    $type = class_basename($notification->type);
+                                    [$notifIcon, $notifColor] = match ($type) {
+                                        'PeminjamanDiajukan' => ['fa-hand-holding-box', 'bg-green-50 text-green-700'],
+                                        'PeminjamanDisetujui' => ['fa-circle-check', 'bg-emerald-50 text-emerald-700'],
+                                        'PeminjamanDitolak' => ['fa-circle-xmark', 'bg-red-50 text-red-700'],
+                                        default => ['fa-money-bill', 'bg-blue-50 text-blue-700'],
+                                    };
+                                    $notifUrl = $notification->data['url'] ?? null;
+                                @endphp
+                                <div class="flex gap-3 border-b border-slate-100 px-4 py-3 last:border-0">
+                                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $notifColor }}"><i class="fa-solid {{ $notifIcon }}"></i></span>
+                                    <div class="min-w-0 flex-1">
+                                        @if($notifUrl)
+                                            <a href="{{ $notifUrl }}" class="block text-sm font-bold text-slate-800 hover:text-emerald-700">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</a>
+                                        @else
+                                            <p class="text-sm font-bold text-slate-800">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</p>
+                                        @endif
+                                        <p class="mt-1 text-xs text-slate-400">{{ $notification->created_at->diffForHumans() }}</p>
+                                        <form method="POST" action="{{ route('notifications.read', $notification->id) }}" class="mt-2">
+                                            @csrf
+                                            <button class="text-xs font-bold text-slate-500 hover:text-emerald-700">Tandai dibaca</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @empty
+                                <p class="px-4 py-8 text-center text-sm text-slate-500">Belum ada notifikasi baru.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -327,16 +388,59 @@
             </div>
 
             <div class="flex items-center gap-4">
-                @if($user->canManageFinance())
-                    <a href="{{ route('tagihan.admin') }}" class="relative flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100" aria-label="Notifikasi pembayaran">
+                <div class="relative" x-data="{ open: false }">
+                    <button type="button" x-on:click="open = !open" class="relative flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100" aria-label="Notifikasi">
                         <i class="fa-solid fa-bell"></i>
-                        @if($unreadNotifications->count())
+                        @if($visibleUnreadCount)
                             <span class="absolute right-0 top-0 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 text-[10px] font-bold text-white">
-                                {{ $unreadNotifications->count() }}
+                                {{ $visibleUnreadCount }}
                             </span>
                         @endif
-                    </a>
-                @endif
+                    </button>
+
+                    <div x-cloak x-show="open" x-transition x-on:click.outside="open = false" class="absolute right-0 top-14 z-50 w-96 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                            <p class="text-sm font-black text-slate-800">Notifikasi</p>
+                            @if($visibleUnreadCount)
+                                <form method="POST" action="{{ route('notifications.read-all') }}">
+                                    @csrf
+                                    <button class="text-xs font-bold text-emerald-700 hover:text-emerald-900">Tandai semua dibaca</button>
+                                </form>
+                            @endif
+                        </div>
+                        <div class="max-h-96 overflow-y-auto">
+                            @forelse($notificationItems as $notification)
+                                @php
+                                    $type = class_basename($notification->type);
+                                    [$notifIcon, $notifColor] = match ($type) {
+                                        'PeminjamanDiajukan' => ['fa-hand-holding-box', 'bg-green-50 text-green-700'],
+                                        'PeminjamanDisetujui' => ['fa-circle-check', 'bg-emerald-50 text-emerald-700'],
+                                        'PeminjamanDitolak' => ['fa-circle-xmark', 'bg-red-50 text-red-700'],
+                                        default => ['fa-money-bill', 'bg-blue-50 text-blue-700'],
+                                    };
+                                    $notifUrl = $notification->data['url'] ?? null;
+                                @endphp
+                                <div class="flex gap-3 border-b border-slate-100 px-4 py-3 last:border-0">
+                                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $notifColor }}"><i class="fa-solid {{ $notifIcon }}"></i></span>
+                                    <div class="min-w-0 flex-1">
+                                        @if($notifUrl)
+                                            <a href="{{ $notifUrl }}" class="block text-sm font-bold text-slate-800 hover:text-emerald-700">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</a>
+                                        @else
+                                            <p class="text-sm font-bold text-slate-800">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</p>
+                                        @endif
+                                        <p class="mt-1 text-xs text-slate-400">{{ $notification->created_at->diffForHumans() }}</p>
+                                        <form method="POST" action="{{ route('notifications.read', $notification->id) }}" class="mt-2">
+                                            @csrf
+                                            <button class="text-xs font-bold text-slate-500 hover:text-emerald-700">Tandai dibaca</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @empty
+                                <p class="px-4 py-8 text-center text-sm text-slate-500">Belum ada notifikasi baru.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
 
                 <div class="flex items-center gap-3 rounded-full bg-emerald-50 px-3 py-1.5">
                     <span class="text-sm font-semibold text-emerald-800">{{ $roleLabel }}</span>
@@ -352,10 +456,10 @@
             </div>
         </header>
 
-        @if($user->canManageFinance() && $unreadNotifications->count())
+        @if($user->canManageFinance() && $visibleUnreadCount)
             <div class="border-b border-amber-100 bg-amber-50 px-4 py-3 text-amber-800 md:px-8">
                 <p class="text-sm font-semibold">
-                    Ada {{ $unreadNotifications->count() }} notifikasi pembayaran baru.
+                    Ada {{ $visibleUnreadCount }} notifikasi baru.
                     <a href="{{ route('tagihan.admin') }}" class="underline">Klik untuk verifikasi</a>.
                 </p>
             </div>

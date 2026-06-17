@@ -6,9 +6,13 @@ use App\Models\Aset;
 use App\Models\PeminjamanAset;
 use App\Models\Rw;
 use App\Models\User;
+use App\Notifications\PeminjamanDiajukan;
+use App\Notifications\PeminjamanDisetujui;
+use App\Notifications\PeminjamanDitolak;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class PeminjamanAsetController extends Controller
@@ -94,7 +98,7 @@ class PeminjamanAsetController extends Controller
         $this->ensureAsetCanBeBorrowed($aset);
         $this->ensureAvailable($aset, $validated);
 
-        PeminjamanAset::create([
+        $peminjamanAset = PeminjamanAset::create([
             'aset_id' => $aset->id,
             'pemohon_id' => Auth::id(),
             'tanggal_mulai' => $validated['tanggal_mulai'],
@@ -104,6 +108,12 @@ class PeminjamanAsetController extends Controller
             'catatan_pemohon' => $validated['catatan_pemohon'] ?? null,
             'status' => 'diajukan',
         ]);
+
+        $peminjamanAset->load(['aset', 'pemohon']);
+        Notification::send(
+            $this->notificationRecipientsFor($peminjamanAset),
+            new PeminjamanDiajukan($peminjamanAset)
+        );
 
         $indexRoute = $aset->isRwAsset()
             ? 'peminjaman-aset-rw.index'
@@ -145,6 +155,9 @@ class PeminjamanAsetController extends Controller
             'catatan_pengurus' => $validated['catatan_pengurus'] ?? null,
         ]);
 
+        $peminjamanAset->load(['aset', 'pemohon']);
+        $peminjamanAset->pemohon->notify(new PeminjamanDisetujui($peminjamanAset));
+
         return back()->with('success', 'Peminjaman aset berhasil disetujui.');
     }
 
@@ -163,6 +176,9 @@ class PeminjamanAsetController extends Controller
             'tanggal_diproses' => now(),
             'catatan_pengurus' => $validated['catatan_pengurus'],
         ]);
+
+        $peminjamanAset->load(['aset', 'pemohon']);
+        $peminjamanAset->pemohon->notify(new PeminjamanDitolak($peminjamanAset));
 
         return back()->with('success', 'Peminjaman aset berhasil ditolak.');
     }
@@ -205,6 +221,21 @@ class PeminjamanAsetController extends Controller
         }
 
         abort(403);
+    }
+
+    private function notificationRecipientsFor(PeminjamanAset $peminjamanAset)
+    {
+        $peminjamanAset->loadMissing('aset');
+
+        if ($peminjamanAset->aset->isRwAsset()) {
+            return User::whereHas('role.permissions', fn ($query) => $query->where('name', 'manage-aset-rw'))
+                ->whereNull('rt_id')
+                ->get();
+        }
+
+        return User::whereHas('role.permissions', fn ($query) => $query->where('name', 'manage-aset'))
+            ->where('rt_id', $peminjamanAset->aset->rt_id)
+            ->get();
     }
 
     private function authorizeManage(PeminjamanAset $peminjamanAset, User $user): void

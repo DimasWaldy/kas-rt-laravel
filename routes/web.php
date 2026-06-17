@@ -14,6 +14,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\SuratController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -24,6 +25,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::post('/notifications/{id}/read', function (string $id) {
+        Auth::user()->notifications()->findOrFail($id)->markAsRead();
+
+        return back();
+    })->name('notifications.read');
+
+    Route::post('/notifications/read-all', function () {
+        Auth::user()->unreadNotifications->markAsRead();
+
+        return back();
+    })->name('notifications.read-all');
 });
 
 Route::middleware(['auth'])->group(function () {
