@@ -213,6 +213,14 @@
                     'iconClass' => 'text-emerald-600',
                     'visible' => $user->hasPermission('view-kegiatan'),
                 ],
+                [
+                    'label' => 'Bank Sampah',
+                    'route' => 'bank-sampah.index',
+                    'active' => 'bank-sampah*',
+                    'icon' => 'fa-recycle',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('view-bank-sampah'),
+                ],
             ],
         ],
     ];

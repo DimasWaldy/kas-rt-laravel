@@ -3,6 +3,8 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoUtsController;
 use App\Http\Controllers\AsetController;
+use App\Http\Controllers\BankSampahController;
+use App\Http\Controllers\HadiahSampahController;
 use App\Http\Controllers\IuranBulananController;
 use App\Http\Controllers\IuranKhususController;
 use App\Http\Controllers\KegiatanController;
@@ -10,7 +12,9 @@ use App\Http\Controllers\KasKeluarController;
 use App\Http\Controllers\KasMasukController;
 use App\Http\Controllers\LaporanKasController;
 use App\Http\Controllers\PeminjamanAsetController;
+use App\Http\Controllers\PenarikanSampahController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SetoranSampahController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\SuratController;
@@ -149,6 +153,49 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/kegiatan/{kegiatan}/foto', [KegiatanController::class, 'foto'])->name('kegiatan.foto');
         Route::get('/kegiatan/{kegiatan}/dokumentasi', [KegiatanController::class, 'dokumentasi'])->name('kegiatan.dokumentasi');
         Route::post('/kegiatan/{kegiatan}/hadir', [KegiatanController::class, 'konfirmasiHadir'])->name('kegiatan.hadir');
+    });
+
+    Route::middleware('permission:view-bank-sampah')->group(function () {
+        Route::get('/bank-sampah', [BankSampahController::class, 'index'])
+            ->name('bank-sampah.index');
+        Route::get('/bank-sampah/hadiah', [HadiahSampahController::class, 'index'])
+            ->name('hadiah-sampah.index');
+        Route::get('/bank-sampah/hadiah/{hadiah}/foto', [HadiahSampahController::class, 'foto'])
+            ->name('hadiah-sampah.foto');
+    });
+
+    Route::middleware('permission:setor-sampah')->group(function () {
+        Route::get('/bank-sampah/setor', [SetoranSampahController::class, 'index'])
+            ->name('setoran-sampah.index');
+        Route::get('/bank-sampah/setor/create', [SetoranSampahController::class, 'create'])
+            ->name('setoran-sampah.create');
+        Route::post('/bank-sampah/setor', [SetoranSampahController::class, 'store'])
+            ->name('setoran-sampah.store');
+        Route::get('/bank-sampah/setor/{setoran}', [SetoranSampahController::class, 'show'])
+            ->name('setoran-sampah.show');
+        Route::get('/bank-sampah/tarik/create', [PenarikanSampahController::class, 'create'])
+            ->name('penarikan-sampah.create');
+        Route::post('/bank-sampah/tarik', [PenarikanSampahController::class, 'store'])
+            ->name('penarikan-sampah.store');
+        Route::post('/bank-sampah/hadiah/{hadiah}/tukar', [HadiahSampahController::class, 'tukar'])
+            ->name('hadiah-sampah.tukar');
+    });
+
+    Route::middleware('permission:manage-bank-sampah')->group(function () {
+        Route::get('/bank-sampah/tarik', [PenarikanSampahController::class, 'index'])
+            ->name('penarikan-sampah.index');
+        Route::patch('/bank-sampah/setor/{setoran}/verifikasi', [SetoranSampahController::class, 'verifikasi'])
+            ->name('setoran-sampah.verifikasi');
+        Route::patch('/bank-sampah/setor/{setoran}/tolak', [SetoranSampahController::class, 'tolak'])
+            ->name('setoran-sampah.tolak');
+        Route::patch('/bank-sampah/tarik/{penarikan}/konfirmasi', [PenarikanSampahController::class, 'konfirmasi'])
+            ->name('penarikan-sampah.konfirmasi');
+        Route::get('/bank-sampah/hadiah/create', [HadiahSampahController::class, 'create'])
+            ->name('hadiah-sampah.create');
+        Route::post('/bank-sampah/hadiah', [HadiahSampahController::class, 'store'])
+            ->name('hadiah-sampah.store');
+        Route::patch('/bank-sampah/hadiah/tukar/{penukaran}/konfirmasi', [HadiahSampahController::class, 'konfirmasiTukar'])
+            ->name('hadiah-sampah.konfirmasi-tukar');
     });
 
     Route::middleware('permission:view-aset')->group(function () {
