@@ -13,6 +13,7 @@ use App\Http\Controllers\KasMasukController;
 use App\Http\Controllers\LaporanKasController;
 use App\Http\Controllers\PeminjamanAsetController;
 use App\Http\Controllers\PenarikanSampahController;
+use App\Http\Controllers\PenjualanSampahController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SetoranSampahController;
 use App\Http\Controllers\TagihanController;
@@ -196,6 +197,12 @@ Route::middleware(['auth'])->group(function () {
             ->name('hadiah-sampah.store');
         Route::patch('/bank-sampah/hadiah/tukar/{penukaran}/konfirmasi', [HadiahSampahController::class, 'konfirmasiTukar'])
             ->name('hadiah-sampah.konfirmasi-tukar');
+        Route::get('/bank-sampah/penjualan', [PenjualanSampahController::class, 'index'])
+            ->name('penjualan-sampah.index');
+        Route::get('/bank-sampah/penjualan/create', [PenjualanSampahController::class, 'create'])
+            ->name('penjualan-sampah.create');
+        Route::post('/bank-sampah/penjualan', [PenjualanSampahController::class, 'store'])
+            ->name('penjualan-sampah.store');
     });
 
     Route::middleware('permission:view-aset')->group(function () {

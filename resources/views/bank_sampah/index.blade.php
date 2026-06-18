@@ -22,7 +22,7 @@
     </div>
 
     @if($canManage)
-        <div class="grid gap-4 md:grid-cols-4">
+        <div class="grid gap-4 md:grid-cols-5">
             <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Saldo Beredar</p>
                 <p class="mt-2 text-2xl font-black text-slate-900">Rp {{ number_format($statistik['total_saldo_beredar'], 0, ',', '.') }}</p>
@@ -39,12 +39,17 @@
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Penarikan Menunggu</p>
                 <p class="mt-2 text-2xl font-black text-amber-700">{{ $statistik['penarikan_menunggu'] }}</p>
             </div>
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Kas Bank Sampah</p>
+                <p class="mt-2 text-2xl font-black text-green-700">Rp {{ number_format($statistik['kas_bank_sampah'], 0, ',', '.') }}</p>
+            </div>
         </div>
 
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('setoran-sampah.index') }}" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">Kelola Setoran</a>
             <a href="{{ route('penarikan-sampah.index') }}" class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">Kelola Penarikan</a>
             <a href="{{ route('hadiah-sampah.index') }}" class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">Kelola Hadiah</a>
+            <a href="{{ route('penjualan-sampah.index') }}" class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">Penjualan ke Pengepul</a>
         </div>
 
         <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

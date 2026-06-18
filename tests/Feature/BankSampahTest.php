@@ -3,6 +3,7 @@
 use App\Models\HadiahSampah;
 use App\Models\JenisSampah;
 use App\Models\PenarikanSampah;
+use App\Models\PenjualanSampah;
 use App\Models\PenukaranHadiah;
 use App\Models\Role;
 use App\Models\Rt;
@@ -360,4 +361,65 @@ test('role petugas bank sampah dapat mengelola operasional bank sampah', functio
 
     expect($setoran->fresh()->status)->toBe('diverifikasi')
         ->and(SaldoSampah::where('warga_id', $this->warga->id)->first()->saldo)->toBe(5000);
+});
+
+test('petugas bank sampah dapat mencatat penjualan sampah ke pengepul', function () {
+    $role = Role::where('name', 'petugas_bank_sampah')->firstOrFail();
+    $petugasBankSampah = User::factory()->create([
+        'role_id' => $role->id,
+        'rt_id' => null,
+    ]);
+
+    $this->actingAs($petugasBankSampah)
+        ->post(route('penjualan-sampah.store'), [
+            'jenis_sampah_id' => $this->jenis->id,
+            'tanggal_jual' => now()->toDateString(),
+            'berat_total' => 12.5,
+            'harga_jual' => 3000,
+            'nama_pengepul' => 'CV Hijau Lestari',
+            'catatan' => 'Penjualan batch pertama.',
+        ])
+        ->assertRedirect(route('penjualan-sampah.index'))
+        ->assertSessionHas('success');
+
+    $this->assertDatabaseHas('penjualan_sampahs', [
+        'rw_id' => $this->rw->id,
+        'petugas_id' => $petugasBankSampah->id,
+        'jenis_sampah_id' => $this->jenis->id,
+        'harga_jual' => 3000,
+        'total' => 37500,
+        'nama_pengepul' => 'CV Hijau Lestari',
+    ]);
+
+    $this->actingAs($petugasBankSampah)
+        ->get(route('bank-sampah.index'))
+        ->assertOk()
+        ->assertSee('Kas Bank Sampah')
+        ->assertSee('Rp 37.500');
+});
+
+test('warga tidak bisa mencatat penjualan sampah ke pengepul', function () {
+    $this->actingAs($this->warga)
+        ->post(route('penjualan-sampah.store'), [
+            'jenis_sampah_id' => $this->jenis->id,
+            'tanggal_jual' => now()->toDateString(),
+            'berat_total' => 5,
+            'harga_jual' => 2500,
+        ])
+        ->assertForbidden();
+
+    expect(PenjualanSampah::count())->toBe(0);
+});
+
+test('petugas tidak bisa mencatat penjualan untuk jenis sampah rw lain', function () {
+    $this->actingAs($this->petugas)
+        ->post(route('penjualan-sampah.store'), [
+            'jenis_sampah_id' => $this->jenisLain->id,
+            'tanggal_jual' => now()->toDateString(),
+            'berat_total' => 5,
+            'harga_jual' => 2500,
+        ])
+        ->assertSessionHasErrors('jenis_sampah_id');
+
+    expect(PenjualanSampah::count())->toBe(0);
 });

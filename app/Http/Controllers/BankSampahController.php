@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PenarikanSampah;
+use App\Models\PenjualanSampah;
 use App\Models\SaldoSampah;
 use App\Models\Rw;
 use App\Models\SetoranSampah;
@@ -31,6 +32,7 @@ class BankSampahController extends Controller
             'penarikan_menunggu' => PenarikanSampah::where('rw_id', $rwId)
                 ->where('status', 'menunggu')
                 ->count(),
+            'kas_bank_sampah' => (int) PenjualanSampah::where('rw_id', $rwId)->sum('total'),
         ];
 
         $setoranMenunggu = collect();
