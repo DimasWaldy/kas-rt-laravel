@@ -35,7 +35,18 @@
                 <dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Tanggal Setor</dt>
                 <dd class="mt-1 font-black text-slate-900">{{ $setoran->tanggal_setor->translatedFormat('d F Y') }}</dd>
             </div>
+            <div class="rounded-2xl bg-slate-50 p-4">
+                <dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Metode Setor</dt>
+                <dd class="mt-1 font-black text-slate-900">{{ $setoran->metode_setor_label }}</dd>
+            </div>
         </dl>
+
+        @if($setoran->foto_bukti)
+            <div class="mt-6">
+                <p class="mb-2 text-sm font-bold text-slate-700">Foto Bukti Setoran</p>
+                <img src="{{ route('setoran-sampah.foto-bukti', $setoran) }}" alt="Foto bukti setoran sampah" class="max-h-96 rounded-2xl border border-slate-200 object-cover">
+            </div>
+        @endif
 
         <div class="mt-6 space-y-3 text-sm text-slate-600">
             <p><span class="font-bold text-slate-800">Catatan warga:</span> {{ $setoran->catatan_warga ?: '-' }}</p>

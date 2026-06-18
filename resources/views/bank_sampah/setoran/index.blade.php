@@ -30,6 +30,7 @@
                     <tr>
                         <th class="px-4 py-3">Warga</th>
                         <th class="px-4 py-3">Jenis</th>
+                        <th class="px-4 py-3">Metode</th>
                         <th class="px-4 py-3">Estimasi</th>
                         <th class="px-4 py-3">Aktual</th>
                         <th class="px-4 py-3">Nilai</th>
@@ -45,6 +46,12 @@
                                 <p class="text-xs text-slate-500">{{ $setoran->tanggal_setor->translatedFormat('d M Y') }}</p>
                             </td>
                             <td class="px-4 py-3 text-slate-600">{{ $setoran->jenisSampah->nama }}</td>
+                            <td class="px-4 py-3">
+                                <div class="text-slate-600">{{ $setoran->metode_setor_label }}</div>
+                                @if($setoran->foto_bukti)
+                                    <a href="{{ route('setoran-sampah.foto-bukti', $setoran) }}" target="_blank" class="text-xs font-bold text-emerald-700 hover:text-emerald-900">Lihat foto</a>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-slate-600">{{ number_format($setoran->estimasi_berat, 2, ',', '.') }} {{ $setoran->jenisSampah->satuan_label }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ $setoran->berat_aktual ? number_format($setoran->berat_aktual, 2, ',', '.') . ' ' . $setoran->jenisSampah->satuan_label : '-' }}</td>
                             <td class="px-4 py-3 font-bold text-slate-800">Rp {{ number_format($setoran->nilai, 0, ',', '.') }}</td>
@@ -93,7 +100,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-10 text-center text-slate-500">Belum ada setoran sampah.</td>
+                            <td colspan="8" class="px-4 py-10 text-center text-slate-500">Belum ada setoran sampah.</td>
                         </tr>
                     @endforelse
                 </tbody>

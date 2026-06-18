@@ -16,7 +16,9 @@ class SetoranSampah extends Model
         'berat_aktual',
         'nilai',
         'status',
+        'metode_setor',
         'catatan_warga',
+        'foto_bukti',
         'catatan_petugas',
         'tanggal_setor',
         'verified_at',
@@ -70,6 +72,15 @@ class SetoranSampah extends Model
             'diverifikasi' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
             'ditolak' => 'bg-red-50 text-red-700 border-red-200',
             default => 'bg-slate-50 text-slate-600 border-slate-200',
+        };
+    }
+
+    public function getMetodeSetorLabelAttribute(): string
+    {
+        return match ($this->metode_setor) {
+            'langsung_petugas' => 'Langsung ke Petugas',
+            'setor_mandiri' => 'Setor Mandiri',
+            default => str($this->metode_setor)->headline()->toString(),
         };
     }
 }

@@ -21,6 +21,28 @@
         </div>
     </div>
 
+    <section class="rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div class="max-w-3xl">
+                <p class="text-sm font-bold uppercase tracking-wider text-emerald-700">Panduan Bank Sampah</p>
+                <h2 class="mt-1 text-xl font-black text-emerald-950">Jadwal layanan: Rabu 16.00-18.00 dan Minggu 08.00-11.00</h2>
+                <div class="mt-4 grid gap-3 text-sm text-emerald-900 md:grid-cols-2">
+                    <div class="rounded-2xl bg-white/70 p-4">
+                        <p class="font-black">Saat petugas ada</p>
+                        <p class="mt-1">Datang ke pos Bank Sampah, sampah ditimbang petugas, lalu petugas memverifikasi berat aktual.</p>
+                    </div>
+                    <div class="rounded-2xl bg-white/70 p-4">
+                        <p class="font-black">Setor mandiri</p>
+                        <p class="mt-1">Beri label nama + RT, timbang jika tersedia, foto bukti sampah berlabel, lalu ajukan lewat aplikasi.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-emerald-800 shadow-sm">
+                Sampah wajib dipilah, bersih, dan kering.
+            </div>
+        </div>
+    </section>
+
     @if($canManage)
         <div class="grid gap-4 md:grid-cols-5">
             <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">

@@ -174,6 +174,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('setoran-sampah.store');
         Route::get('/bank-sampah/setor/{setoran}', [SetoranSampahController::class, 'show'])
             ->name('setoran-sampah.show');
+        Route::get('/bank-sampah/setor/{setoran}/foto-bukti', [SetoranSampahController::class, 'fotoBukti'])
+            ->name('setoran-sampah.foto-bukti');
         Route::get('/bank-sampah/tarik/create', [PenarikanSampahController::class, 'create'])
             ->name('penarikan-sampah.create');
         Route::post('/bank-sampah/tarik', [PenarikanSampahController::class, 'store'])

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\BankSampahService;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -64,13 +65,22 @@ class SetoranSampahController extends Controller
             ],
             'estimasi_berat' => ['required', 'numeric', 'min:0.1'],
             'tanggal_setor' => ['required', 'date'],
+            'metode_setor' => ['required', Rule::in(['langsung_petugas', 'setor_mandiri'])],
+            'foto_bukti' => ['required_if:metode_setor,setor_mandiri', 'nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
             'catatan_warga' => ['nullable', 'string', 'max:255'],
         ]);
+
+        $fotoBukti = $request->hasFile('foto_bukti')
+            ? $request->file('foto_bukti')->store('bank-sampah/setoran-bukti', 'local')
+            : null;
+
+        unset($validated['foto_bukti']);
 
         SetoranSampah::create([
             ...$validated,
             'rw_id' => $rwId,
             'warga_id' => $user->id,
+            'foto_bukti' => $fotoBukti,
             'status' => 'menunggu',
             'nilai' => 0,
         ]);
@@ -85,6 +95,14 @@ class SetoranSampahController extends Controller
         $setoran->load(['warga.rt', 'petugas', 'jenisSampah']);
 
         return view('bank_sampah.setoran.show', compact('setoran'));
+    }
+
+    public function fotoBukti(Request $request, SetoranSampah $setoran)
+    {
+        $this->authorizeVisible($request->user(), $setoran);
+        abort_unless($setoran->foto_bukti && Storage::disk('local')->exists($setoran->foto_bukti), 404);
+
+        return Storage::disk('local')->response($setoran->foto_bukti);
     }
 
     public function verifikasi(Request $request, SetoranSampah $setoran, BankSampahService $service)

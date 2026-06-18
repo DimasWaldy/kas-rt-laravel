@@ -13,7 +13,9 @@ use App\Models\SetoranSampah;
 use App\Models\TransaksiSampah;
 use App\Models\User;
 use Database\Seeders\RoleAndPermissionSeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     Carbon::setTestNow(Carbon::parse('2026-06-18 09:00:00', 'Asia/Jakarta'));
@@ -91,6 +93,7 @@ beforeEach(function () {
             'estimasi_berat' => 2.5,
             'nilai' => 0,
             'status' => 'menunggu',
+            'metode_setor' => 'langsung_petugas',
             'tanggal_setor' => now()->toDateString(),
         ], $attributes));
     };
@@ -119,6 +122,7 @@ test('warga dapat mengajukan setoran sampah dan saldo belum berubah', function (
             'jenis_sampah_id' => $this->jenis->id,
             'estimasi_berat' => 3.25,
             'tanggal_setor' => now()->toDateString(),
+            'metode_setor' => 'langsung_petugas',
             'catatan_warga' => 'Sampah sudah dipilah.',
         ]);
 
@@ -129,10 +133,52 @@ test('warga dapat mengajukan setoran sampah dan saldo belum berubah', function (
         'warga_id' => $this->warga->id,
         'jenis_sampah_id' => $this->jenis->id,
         'status' => 'menunggu',
+        'metode_setor' => 'langsung_petugas',
         'nilai' => 0,
     ]);
 
     expect(SaldoSampah::where('warga_id', $this->warga->id)->exists())->toBeFalse();
+});
+
+test('setor mandiri wajib menyertakan foto bukti dan foto disimpan privat', function () {
+    Storage::fake('local');
+
+    $this->actingAs($this->warga)
+        ->post(route('setoran-sampah.store'), [
+            'jenis_sampah_id' => $this->jenis->id,
+            'estimasi_berat' => 2,
+            'tanggal_setor' => now()->toDateString(),
+            'metode_setor' => 'setor_mandiri',
+        ])
+        ->assertSessionHasErrors('foto_bukti');
+
+    $this->actingAs($this->warga)
+        ->post(route('setoran-sampah.store'), [
+            'jenis_sampah_id' => $this->jenis->id,
+            'estimasi_berat' => 2,
+            'tanggal_setor' => now()->toDateString(),
+            'metode_setor' => 'setor_mandiri',
+            'foto_bukti' => UploadedFile::fake()->image('bukti-setoran.jpg', 800, 600),
+            'catatan_warga' => 'Setor mandiri, sampah sudah diberi label nama dan RT.',
+        ])
+        ->assertRedirect(route('setoran-sampah.index'))
+        ->assertSessionHas('success');
+
+    $setoran = SetoranSampah::firstOrFail();
+
+    expect($setoran->metode_setor)->toBe('setor_mandiri')
+        ->and($setoran->foto_bukti)->toStartWith('bank-sampah/setoran-bukti/');
+
+    Storage::disk('local')->assertExists($setoran->foto_bukti);
+
+    $this->actingAs($this->warga)
+        ->get(route('setoran-sampah.foto-bukti', $setoran))
+        ->assertOk()
+        ->assertHeader('content-type', 'image/jpeg');
+
+    $this->actingAs($this->wargaLain)
+        ->get(route('setoran-sampah.foto-bukti', $setoran))
+        ->assertForbidden();
 });
 
 test('petugas verifikasi setoran dan saldo warga bertambah', function () {
@@ -321,6 +367,7 @@ test('petugas tidak bisa verifikasi setoran rw lain', function () {
         'estimasi_berat' => 2,
         'nilai' => 0,
         'status' => 'menunggu',
+        'metode_setor' => 'langsung_petugas',
         'tanggal_setor' => now()->toDateString(),
     ]);
 
