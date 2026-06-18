@@ -26,6 +26,7 @@
         'ketua_rw' => 'Ketua RW',
         'sekretaris_rw' => 'Sekretaris RW',
         'bendahara_rw' => 'Bendahara RW',
+        'petugas_bank_sampah' => 'Petugas Bank Sampah',
         'ketua_rt' => 'Ketua RT',
         'sekretaris_rt' => 'Sekretaris RT',
         'bendahara_rt' => 'Bendahara RT',

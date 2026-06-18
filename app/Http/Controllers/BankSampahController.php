@@ -66,12 +66,17 @@ class BankSampahController extends Controller
     {
         $rwId = $user->rt()->value('rw_id');
 
-        if (! $rwId && ($user->isRwOfficial() || $user->isGlobalOperator())) {
+        if (! $rwId && ($this->isRwLevelBankSampahOperator($user) || $user->isGlobalOperator())) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
         }
 
         abort_unless($rwId, 403, 'Akun belum terhubung ke wilayah.');
 
         return (int) $rwId;
+    }
+
+    private function isRwLevelBankSampahOperator(User $user): bool
+    {
+        return $user->isRwOfficial() || $user->role_name === 'petugas_bank_sampah';
     }
 }

@@ -332,3 +332,32 @@ test('petugas tidak bisa verifikasi setoran rw lain', function () {
     expect($setoranRwLain->fresh()->status)->toBe('menunggu')
         ->and(TransaksiSampah::count())->toBe(0);
 });
+
+test('role petugas bank sampah dapat mengelola operasional bank sampah', function () {
+    $role = Role::where('name', 'petugas_bank_sampah')->firstOrFail();
+    $petugasBankSampah = User::factory()->create([
+        'role_id' => $role->id,
+        'rt_id' => null,
+    ]);
+    $setoran = ($this->buatSetoran)();
+
+    expect($petugasBankSampah->hasPermission('manage-bank-sampah'))->toBeTrue()
+        ->and($petugasBankSampah->hasPermission('view-bank-sampah'))->toBeTrue()
+        ->and($petugasBankSampah->hasPermission('setor-sampah'))->toBeTrue();
+
+    $this->actingAs($petugasBankSampah)
+        ->get(route('bank-sampah.index'))
+        ->assertOk()
+        ->assertSee('Setoran Menunggu Verifikasi');
+
+    $this->actingAs($petugasBankSampah)
+        ->patch(route('setoran-sampah.verifikasi', $setoran), [
+            'berat_aktual' => 2,
+            'catatan_petugas' => 'Diverifikasi petugas bank sampah.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($setoran->fresh()->status)->toBe('diverifikasi')
+        ->and(SaldoSampah::where('warga_id', $this->warga->id)->first()->saldo)->toBe(5000);
+});

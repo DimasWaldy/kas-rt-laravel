@@ -121,6 +121,17 @@ class RoleAndPermissionSeeder extends Seeder
                     'setor-sampah',
                 ],
             ],
+            'petugas_bank_sampah' => [
+                'description' => 'Petugas operasional bank sampah RW',
+                'permissions' => [
+                    'view-wilayah',
+                    'view-dashboard',
+                    'view-kegiatan',
+                    'manage-bank-sampah',
+                    'view-bank-sampah',
+                    'setor-sampah',
+                ],
+            ],
             'ketua_rt' => [
                 'description' => 'Ketua RT, approve surat dan pengaduan RT',
                 'permissions' => [
