@@ -4,9 +4,11 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoUtsController;
 use App\Http\Controllers\AsetController;
 use App\Http\Controllers\BankSampahController;
+use App\Http\Controllers\FasilitasController;
 use App\Http\Controllers\HadiahSampahController;
 use App\Http\Controllers\IuranBulananController;
 use App\Http\Controllers\IuranKhususController;
+use App\Http\Controllers\KeamananController;
 use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\KasKeluarController;
 use App\Http\Controllers\KasMasukController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\PeminjamanAsetController;
 use App\Http\Controllers\PenarikanSampahController;
 use App\Http\Controllers\PenjualanSampahController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PengaduanFasilitasController;
 use App\Http\Controllers\SetoranSampahController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\WelcomeController;
@@ -205,6 +208,61 @@ Route::middleware(['auth'])->group(function () {
             ->name('penjualan-sampah.create');
         Route::post('/bank-sampah/penjualan', [PenjualanSampahController::class, 'store'])
             ->name('penjualan-sampah.store');
+    });
+
+    Route::middleware('permission:manage-fasilitas')->group(function () {
+        Route::get('/fasilitas/create', [FasilitasController::class, 'create'])
+            ->name('fasilitas.create');
+        Route::post('/fasilitas', [FasilitasController::class, 'store'])
+            ->name('fasilitas.store');
+        Route::get('/fasilitas/{fasilitas}/edit', [FasilitasController::class, 'edit'])
+            ->name('fasilitas.edit');
+        Route::put('/fasilitas/{fasilitas}', [FasilitasController::class, 'update'])
+            ->name('fasilitas.update');
+        Route::delete('/fasilitas/{fasilitas}', [FasilitasController::class, 'destroy'])
+            ->name('fasilitas.destroy');
+
+        Route::get('/keamanan', [KeamananController::class, 'index'])
+            ->name('keamanan.index');
+        Route::get('/keamanan/shift/create', [KeamananController::class, 'createShift'])
+            ->name('keamanan.shift.create');
+        Route::post('/keamanan/shift', [KeamananController::class, 'storeShift'])
+            ->name('keamanan.shift.store');
+        Route::get('/keamanan/shift/{shift}', [KeamananController::class, 'showShift'])
+            ->name('keamanan.shift.show');
+        Route::post('/keamanan/shift/{shift}/patroli', [KeamananController::class, 'storePatroli'])
+            ->name('keamanan.patroli.store');
+    });
+
+    Route::middleware('permission:view-fasilitas')->group(function () {
+        Route::get('/fasilitas', [FasilitasController::class, 'index'])
+            ->name('fasilitas.index');
+        Route::get('/fasilitas/{fasilitas}', [FasilitasController::class, 'show'])
+            ->name('fasilitas.show');
+        Route::get('/fasilitas/{fasilitas}/foto', [FasilitasController::class, 'foto'])
+            ->name('fasilitas.foto');
+    });
+
+    Route::middleware('permission:lapor-fasilitas')->group(function () {
+        Route::get('/pengaduan-fasilitas', [PengaduanFasilitasController::class, 'index'])
+            ->name('pengaduan-fasilitas.index');
+        Route::get('/pengaduan-fasilitas/create', [PengaduanFasilitasController::class, 'create'])
+            ->name('pengaduan-fasilitas.create');
+        Route::post('/pengaduan-fasilitas', [PengaduanFasilitasController::class, 'store'])
+            ->name('pengaduan-fasilitas.store');
+        Route::get('/pengaduan-fasilitas/{pengaduan}', [PengaduanFasilitasController::class, 'show'])
+            ->name('pengaduan-fasilitas.show');
+        Route::get('/pengaduan-fasilitas/{pengaduan}/foto', [PengaduanFasilitasController::class, 'foto'])
+            ->name('pengaduan-fasilitas.foto');
+    });
+
+    Route::middleware('permission:manage-fasilitas')->group(function () {
+        Route::patch('/pengaduan-fasilitas/{pengaduan}/tindak-lanjut', [PengaduanFasilitasController::class, 'tindakLanjut'])
+            ->name('pengaduan-fasilitas.tindak-lanjut');
+        Route::patch('/pengaduan-fasilitas/{pengaduan}/selesai', [PengaduanFasilitasController::class, 'selesaikan'])
+            ->name('pengaduan-fasilitas.selesai');
+        Route::patch('/pengaduan-fasilitas/{pengaduan}/tolak', [PengaduanFasilitasController::class, 'tolak'])
+            ->name('pengaduan-fasilitas.tolak');
     });
 
     Route::middleware('permission:view-aset')->group(function () {

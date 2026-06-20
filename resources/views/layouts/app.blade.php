@@ -193,10 +193,34 @@
                 [
                     'label' => 'Pengaduan',
                     'route' => 'pengaduan.index',
-                    'active' => 'pengaduan*',
+                    'active' => ['pengaduan', 'pengaduan/*'],
                     'icon' => 'fa-bullhorn',
                     'iconClass' => 'text-emerald-600',
                     'visible' => true,
+                ],
+                [
+                    'label' => 'Fasilitas',
+                    'route' => 'fasilitas.index',
+                    'active' => 'fasilitas*',
+                    'icon' => 'fa-building-shield',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('view-fasilitas'),
+                ],
+                [
+                    'label' => 'Pengaduan Fasilitas',
+                    'route' => 'pengaduan-fasilitas.index',
+                    'active' => 'pengaduan-fasilitas*',
+                    'icon' => 'fa-triangle-exclamation',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('lapor-fasilitas'),
+                ],
+                [
+                    'label' => 'Keamanan',
+                    'route' => 'keamanan.index',
+                    'active' => 'keamanan*',
+                    'icon' => 'fa-shield-halved',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('manage-fasilitas'),
                 ],
                 [
                     'label' => 'Surat Menyurat',
@@ -282,13 +306,17 @@
                     <p class="mb-3 px-2 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-700/70">{{ $group['label'] }}</p>
                     <ul class="space-y-1">
                         @foreach($group['items'] as $item)
+                            @php
+                                $isActive = collect((array) $item['active'])
+                                    ->contains(fn($pattern) => request()->is($pattern));
+                            @endphp
                             <li>
                                 <a
                                     href="{{ route($item['route'], $item['params'] ?? []) }}"
                                     x-on:click="mobileMenuOpen = false"
-                                    class="sidebar-item flex min-h-12 items-center gap-3 rounded-xl p-3 text-sm font-semibold hover:bg-emerald-100 hover:text-emerald-950 {{ request()->is($item['active']) ? 'active-menu' : '' }}"
+                                    class="sidebar-item flex min-h-12 items-center gap-3 rounded-xl p-3 text-sm font-semibold hover:bg-emerald-100 hover:text-emerald-950 {{ $isActive ? 'active-menu' : '' }}"
                                 >
-                                    <i class="fa-solid {{ $item['icon'] }} w-5 flex-shrink-0 text-center {{ request()->is($item['active']) ? 'text-white' : $item['iconClass'] }}"></i>
+                                    <i class="fa-solid {{ $item['icon'] }} w-5 flex-shrink-0 text-center {{ $isActive ? 'text-white' : $item['iconClass'] }}"></i>
                                     <span class="min-w-0 truncate font-medium">{{ $item['label'] }}</span>
                                 </a>
                             </li>
