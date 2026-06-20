@@ -207,6 +207,22 @@
                     'visible' => $user->hasPermission('view-fasilitas'),
                 ],
                 [
+                    'label' => 'UMKM',
+                    'route' => 'umkm.index',
+                    'active' => ['umkm', 'umkm/*'],
+                    'icon' => 'fa-store',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('view-umkm'),
+                ],
+                [
+                    'label' => 'UMKM Saya',
+                    'route' => 'umkm.saya',
+                    'active' => 'umkm-saya*',
+                    'icon' => 'fa-shop',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('daftar-umkm'),
+                ],
+                [
                     'label' => 'Pengaduan Fasilitas',
                     'route' => 'pengaduan-fasilitas.index',
                     'active' => 'pengaduan-fasilitas*',

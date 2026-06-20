@@ -16,10 +16,12 @@ use App\Http\Controllers\LaporanKasController;
 use App\Http\Controllers\PeminjamanAsetController;
 use App\Http\Controllers\PenarikanSampahController;
 use App\Http\Controllers\PenjualanSampahController;
+use App\Http\Controllers\ProdukUmkmController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PengaduanFasilitasController;
 use App\Http\Controllers\SetoranSampahController;
 use App\Http\Controllers\TagihanController;
+use App\Http\Controllers\UmkmController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\SuratController;
 use Illuminate\Support\Facades\Auth;
@@ -263,6 +265,54 @@ Route::middleware(['auth'])->group(function () {
             ->name('pengaduan-fasilitas.selesai');
         Route::patch('/pengaduan-fasilitas/{pengaduan}/tolak', [PengaduanFasilitasController::class, 'tolak'])
             ->name('pengaduan-fasilitas.tolak');
+    });
+
+    // Static UMKM paths must be registered before /umkm/{umkm}.
+    Route::middleware('permission:daftar-umkm')->group(function () {
+        Route::get('/umkm-saya', [UmkmController::class, 'myUmkm'])
+            ->name('umkm.saya');
+        Route::get('/umkm/create', [UmkmController::class, 'create'])
+            ->name('umkm.create');
+        Route::post('/umkm', [UmkmController::class, 'store'])
+            ->name('umkm.store');
+    });
+
+    Route::middleware('permission:view-umkm')->group(function () {
+        Route::get('/umkm', [UmkmController::class, 'index'])
+            ->name('umkm.index');
+        Route::get('/produk-umkm/{produk}/foto', [ProdukUmkmController::class, 'foto'])
+            ->name('produk-umkm.foto');
+        Route::get('/umkm/{umkm}', [UmkmController::class, 'show'])
+            ->name('umkm.show');
+        Route::get('/umkm/{umkm}/foto', [UmkmController::class, 'foto'])
+            ->name('umkm.foto');
+    });
+
+    Route::middleware('permission:daftar-umkm')->group(function () {
+        Route::get('/umkm/{umkm}/edit', [UmkmController::class, 'edit'])
+            ->name('umkm.edit');
+        Route::put('/umkm/{umkm}', [UmkmController::class, 'update'])
+            ->name('umkm.update');
+        Route::patch('/umkm/{umkm}/nonaktifkan', [UmkmController::class, 'nonaktifkan'])
+            ->name('umkm.nonaktifkan');
+        Route::patch('/umkm/{umkm}/aktifkan-kembali', [UmkmController::class, 'aktifkanKembali'])
+            ->name('umkm.aktifkan-kembali');
+
+        Route::post('/umkm/{umkm}/produk', [ProdukUmkmController::class, 'store'])
+            ->name('produk-umkm.store');
+        Route::put('/produk-umkm/{produk}', [ProdukUmkmController::class, 'update'])
+            ->name('produk-umkm.update');
+        Route::delete('/produk-umkm/{produk}', [ProdukUmkmController::class, 'destroy'])
+            ->name('produk-umkm.destroy');
+        Route::patch('/produk-umkm/{produk}/toggle', [ProdukUmkmController::class, 'toggleAvailability'])
+            ->name('produk-umkm.toggle');
+    });
+
+    Route::middleware('permission:manage-umkm')->group(function () {
+        Route::patch('/umkm/{umkm}/approve', [UmkmController::class, 'approve'])
+            ->name('umkm.approve');
+        Route::patch('/umkm/{umkm}/reject', [UmkmController::class, 'reject'])
+            ->name('umkm.reject');
     });
 
     Route::middleware('permission:view-aset')->group(function () {

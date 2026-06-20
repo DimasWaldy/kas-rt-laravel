@@ -42,6 +42,9 @@ class RoleAndPermissionSeeder extends Seeder
             'manage-fasilitas' => 'Mengelola data fasilitas dan keamanan',
             'view-fasilitas' => 'Melihat daftar fasilitas',
             'lapor-fasilitas' => 'Melaporkan masalah fasilitas',
+            'manage-umkm' => 'Menyetujui dan mengelola UMKM warga',
+            'daftar-umkm' => 'Mendaftarkan usaha sendiri',
+            'view-umkm' => 'Melihat direktori UMKM',
         ];
 
         $permissionModels = collect($permissions)->mapWithKeys(function (string $description, string $name) {
@@ -86,6 +89,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-fasilitas',
                     'view-fasilitas',
                     'lapor-fasilitas',
+                    'manage-umkm',
+                    'daftar-umkm',
+                    'view-umkm',
                 ],
             ],
             'sekretaris_rw' => [
@@ -112,6 +118,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-fasilitas',
                     'view-fasilitas',
                     'lapor-fasilitas',
+                    'manage-umkm',
+                    'daftar-umkm',
+                    'view-umkm',
                 ],
             ],
             'bendahara_rw' => [
@@ -129,6 +138,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-bank-sampah',
                     'setor-sampah',
                     'view-fasilitas',
+                    'view-umkm',
                 ],
             ],
             'petugas_bank_sampah' => [
@@ -164,6 +174,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-fasilitas',
                     'view-fasilitas',
                     'lapor-fasilitas',
+                    'manage-umkm',
+                    'daftar-umkm',
+                    'view-umkm',
                 ],
             ],
             'bendahara_rt' => [
@@ -182,6 +195,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-bank-sampah',
                     'setor-sampah',
                     'view-fasilitas',
+                    'view-umkm',
                 ],
             ],
             'sekretaris_rt' => [
@@ -206,6 +220,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-fasilitas',
                     'view-fasilitas',
                     'lapor-fasilitas',
+                    'manage-umkm',
+                    'daftar-umkm',
+                    'view-umkm',
                 ],
             ],
             'bendahara' => [
@@ -224,6 +241,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-bank-sampah',
                     'setor-sampah',
                     'view-fasilitas',
+                    'view-umkm',
                 ],
             ],
             'sekretaris' => [
@@ -248,6 +266,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-fasilitas',
                     'view-fasilitas',
                     'lapor-fasilitas',
+                    'manage-umkm',
+                    'daftar-umkm',
+                    'view-umkm',
                 ],
             ],
             'warga' => [
@@ -268,6 +289,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'setor-sampah',
                     'view-fasilitas',
                     'lapor-fasilitas',
+                    'daftar-umkm',
+                    'view-umkm',
                 ],
             ],
         ];
