@@ -39,6 +39,9 @@ class RoleAndPermissionSeeder extends Seeder
             'manage-bank-sampah' => 'Mengelola bank sampah RW',
             'view-bank-sampah' => 'Melihat info bank sampah dan saldo sendiri',
             'setor-sampah' => 'Mengajukan setoran sampah',
+            'manage-fasilitas' => 'Mengelola data fasilitas dan keamanan',
+            'view-fasilitas' => 'Melihat daftar fasilitas',
+            'lapor-fasilitas' => 'Melaporkan masalah fasilitas',
         ];
 
         $permissionModels = collect($permissions)->mapWithKeys(function (string $description, string $name) {
@@ -80,6 +83,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-bank-sampah',
                     'view-bank-sampah',
                     'setor-sampah',
+                    'manage-fasilitas',
+                    'view-fasilitas',
+                    'lapor-fasilitas',
                 ],
             ],
             'sekretaris_rw' => [
@@ -103,6 +109,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-bank-sampah',
                     'view-bank-sampah',
                     'setor-sampah',
+                    'manage-fasilitas',
+                    'view-fasilitas',
+                    'lapor-fasilitas',
                 ],
             ],
             'bendahara_rw' => [
@@ -119,6 +128,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-bank-sampah',
                     'view-bank-sampah',
                     'setor-sampah',
+                    'view-fasilitas',
                 ],
             ],
             'petugas_bank_sampah' => [
@@ -151,6 +161,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'pinjam-aset-rw',
                     'view-bank-sampah',
                     'setor-sampah',
+                    'manage-fasilitas',
+                    'view-fasilitas',
+                    'lapor-fasilitas',
                 ],
             ],
             'bendahara_rt' => [
@@ -168,6 +181,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'pinjam-aset-rw',
                     'view-bank-sampah',
                     'setor-sampah',
+                    'view-fasilitas',
                 ],
             ],
             'sekretaris_rt' => [
@@ -189,6 +203,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'pinjam-aset-rw',
                     'view-bank-sampah',
                     'setor-sampah',
+                    'manage-fasilitas',
+                    'view-fasilitas',
+                    'lapor-fasilitas',
                 ],
             ],
             'bendahara' => [
@@ -206,6 +223,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'pinjam-aset-rw',
                     'view-bank-sampah',
                     'setor-sampah',
+                    'view-fasilitas',
                 ],
             ],
             'sekretaris' => [
@@ -227,6 +245,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'pinjam-aset-rw',
                     'view-bank-sampah',
                     'setor-sampah',
+                    'manage-fasilitas',
+                    'view-fasilitas',
+                    'lapor-fasilitas',
                 ],
             ],
             'warga' => [
@@ -245,6 +266,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'pinjam-aset-rw',
                     'view-bank-sampah',
                     'setor-sampah',
+                    'view-fasilitas',
+                    'lapor-fasilitas',
                 ],
             ],
         ];
