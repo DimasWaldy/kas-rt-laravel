@@ -18,7 +18,6 @@ class Umkm extends Model
         'deskripsi',
         'alamat_lokasi',
         'nomor_whatsapp',
-        'jam_operasional',
         'foto_usaha',
         'status',
         'catatan_pengurus',
@@ -56,6 +55,11 @@ class Umkm extends Model
     public function produkUmkms(): HasMany
     {
         return $this->hasMany(ProdukUmkm::class);
+    }
+
+    public function jamOperasional(): HasMany
+    {
+        return $this->hasMany(JamOperasionalUmkm::class)->orderBy('hari');
     }
 
     public function getKategoriLabelAttribute(): string
@@ -103,6 +107,56 @@ class Umkm extends Model
         }
 
         return 'https://wa.me/'.$nomorBersih;
+    }
+
+    public function isBukaSekarang(): bool
+    {
+        if ($this->status !== 'approved') {
+            return false;
+        }
+
+        $jadwalHariIni = $this->jamOperasional
+            ->firstWhere('hari', JamOperasionalUmkm::getHariIni());
+
+        if (! $jadwalHariIni
+            || $jadwalHariIni->is_tutup
+            || ! $jadwalHariIni->jam_buka
+            || ! $jadwalHariIni->jam_tutup) {
+            return false;
+        }
+
+        $sekarang = now()->format('H:i:s');
+        $jamBuka = $jadwalHariIni->jam_buka->format('H:i:s');
+        $jamTutup = $jadwalHariIni->jam_tutup->format('H:i:s');
+
+        return $sekarang >= $jamBuka && $sekarang < $jamTutup;
+    }
+
+    public function getJamOperasionalRingkasAttribute(): string
+    {
+        $jadwal = $this->jamOperasional;
+
+        if ($jadwal->isEmpty()) {
+            return 'Belum diatur';
+        }
+
+        if ($jadwal->every(fn (JamOperasionalUmkm $item) => $item->is_tutup)) {
+            return 'Tutup';
+        }
+
+        $semuaHariTerisi = $jadwal->count() === count(JamOperasionalUmkm::HARI);
+        $semuaHariBuka = $jadwal->every(fn (JamOperasionalUmkm $item) => ! $item->is_tutup);
+        $jamUnik = $jadwal
+            ->map(fn (JamOperasionalUmkm $item) => $item->jam_teks)
+            ->unique();
+
+        if ($semuaHariTerisi && $semuaHariBuka && $jamUnik->count() === 1) {
+            $jam = $jadwal->first();
+
+            return 'Setiap hari '.$jam->jam_buka->format('H:i').'-'.$jam->jam_tutup->format('H:i');
+        }
+
+        return 'Lihat jam operasional';
     }
 
     public function scopeVisible(Builder $query): Builder

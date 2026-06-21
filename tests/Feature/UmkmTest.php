@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\JamOperasionalUmkm;
 use App\Models\ProdukUmkm;
 use App\Models\Role;
 use App\Models\Rt;
@@ -69,6 +70,22 @@ beforeEach(function () {
         'rt_id' => $this->rtLain->id,
     ]);
 
+    $this->jamOperasional = function (array $overrides = []): array {
+        return collect(JamOperasionalUmkm::HARI)
+            ->map(function (string $label, int $hari) use ($overrides) {
+                $default = [
+                    'hari' => $hari,
+                    'is_tutup' => $hari === 7,
+                    'jam_buka' => $hari === 7 ? null : '08:00',
+                    'jam_tutup' => $hari === 7 ? null : '17:00',
+                ];
+
+                return array_merge($default, $overrides[$hari] ?? []);
+            })
+            ->values()
+            ->all();
+    };
+
     $this->buatUmkm = function (array $attributes = []): Umkm {
         return Umkm::create(array_merge([
             'rw_id' => $this->rw->id,
@@ -79,7 +96,6 @@ beforeEach(function () {
             'deskripsi' => 'Menjual makanan rumahan segar untuk warga sekitar setiap hari.',
             'alamat_lokasi' => 'Blok A Nomor 10',
             'nomor_whatsapp' => '081234567890',
-            'jam_operasional' => '08:00-17:00 Senin-Sabtu',
             'status' => 'pending',
         ], $attributes));
     };
@@ -99,7 +115,7 @@ test('warga dapat mendaftarkan umkm dan statusnya pending', function () {
             'deskripsi' => 'Menyediakan aneka kue kering rumahan untuk acara dan pesanan warga.',
             'alamat_lokasi' => 'Blok A Nomor 12',
             'nomor_whatsapp' => '0812-3456-7890',
-            'jam_operasional' => '09:00-16:00 Senin-Sabtu',
+            'jam_operasional' => ($this->jamOperasional)(),
             'foto_usaha' => UploadedFile::fake()->image('usaha.jpg', 800, 600),
         ]);
 
@@ -180,7 +196,9 @@ test('pemilik mengedit umkm rejected dan status kembali pending', function () {
             'deskripsi' => 'Menjual makanan rumahan segar dengan menu harian lengkap dan layanan pesan antar.',
             'alamat_lokasi' => 'Blok A Nomor 10',
             'nomor_whatsapp' => '081234567890',
-            'jam_operasional' => '08:00-18:00 Setiap Hari',
+            'jam_operasional' => ($this->jamOperasional)([
+                1 => ['jam_tutup' => '18:00'],
+            ]),
         ])
         ->assertRedirect(route('umkm.show', $umkm))
         ->assertSessionHas('success');
@@ -308,4 +326,54 @@ test('whatsapp url membersihkan nomor dan mengganti awalan nol dengan kode indon
 
     $umkm->nomor_whatsapp = '+62 812-345-6789';
     expect($umkm->whatsapp_url)->toBe('https://wa.me/628123456789');
+});
+
+test('umkm menyimpan tujuh hari jam operasional dengan variasi yang benar', function () {
+    $jadwal = ($this->jamOperasional)([
+        1 => ['jam_buka' => '08:00', 'jam_tutup' => '19:00'],
+        2 => ['jam_buka' => '08:00', 'jam_tutup' => '19:00'],
+        3 => ['jam_buka' => '08:00', 'jam_tutup' => '19:00'],
+        4 => ['jam_buka' => '08:00', 'jam_tutup' => '19:00'],
+        5 => ['jam_buka' => '13:00', 'jam_tutup' => '19:00'],
+        6 => ['jam_buka' => '08:00', 'jam_tutup' => '17:00'],
+        7 => ['is_tutup' => true, 'jam_buka' => null, 'jam_tutup' => null],
+    ]);
+
+    $this->actingAs($this->warga)
+        ->post(route('umkm.store'), [
+            'nama_usaha' => 'Warung Jadwal Lengkap',
+            'kategori' => 'sembako',
+            'deskripsi' => 'Warung kebutuhan harian dengan jadwal operasional yang berbeda setiap akhir pekan.',
+            'alamat_lokasi' => 'Blok B Nomor 5',
+            'nomor_whatsapp' => '081234567890',
+            'jam_operasional' => $jadwal,
+        ])
+        ->assertRedirect(route('umkm.saya'))
+        ->assertSessionHas('success');
+
+    $umkm = Umkm::where('nama_usaha', 'Warung Jadwal Lengkap')->firstOrFail();
+    $jumat = $umkm->jamOperasional()->where('hari', 5)->firstOrFail();
+    $minggu = $umkm->jamOperasional()->where('hari', 7)->firstOrFail();
+
+    $this->assertDatabaseCount('jam_operasional_umkms', 7);
+    expect($umkm->jamOperasional()->count())->toBe(7)
+        ->and($jumat->jam_buka->format('H:i'))->toBe('13:00')
+        ->and($jumat->jam_tutup->format('H:i'))->toBe('19:00')
+        ->and($minggu->is_tutup)->toBeTrue()
+        ->and($minggu->jam_buka)->toBeNull()
+        ->and($minggu->jam_tutup)->toBeNull();
+});
+
+test('is buka sekarang mengikuti hari dan jam operasional', function () {
+    $umkm = ($this->buatUmkm)(['status' => 'approved']);
+    $umkm->jamOperasional()->createMany(($this->jamOperasional)());
+
+    Carbon::setTestNow(Carbon::parse('2026-06-22 10:00:00', 'Asia/Jakarta'));
+    expect($umkm->isBukaSekarang())->toBeTrue();
+
+    Carbon::setTestNow(Carbon::parse('2026-06-22 17:00:00', 'Asia/Jakarta'));
+    expect($umkm->isBukaSekarang())->toBeFalse();
+
+    Carbon::setTestNow(Carbon::parse('2026-06-28 10:00:00', 'Asia/Jakarta'));
+    expect($umkm->isBukaSekarang())->toBeFalse();
 });

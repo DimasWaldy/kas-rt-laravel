@@ -7,6 +7,7 @@ use App\Models\Umkm;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +21,7 @@ class UmkmController extends Controller
         $status = $request->string('status')->toString();
         $kategori = $request->string('kategori')->toString();
 
-        $query = Umkm::with(['pemilik', 'rt'])
+        $query = Umkm::with(['pemilik', 'rt', 'jamOperasional'])
             ->withCount(['produkUmkms' => fn ($query) => $query->where('is_available', true)])
             ->where('rw_id', $rwId)
             ->latest();
@@ -64,20 +65,35 @@ class UmkmController extends Controller
         abort_unless($user->hasPermission('daftar-umkm'), 403);
 
         $validated = $this->validateUmkm($request);
+        $jamOperasional = $validated['jam_operasional'];
         $fotoPath = $request->hasFile('foto_usaha')
             ? $request->file('foto_usaha')->store('umkm', 'local')
             : null;
 
-        unset($validated['foto_usaha']);
+        unset($validated['foto_usaha'], $validated['jam_operasional']);
 
-        $umkm = Umkm::create([
-            ...$validated,
-            'rw_id' => $this->resolveRwId($user),
-            'rt_id' => $user->rt_id,
-            'pemilik_id' => Auth::id(),
-            'foto_usaha' => $fotoPath,
-            'status' => 'pending',
-        ]);
+        try {
+            $umkm = DB::transaction(function () use ($validated, $jamOperasional, $fotoPath, $user) {
+                $umkm = Umkm::create([
+                    ...$validated,
+                    'rw_id' => $this->resolveRwId($user),
+                    'rt_id' => $user->rt_id,
+                    'pemilik_id' => Auth::id(),
+                    'foto_usaha' => $fotoPath,
+                    'status' => 'pending',
+                ]);
+
+                $this->createJamOperasional($umkm, $jamOperasional);
+
+                return $umkm;
+            });
+        } catch (\Throwable $exception) {
+            if ($fotoPath) {
+                Storage::disk('local')->delete($fotoPath);
+            }
+
+            throw $exception;
+        }
 
         return redirect()->route('umkm.saya')
             ->with('success', "Usaha {$umkm->nama_usaha} berhasil didaftarkan dan menunggu persetujuan pengurus.");
@@ -91,6 +107,7 @@ class UmkmController extends Controller
             'rt',
             'rw',
             'diprosesOleh',
+            'jamOperasional',
             'produkUmkms' => fn ($query) => $query->where('is_available', true)->latest(),
         ]);
 
@@ -111,6 +128,7 @@ class UmkmController extends Controller
     public function edit(Request $request, Umkm $umkm)
     {
         $this->authorizeEdit($request->user(), $umkm);
+        $umkm->load('jamOperasional');
 
         return view('umkm.edit', [
             'umkm' => $umkm,
@@ -124,14 +142,15 @@ class UmkmController extends Controller
         $this->authorizeEdit($user, $umkm);
 
         $validated = $this->validateUmkm($request);
+        $jamOperasional = $validated['jam_operasional'];
+        unset($validated['jam_operasional']);
         $previousStatus = $umkm->status;
+        $fotoLama = $umkm->foto_usaha;
+        $fotoBaru = null;
 
         if ($request->hasFile('foto_usaha')) {
-            if ($umkm->foto_usaha) {
-                Storage::disk('local')->delete($umkm->foto_usaha);
-            }
-
-            $validated['foto_usaha'] = $request->file('foto_usaha')->store('umkm', 'local');
+            $fotoBaru = $request->file('foto_usaha')->store('umkm', 'local');
+            $validated['foto_usaha'] = $fotoBaru;
         } else {
             unset($validated['foto_usaha']);
         }
@@ -143,7 +162,23 @@ class UmkmController extends Controller
             $validated['diproses_at'] = null;
         }
 
-        $umkm->update($validated);
+        try {
+            DB::transaction(function () use ($umkm, $validated, $jamOperasional) {
+                $umkm->update($validated);
+                $umkm->jamOperasional()->delete();
+                $this->createJamOperasional($umkm, $jamOperasional);
+            });
+        } catch (\Throwable $exception) {
+            if ($fotoBaru) {
+                Storage::disk('local')->delete($fotoBaru);
+            }
+
+            throw $exception;
+        }
+
+        if ($fotoBaru && $fotoLama) {
+            Storage::disk('local')->delete($fotoLama);
+        }
 
         return redirect()->route('umkm.show', $umkm)
             ->with('success', $previousStatus === 'rejected' && $umkm->status === 'pending'
@@ -155,7 +190,7 @@ class UmkmController extends Controller
     {
         abort_unless($request->user()->hasPermission('daftar-umkm'), 403);
 
-        $umkms = Umkm::with(['rt', 'produkUmkms'])
+        $umkms = Umkm::with(['rt', 'produkUmkms', 'jamOperasional'])
             ->where('pemilik_id', $request->user()->id)
             ->latest()
             ->get();
@@ -232,9 +267,39 @@ class UmkmController extends Controller
             'deskripsi' => ['required', 'string', 'min:20', 'max:1000'],
             'alamat_lokasi' => ['nullable', 'string', 'max:255'],
             'nomor_whatsapp' => ['required', 'string', 'regex:/^[0-9+\-\s]+$/', 'min:10', 'max:15'],
-            'jam_operasional' => ['nullable', 'string', 'max:100'],
+            'jam_operasional' => ['required', 'array', 'size:7'],
+            'jam_operasional.*.hari' => ['required', 'integer', 'between:1,7', 'distinct'],
+            'jam_operasional.*.is_tutup' => ['required', 'boolean'],
+            'jam_operasional.*.jam_buka' => [
+                'nullable',
+                'required_if:jam_operasional.*.is_tutup,false',
+                'date_format:H:i',
+            ],
+            'jam_operasional.*.jam_tutup' => [
+                'nullable',
+                'required_if:jam_operasional.*.is_tutup,false',
+                'date_format:H:i',
+                'after:jam_operasional.*.jam_buka',
+            ],
             'foto_usaha' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ]);
+    }
+
+    private function createJamOperasional(Umkm $umkm, array $jamOperasional): void
+    {
+        foreach ($jamOperasional as $jadwal) {
+            $isTutup = filter_var(
+                $jadwal['is_tutup'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
+            $umkm->jamOperasional()->create([
+                'hari' => $jadwal['hari'],
+                'is_tutup' => $isTutup,
+                'jam_buka' => $isTutup ? null : $jadwal['jam_buka'],
+                'jam_tutup' => $isTutup ? null : $jadwal['jam_tutup'],
+            ]);
+        }
     }
 
     private function authorizeVisible(User $user, Umkm $umkm): void
