@@ -28,7 +28,6 @@ test('admin dashboard exposes actionable finance and billing data', function () 
     $warga = User::factory()->create([
         'role_id' => $wargaRole->id,
         'rumah_id' => $rumah->id,
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => true,
     ]);
 
@@ -112,8 +111,6 @@ test('main dashboard remains stable after visiting admin dashboard', function ()
     $warga = User::factory()->create([
         'role_id' => $wargaRole->id,
         'name' => 'Warga Dashboard',
-        'no_kk' => '3174000000000001',
-        'is_kepala_keluarga' => true,
     ]);
 
     KasMasuk::create([

@@ -29,7 +29,7 @@
         </div>
         <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Jumlah KK</p>
-            <p class="mt-2 text-2xl font-black text-slate-900">{{ $rumah->warga->where('is_kepala_keluarga', true)->count() }}</p>
+            <p class="mt-2 text-2xl font-black text-slate-900">{{ $rumah->warga->filter(fn ($user) => $user->warga?->status_dalam_kk === 'kepala_keluarga')->count() }}</p>
         </div>
         <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">PJ Iuran</p>

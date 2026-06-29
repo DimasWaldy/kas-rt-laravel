@@ -189,7 +189,7 @@
         <div class="toggle-panel toggle-right absolute w-1/2 h-full flex flex-col items-center justify-center px-12 text-center top-0 right-0 transition-all duration-700 ease-in-out">
             <h1 class="text-3xl font-black mb-4 tracking-tighter uppercase">Belum Gabung?</h1>
             <p class="text-sm leading-relaxed mb-8 opacity-80">Daftar sekarang untuk akses penuh laporan keuangan.</p>
-            <button class="bg-transparent border-2 border-white/50 text-white text-xs py-3 px-12 rounded-2xl font-black uppercase hover:bg-white hover:text-blue-600 transition-all" id="register">Daftar Warga</button>
+            <a href="{{ route('register') }}" class="bg-transparent border-2 border-white/50 text-white text-xs py-3 px-12 rounded-2xl font-black uppercase hover:bg-white hover:text-blue-600 transition-all">Daftar Warga</a>
         </div>
 
     </div>
@@ -198,18 +198,12 @@
 
     <script>
         const container = document.getElementById('container');
-        const registerBtn = document.getElementById('register');
         const loginBtn = document.getElementById('login');
 
         // Initial State Check
         if (window.location.pathname.includes('register')) {
             container.classList.add("active");
         }
-
-        registerBtn.addEventListener('click', () => {
-            container.classList.add("active");
-            window.history.pushState({}, '', '/register'); 
-        });
 
         loginBtn.addEventListener('click', () => {
             container.classList.remove("active");

@@ -39,13 +39,11 @@ beforeEach(function () {
     $this->wargaRtSatu = User::factory()->create([
         'role_id' => $wargaRoleId,
         'rt_id' => $this->rtSatu->id,
-        'is_kepala_keluarga' => true,
     ]);
 
     $this->wargaRtDua = User::factory()->create([
         'role_id' => $wargaRoleId,
         'rt_id' => $this->rtDua->id,
-        'is_kepala_keluarga' => true,
     ]);
 });
 

@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
+use App\Models\Warga;
 use App\Notifications\PaymentReceived;
 use Illuminate\Support\Facades\Notification;
 
@@ -42,16 +43,19 @@ class TagihanController extends Controller
                 ->orderByDesc('tahun')
                 ->orderByDesc('bulan')
                 ->get();
-        } elseif ($user->is_kepala_keluarga) {
+        } elseif ($user->warga?->status_dalam_kk === 'kepala_keluarga') {
             $headUser = $user;
             $tagihan = Tagihan::where('user_id', $user->id)
                 ->orderByDesc('tahun')
                 ->orderByDesc('bulan')
                 ->get();
         } else {
-            $headUser = User::where('no_kk', $user->no_kk)
-                ->where('is_kepala_keluarga', true)
-                ->first();
+            $headUser = $user->warga?->kartu_keluarga_id
+                ? User::whereHas('warga', fn ($query) => $query
+                    ->where('kartu_keluarga_id', $user->warga->kartu_keluarga_id)
+                    ->where('status_dalam_kk', 'kepala_keluarga'))
+                    ->first()
+                : null;
 
             if ($headUser) {
                 $showHeadNotice = true;
@@ -90,7 +94,7 @@ class TagihanController extends Controller
             return redirect()->route('tagihan.index')->with('error', 'Hanya penanggung jawab rumah yang dapat membayar tagihan iuran.');
         }
 
-        if (! $user->rumah_id && ! $user->is_kepala_keluarga) {
+        if (! $user->rumah_id && $user->warga?->status_dalam_kk !== 'kepala_keluarga') {
             return redirect()->route('tagihan.index')->with('error', 'Hanya kepala keluarga yang dapat membayar tagihan KK.');
         }
 
@@ -188,7 +192,7 @@ class TagihanController extends Controller
 
         $users = User::whereRelation('role', 'name', 'warga')
             ->visibleTo($request->user())
-            ->where('is_kepala_keluarga', true)
+            ->whereHas('warga', fn ($query) => $query->where('status_dalam_kk', 'kepala_keluarga'))
             ->orderBy('name')
             ->get();
         $bulanList = [];
@@ -304,7 +308,7 @@ class TagihanController extends Controller
     {
         $users = User::whereRelation('role', 'name', 'warga')
             ->visibleTo(Auth::user())
-            ->where('is_kepala_keluarga', true)
+            ->whereHas('warga', fn ($query) => $query->where('status_dalam_kk', 'kepala_keluarga'))
             ->orderBy('name')
             ->get();
         $bulanList = [];
@@ -321,7 +325,7 @@ class TagihanController extends Controller
         $validated = $request->validated();
 
         $user = User::visibleTo($request->user())->findOrFail($validated['user_id']);
-        if ($user->role?->name !== 'warga' || !$user->is_kepala_keluarga) {
+        if ($user->role?->name !== 'warga' || $user->warga?->status_dalam_kk !== 'kepala_keluarga') {
             return redirect()->back()->with('error', 'User harus kepala keluarga.');
         }
 
@@ -371,7 +375,7 @@ class TagihanController extends Controller
 
         $users = User::whereRelation('role', 'name', 'warga')
             ->visibleTo(Auth::user())
-            ->where('is_kepala_keluarga', true)
+            ->whereHas('warga', fn ($query) => $query->where('status_dalam_kk', 'kepala_keluarga'))
             ->orderBy('name')
             ->get();
         $bulanList = [];

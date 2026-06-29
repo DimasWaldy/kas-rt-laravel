@@ -45,6 +45,9 @@ class RoleAndPermissionSeeder extends Seeder
             'manage-umkm' => 'Menyetujui dan mengelola UMKM warga',
             'daftar-umkm' => 'Mendaftarkan usaha sendiri',
             'view-umkm' => 'Melihat direktori UMKM',
+            'view-posyandu' => 'Melihat data Posyandu sesuai hak akses',
+            'manage-posyandu' => 'Mengelola data balita Posyandu',
+            'record-posyandu' => 'Mencatat dan memperbarui pemeriksaan Posyandu',
         ];
 
         $permissionModels = collect($permissions)->mapWithKeys(function (string $description, string $name) {
@@ -92,6 +95,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-umkm',
                     'daftar-umkm',
                     'view-umkm',
+                    'view-posyandu',
                 ],
             ],
             'sekretaris_rw' => [
@@ -121,6 +125,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-umkm',
                     'daftar-umkm',
                     'view-umkm',
+                    'view-posyandu',
+                    'manage-posyandu',
                 ],
             ],
             'bendahara_rw' => [
@@ -152,6 +158,16 @@ class RoleAndPermissionSeeder extends Seeder
                     'setor-sampah',
                 ],
             ],
+            'petugas_posyandu' => [
+                'description' => 'Petugas atau kader operasional Posyandu RW',
+                'permissions' => [
+                    'view-wilayah',
+                    'view-dashboard',
+                    'view-posyandu',
+                    'manage-posyandu',
+                    'record-posyandu',
+                ],
+            ],
             'ketua_rt' => [
                 'description' => 'Ketua RT, approve surat dan pengaduan RT',
                 'permissions' => [
@@ -177,6 +193,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-umkm',
                     'daftar-umkm',
                     'view-umkm',
+                    'view-posyandu',
                 ],
             ],
             'bendahara_rt' => [
@@ -223,6 +240,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-umkm',
                     'daftar-umkm',
                     'view-umkm',
+                    'view-posyandu',
+                    'manage-posyandu',
                 ],
             ],
             'bendahara' => [
@@ -269,6 +288,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-umkm',
                     'daftar-umkm',
                     'view-umkm',
+                    'view-posyandu',
+                    'manage-posyandu',
                 ],
             ],
             'warga' => [
@@ -291,6 +312,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'lapor-fasilitas',
                     'daftar-umkm',
                     'view-umkm',
+                    'view-posyandu',
                 ],
             ],
         ];

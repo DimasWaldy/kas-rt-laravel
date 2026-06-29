@@ -9,6 +9,7 @@ use App\Models\Pengaduan;
 use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
+use App\Models\Warga;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -51,7 +52,7 @@ class DashboardController extends Controller
         $chartDataDaily = $this->getDailyChartData();
 
         $totalWarga = User::whereRelation('role', 'name', 'warga')->count();
-        $totalKepalaKeluarga = User::where('is_kepala_keluarga', true)->count();
+        $totalKepalaKeluarga = Warga::where('status_dalam_kk', 'kepala_keluarga')->count();
 
         $wargaAktifBulanIni = Tagihan::where('bulan', now()->month)
             ->where('tahun', now()->year)

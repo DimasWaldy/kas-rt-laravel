@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\KasKeluar;
 use App\Models\KasMasuk;
+use App\Models\KartuKeluarga;
 use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
+use App\Models\Warga;
 
 class WelcomeController extends Controller
 {
@@ -18,8 +20,8 @@ class WelcomeController extends Controller
 
         $totalWarga = User::whereRelation('role', 'name', 'warga')->count();
         $totalRumah = Rumah::count();
-        $totalKK = User::whereNotNull('no_kk')->distinct('no_kk')->count('no_kk');
-        $totalKepalaKeluarga = User::where('is_kepala_keluarga', true)->count();
+        $totalKK = KartuKeluarga::count();
+        $totalKepalaKeluarga = Warga::where('status_dalam_kk', 'kepala_keluarga')->count();
         $totalRegistrations = User::count();
         $totalWargaByKK = $totalWarga;
 
@@ -33,9 +35,11 @@ class WelcomeController extends Controller
         $kepalaKeluargaAktif = $totalRumah ? $rumahAktifBulanIni : 0;
         $keluargaBelumBayar = $totalRumah ? max($totalRumah - $rumahAktifBulanIni, 0) : 0;
 
-        $iuranPerKK = KasMasuk::selectRaw('users.no_kk, users.name as kepala_keluarga, SUM(kas_masuks.jumlah) as total_iuran')
+        $iuranPerKK = KasMasuk::selectRaw('kartu_keluargas.no_kk, kartu_keluargas.nama_kepala_keluarga as kepala_keluarga, SUM(kas_masuks.jumlah) as total_iuran')
             ->join('users', 'kas_masuks.user_id', '=', 'users.id')
-            ->groupBy('users.no_kk', 'users.name')
+            ->join('wargas', 'users.id', '=', 'wargas.user_id')
+            ->join('kartu_keluargas', 'wargas.kartu_keluarga_id', '=', 'kartu_keluargas.id')
+            ->groupBy('kartu_keluargas.no_kk', 'kartu_keluargas.nama_kepala_keluarga')
             ->orderByDesc('total_iuran')
             ->limit(5)
             ->get();

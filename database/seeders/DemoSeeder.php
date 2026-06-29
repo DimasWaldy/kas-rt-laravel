@@ -3,13 +3,16 @@
 namespace Database\Seeders;
 
 use App\Models\IuranBulanan;
+use App\Models\KartuKeluarga;
 use App\Models\KasKeluar;
 use App\Models\KasMasuk;
 use App\Models\Pengaduan;
 use App\Models\Role;
+use App\Models\Rt;
 use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
+use App\Models\Warga;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -17,14 +20,19 @@ class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(RoleAndPermissionSeeder::class);
+        $this->call([
+            WilayahSeeder::class,
+            RoleAndPermissionSeeder::class,
+        ]);
 
         $roles = Role::whereIn('name', ['admin', 'bendahara', 'sekretaris', 'warga'])
             ->get()
             ->keyBy('name');
 
+        $rt = Rt::where('name', 'RT 01')->firstOrFail();
+
         $this->createPengurus($roles);
-        $warga = $this->createRumahDanWarga($roles['warga']);
+        $warga = $this->createRumahDanWarga($roles['warga'], $rt);
         $this->createIuranDanTagihan($warga);
         $this->createPengeluaran();
         $this->createPengaduan($warga);
@@ -53,7 +61,7 @@ class DemoSeeder extends Seeder
         }
     }
 
-    private function createRumahDanWarga(Role $wargaRole)
+    private function createRumahDanWarga(Role $wargaRole, Rt $rt)
     {
         $names = [
             'Budi Santoso', 'Siti Aminah', 'Agus Prasetyo', 'Dewi Lestari', 'Rudi Hartono',
@@ -78,11 +86,21 @@ class DemoSeeder extends Seeder
                     'alamat' => 'Jl. Melati No. ' . $i,
                     'rt' => '001',
                     'rw' => '002',
+                    'rt_id' => $rt->id,
                     'status' => 'aktif',
                 ]
             );
 
             $name = $names[$i - 1];
+            $noKk = '3174' . str_pad((string) $i, 12, '0', STR_PAD_LEFT);
+            $kartuKeluarga = KartuKeluarga::updateOrCreate(
+                ['no_kk' => $noKk],
+                [
+                    'rumah_id' => $rumah->id,
+                    'nama_kepala_keluarga' => $name,
+                ]
+            );
+
             $user = User::updateOrCreate(
                 ['email' => 'warga' . $i . '@kas-rt.test'],
                 [
@@ -90,14 +108,23 @@ class DemoSeeder extends Seeder
                     'password' => Hash::make('password'),
                     'role_id' => $wargaRole->id,
                     'rumah_id' => $rumah->id,
-                    'no_kk' => '3174' . str_pad((string) $i, 12, '0', STR_PAD_LEFT),
-                    'is_kepala_keluarga' => true,
+                    'rt_id' => $rt->id,
                     'is_penanggung_jawab_rumah' => true,
-                    'jumlah_anggota_keluarga' => fake()->numberBetween(2, 5),
                     'phone' => '0812' . str_pad((string) $i, 8, '0', STR_PAD_LEFT),
-                    'rt' => '001',
-                    'rw' => '002',
+                    'status_akun' => 'aktif',
                     'email_verified_at' => now(),
+                ]
+            );
+
+            Warga::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'kartu_keluarga_id' => $kartuKeluarga->id,
+                    'nama_lengkap' => $name,
+                    'status_dalam_kk' => 'kepala_keluarga',
+                    'status_verifikasi' => 'terverifikasi',
+                    'metode_verifikasi' => 'tatap_muka',
+                    'diverifikasi_at' => now(),
                 ]
             );
 
@@ -108,24 +135,43 @@ class DemoSeeder extends Seeder
         for ($i = 36; $i <= 50; $i++) {
             $rumah = Rumah::where('kode_rumah', 'A-' . str_pad((string) ($i - 35), 2, '0', STR_PAD_LEFT))->first();
             $name = $names[$i - 1];
+            $noKk = '3174' . str_pad((string) $i, 12, '0', STR_PAD_LEFT);
+            $kartuKeluarga = KartuKeluarga::updateOrCreate(
+                ['no_kk' => $noKk],
+                [
+                    'rumah_id' => $rumah->id,
+                    'nama_kepala_keluarga' => $name,
+                ]
+            );
 
-            $users->push(User::updateOrCreate(
+            $user = User::updateOrCreate(
                 ['email' => 'warga' . $i . '@kas-rt.test'],
                 [
                     'name' => $name,
                     'password' => Hash::make('password'),
                     'role_id' => $wargaRole->id,
                     'rumah_id' => $rumah->id,
-                    'no_kk' => '3174' . str_pad((string) $i, 12, '0', STR_PAD_LEFT),
-                    'is_kepala_keluarga' => true,
+                    'rt_id' => $rt->id,
                     'is_penanggung_jawab_rumah' => false,
-                    'jumlah_anggota_keluarga' => fake()->numberBetween(1, 4),
                     'phone' => '0813' . str_pad((string) $i, 8, '0', STR_PAD_LEFT),
-                    'rt' => '001',
-                    'rw' => '002',
+                    'status_akun' => 'aktif',
                     'email_verified_at' => now(),
                 ]
-            ));
+            );
+
+            Warga::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'kartu_keluarga_id' => $kartuKeluarga->id,
+                    'nama_lengkap' => $name,
+                    'status_dalam_kk' => 'kepala_keluarga',
+                    'status_verifikasi' => 'terverifikasi',
+                    'metode_verifikasi' => 'tatap_muka',
+                    'diverifikasi_at' => now(),
+                ]
+            );
+
+            $users->push($user);
         }
 
         return $users;

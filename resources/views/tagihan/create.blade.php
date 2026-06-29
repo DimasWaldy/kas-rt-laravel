@@ -29,7 +29,7 @@
                     <option value="">Pilih Kepala Keluarga</option>
                     @foreach($users as $user)
                         <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>
-                            {{ $user->name }} (RT {{ $user->rt }}/RW {{ $user->rw }})
+                            {{ $user->name }} ({{ $user->rt?->name ?? 'RT belum ditentukan' }})
                         </option>
                     @endforeach
                 </select>

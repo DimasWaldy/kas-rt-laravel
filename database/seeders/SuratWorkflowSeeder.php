@@ -2,10 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Models\KartuKeluarga;
 use App\Models\Role;
 use App\Models\Rt;
 use App\Models\Rumah;
 use App\Models\User;
+use App\Models\Warga;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -32,6 +34,14 @@ class SuratWorkflowSeeder extends Seeder
             ]
         );
 
+        $kartuKeluarga = KartuKeluarga::updateOrCreate(
+            ['no_kk' => '3273010101010001'],
+            [
+                'rumah_id' => $rumah->id,
+                'nama_kepala_keluarga' => 'Warga Demo Surat',
+            ]
+        );
+
         $warga = User::updateOrCreate(
             ['email' => 'warga.surat@smart-rw.test'],
             [
@@ -40,14 +50,22 @@ class SuratWorkflowSeeder extends Seeder
                 'role_id' => $wargaRole->id,
                 'rumah_id' => $rumah->id,
                 'rt_id' => $rt->id,
-                'no_kk' => '3273010101010001',
-                'is_kepala_keluarga' => true,
                 'is_penanggung_jawab_rumah' => true,
-                'jumlah_anggota_keluarga' => 4,
                 'phone' => '081200000101',
-                'rt' => '01',
-                'rw' => '05',
+                'status_akun' => 'aktif',
                 'email_verified_at' => now(),
+            ]
+        );
+
+        Warga::updateOrCreate(
+            ['user_id' => $warga->id],
+            [
+                'kartu_keluarga_id' => $kartuKeluarga->id,
+                'nama_lengkap' => $warga->name,
+                'status_dalam_kk' => 'kepala_keluarga',
+                'status_verifikasi' => 'terverifikasi',
+                'metode_verifikasi' => 'tatap_muka',
+                'diverifikasi_at' => now(),
             ]
         );
 
@@ -88,8 +106,7 @@ class SuratWorkflowSeeder extends Seeder
                     'password' => Hash::make('password'),
                     'role_id' => Role::where('name', $account['role'])->value('id'),
                     'rt_id' => $account['rt_id'],
-                    'rt' => $account['rt_id'] ? '01' : null,
-                    'rw' => '05',
+                    'status_akun' => 'aktif',
                     'email_verified_at' => now(),
                 ]
             );

@@ -25,7 +25,10 @@ class RumahController extends Controller
             ->visibleTo($request->user())
             ->withCount([
                 'warga',
-                'warga as kepala_keluarga_count' => fn($query) => $query->where('is_kepala_keluarga', true),
+                'warga as kepala_keluarga_count' => fn ($query) => $query->whereHas(
+                    'warga',
+                    fn ($warga) => $warga->where('status_dalam_kk', 'kepala_keluarga')
+                ),
             ])
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
@@ -87,7 +90,7 @@ class RumahController extends Controller
 
         $rumah->load([
             'penanggungJawab',
-            'warga' => fn ($query) => $query->orderByDesc('is_penanggung_jawab_rumah')->orderBy('name'),
+            'warga' => fn ($query) => $query->with('warga')->orderByDesc('is_penanggung_jawab_rumah')->orderBy('name'),
         ]);
 
         $tagihans = Tagihan::where('rumah_id', $rumah->id)
@@ -163,8 +166,6 @@ class RumahController extends Controller
                 User::whereKey($penanggungJawabId)->update([
                     'is_penanggung_jawab_rumah' => true,
                     'rt_id' => $rumah->rt_id,
-                    'rt' => $rumah->rt,
-                    'rw' => $rumah->rw,
                 ]);
             }
         });

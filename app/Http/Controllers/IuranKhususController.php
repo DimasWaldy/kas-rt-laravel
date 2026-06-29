@@ -155,7 +155,7 @@ class IuranKhususController extends Controller
             ->whereHas('role', fn (Builder $query) => $query->where('name', 'warga'))
             ->where(function (Builder $query) {
                 $query->where('is_penanggung_jawab_rumah', true)
-                    ->orWhere('is_kepala_keluarga', true);
+                    ->orWhereHas('warga', fn (Builder $warga) => $warga->where('status_dalam_kk', 'kepala_keluarga'));
             })
             ->orderBy('name');
     }

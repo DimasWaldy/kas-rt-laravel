@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\KartuKeluarga;
 use App\Models\Rumah;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\Warga;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,17 +19,19 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
-        $usersQuery = User::with('rumah')
+        $usersQuery = User::with(['rumah', 'warga.kartuKeluarga'])
             ->visibleTo($request->user())
             ->whereRelation('role', 'name', 'warga');
 
         if ($search = trim($request->input('search'))) {
             $usersQuery->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('no_kk', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('rt', 'like', "%{$search}%")
-                    ->orWhere('rw', 'like', "%{$search}%")
+                    ->orWhereHas('warga', function ($wargaQuery) use ($search) {
+                        $wargaQuery->where('nama_lengkap', 'like', "%{$search}%")
+                            ->orWhere('nik', 'like', "%{$search}%")
+                            ->orWhereHas('kartuKeluarga', fn ($kkQuery) => $kkQuery->where('no_kk', 'like', "%{$search}%"));
+                    })
                     ->orWhereHas('rumah', function ($rumahQuery) use ($search) {
                         $rumahQuery->where('kode_rumah', 'like', "%{$search}%")
                             ->orWhere('alamat', 'like', "%{$search}%");
@@ -37,9 +41,9 @@ class UserController extends Controller
 
         if ($request->filled('filter_head')) {
             if ($request->input('filter_head') === 'kepala') {
-                $usersQuery->where('is_kepala_keluarga', true);
+                $usersQuery->whereHas('warga', fn ($query) => $query->where('status_dalam_kk', 'kepala_keluarga'));
             } elseif ($request->input('filter_head') === 'warga') {
-                $usersQuery->where('is_kepala_keluarga', false);
+                $usersQuery->whereHas('warga', fn ($query) => $query->where('status_dalam_kk', 'anggota'));
             }
         }
 
@@ -71,14 +75,16 @@ class UserController extends Controller
 
         $validated = $request->validate($this->wargaRules($user), $this->wargaMessages());
 
-        $validated['is_kepala_keluarga'] = $request->boolean('is_kepala_keluarga');
+        $statusDalamKk = $request->boolean('is_kepala_keluarga') ? 'kepala_keluarga' : 'anggota';
         $validated['is_penanggung_jawab_rumah'] = $request->boolean('is_penanggung_jawab_rumah');
         $validated['rumah_id'] = $this->resolveRumahId($validated, $request->user());
         $validated['rt_id'] = $this->resolveRtId($validated['rumah_id'], $request->user(), $user->rt_id);
         unset($validated['rumah_kode'], $validated['rumah_alamat']);
 
-        DB::transaction(function () use ($user, $validated) {
-            $user->fill($validated);
+        DB::transaction(function () use ($user, $validated, $statusDalamKk) {
+            $user->fill(collect($validated)->only([
+                'name', 'email', 'password', 'phone', 'rumah_id', 'rt_id', 'is_penanggung_jawab_rumah',
+            ])->all());
 
             if ($user->isDirty('email')) {
                 $user->email_verified_at = null;
@@ -86,6 +92,7 @@ class UserController extends Controller
 
             $user->save();
 
+            $this->syncDataWarga($user, $validated, $statusDalamKk);
             $this->syncPenanggungJawabRumah($user);
         });
 
@@ -108,14 +115,17 @@ class UserController extends Controller
             ['name' => 'warga'],
             ['description' => 'Warga']
         )->id;
-        $validated['is_kepala_keluarga'] = $request->boolean('is_kepala_keluarga');
+        $statusDalamKk = $request->boolean('is_kepala_keluarga') ? 'kepala_keluarga' : 'anggota';
         $validated['is_penanggung_jawab_rumah'] = $request->boolean('is_penanggung_jawab_rumah');
         $validated['rumah_id'] = $this->resolveRumahId($validated, $request->user());
         $validated['rt_id'] = $this->resolveRtId($validated['rumah_id'], $request->user());
         unset($validated['rumah_kode'], $validated['rumah_alamat']);
 
-        DB::transaction(function () use ($validated) {
-            $user = User::create($validated);
+        DB::transaction(function () use ($validated, $statusDalamKk) {
+            $user = User::create(collect($validated)->only([
+                'name', 'email', 'password', 'phone', 'role_id', 'rumah_id', 'rt_id', 'is_penanggung_jawab_rumah',
+            ])->all() + ['status_akun' => 'aktif']);
+            $this->syncDataWarga($user, $validated, $statusDalamKk);
             $this->syncPenanggungJawabRumah($user);
         });
 
@@ -189,10 +199,9 @@ class UserController extends Controller
             'rumah_kode' => ['nullable', 'string', 'max:50'],
             'rumah_alamat' => ['nullable', 'string', 'max:500'],
             'no_kk' => ['nullable', 'digits:16'],
+            'nik' => ['nullable', 'digits:16', 'unique:wargas,nik' . ($user?->warga ? ',' . $user->warga->id : '')],
+            'nama_lengkap' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'regex:/^[0-9]{10,13}$/'],
-            'rt' => ['nullable', 'regex:/^[0-9]{1,3}$/'],
-            'rw' => ['nullable', 'regex:/^[0-9]{1,3}$/'],
-            'jumlah_anggota_keluarga' => ['nullable', 'integer', 'min:1', 'max:20'],
             'is_kepala_keluarga' => ['nullable', 'boolean'],
             'is_penanggung_jawab_rumah' => ['nullable', 'boolean'],
         ];
@@ -202,11 +211,8 @@ class UserController extends Controller
     {
         return [
             'no_kk.digits' => 'Nomor KK harus berisi 16 digit angka.',
+            'nik.digits' => 'NIK harus berisi 16 digit angka.',
             'phone.regex' => 'Nomor HP harus berisi angka saja, minimal 10 digit dan maksimal 13 digit.',
-            'rt.regex' => 'RT harus berisi angka saja, maksimal 3 digit.',
-            'rw.regex' => 'RW harus berisi angka saja, maksimal 3 digit.',
-            'jumlah_anggota_keluarga.min' => 'Jumlah anggota keluarga minimal 1 orang.',
-            'jumlah_anggota_keluarga.max' => 'Jumlah anggota keluarga maksimal 20 orang.',
         ];
     }
 
@@ -224,11 +230,55 @@ class UserController extends Controller
             Rumah::whereKey($user->rumah_id)->update([
                 'penanggung_jawab_id' => $user->id,
                 'rt_id' => $user->rt_id,
-                'rt' => $user->getRawOriginal('rt'),
-                'rw' => $user->rw,
             ]);
         } elseif (Rumah::whereKey($user->rumah_id)->where('penanggung_jawab_id', $user->id)->exists()) {
             Rumah::whereKey($user->rumah_id)->update(['penanggung_jawab_id' => null]);
         }
+    }
+
+    private function syncDataWarga(User $user, array $data, string $statusDalamKk): void
+    {
+        $kartuKeluargaId = $user->warga?->kartu_keluarga_id;
+
+        if (filled($data['no_kk'] ?? null)) {
+            $kartuKeluarga = KartuKeluarga::firstOrCreate(
+                ['no_kk' => $data['no_kk']],
+                [
+                    'rumah_id' => $user->rumah_id,
+                    'nama_kepala_keluarga' => $statusDalamKk === 'kepala_keluarga'
+                        ? $user->name
+                        : $data['nama_kepala_keluarga'] ?? $user->name,
+                ]
+            );
+
+            if ($kartuKeluarga->rumah_id && $user->rumah_id && $kartuKeluarga->rumah_id !== $user->rumah_id) {
+                throw ValidationException::withMessages([
+                    'no_kk' => 'Nomor KK tersebut sudah terdaftar di rumah lain.',
+                ]);
+            }
+
+            $kartuKeluarga->update([
+                'rumah_id' => $kartuKeluarga->rumah_id ?? $user->rumah_id,
+                'nama_kepala_keluarga' => $statusDalamKk === 'kepala_keluarga'
+                    ? $user->name
+                    : $kartuKeluarga->nama_kepala_keluarga,
+            ]);
+
+            $kartuKeluargaId = $kartuKeluarga->id;
+        }
+
+        Warga::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'kartu_keluarga_id' => $kartuKeluargaId,
+                'nik' => $data['nik'] ?? $user->warga?->nik,
+                'nama_lengkap' => $data['nama_lengkap'] ?? $user->name,
+                'status_dalam_kk' => $statusDalamKk,
+                'status_verifikasi' => 'terverifikasi',
+                'metode_verifikasi' => 'tatap_muka',
+                'diverifikasi_oleh' => auth()->id(),
+                'diverifikasi_at' => now(),
+            ]
+        );
     }
 }

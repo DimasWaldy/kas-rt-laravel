@@ -11,15 +11,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'rt_id', 'no_kk', 'is_kepala_keluarga', 'is_penanggung_jawab_rumah', 'jumlah_anggota_keluarga', 'phone', 'rt', 'rw'])]
+#[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'rt_id', 'is_penanggung_jawab_rumah', 'phone', 'status_akun'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    protected $attributes = [
+        'status_akun' => 'aktif',
+    ];
 
     public function routeNotificationForWhatsapp(): ?string
     {
@@ -40,9 +45,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'is_kepala_keluarga' => 'boolean',
             'is_penanggung_jawab_rumah' => 'boolean',
-            'jumlah_anggota_keluarga' => 'integer',
             'role_id' => 'integer',
             'rumah_id' => 'integer',
             'rt_id' => 'integer',
@@ -52,6 +55,11 @@ class User extends Authenticatable
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
+    }
+
+    public function warga(): HasOne
+    {
+        return $this->hasOne(Warga::class);
     }
 
     public function rumah(): BelongsTo
@@ -108,6 +116,16 @@ class User extends Authenticatable
         return $this->isGlobalOperator();
     }
 
+    public function isPendingVerifikasi(): bool
+    {
+        return $this->status_akun === 'pending_verifikasi';
+    }
+
+    public function isAktif(): bool
+    {
+        return $this->status_akun === 'aktif';
+    }
+
     public function isGlobalOperator(): bool
     {
         return in_array($this->role_name, ['admin', 'super_admin'], true);
@@ -137,11 +155,11 @@ class User extends Authenticatable
     public function getProfileStatusAttribute(): string
     {
         $required = [
-            $this->no_kk,
+            $this->warga?->kartuKeluarga?->no_kk,
             $this->phone,
-            $this->rt,
-            $this->rw,
-            $this->jumlah_anggota_keluarga,
+            $this->rumah_id,
+            $this->rt_id,
+            $this->warga?->status_dalam_kk,
         ];
 
         return collect($required)->every(fn($value) => filled($value))

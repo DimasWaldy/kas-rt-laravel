@@ -91,30 +91,6 @@
                     @enderror
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-slate-700">RT</label>
-                    <input type="text" name="rt" value="{{ old('rt') }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
-                    @error('rt')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700">RW</label>
-                    <input type="text" name="rw" value="{{ old('rw') }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
-                    @error('rw')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700">Jumlah Anggota Keluarga</label>
-                    <input type="number" name="jumlah_anggota_keluarga" value="{{ old('jumlah_anggota_keluarga') }}" min="1" max="20" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
-                    @error('jumlah_anggota_keluarga')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
                 <div class="flex items-center gap-3">
                     <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
                         <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('is_kepala_keluarga') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">

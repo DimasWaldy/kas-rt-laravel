@@ -14,24 +14,47 @@ use App\Http\Controllers\KasKeluarController;
 use App\Http\Controllers\KasMasukController;
 use App\Http\Controllers\LaporanKasController;
 use App\Http\Controllers\PeminjamanAsetController;
+use App\Http\Controllers\PemeriksaanPosyanduController;
 use App\Http\Controllers\PenarikanSampahController;
 use App\Http\Controllers\PenjualanSampahController;
 use App\Http\Controllers\ProdukUmkmController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PosyanduController;
 use App\Http\Controllers\PengaduanFasilitasController;
 use App\Http\Controllers\SetoranSampahController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\UmkmController;
+use App\Http\Controllers\VerifikasiWargaController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\SuratController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'warga.terverifikasi'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/verifikasi-menunggu', [VerifikasiWargaController::class, 'menunggu'])
+        ->name('verifikasi.menunggu');
+});
+
+Route::middleware(['auth', 'permission:manage-warga'])->group(function () {
+    Route::get('/verifikasi-warga', [VerifikasiWargaController::class, 'index'])
+        ->name('verifikasi-warga.index');
+    Route::get('/verifikasi-warga/{warga}', [VerifikasiWargaController::class, 'show'])
+        ->name('verifikasi-warga.show');
+    Route::get('/verifikasi-warga/{warga}/dokumen/{jenis}', [VerifikasiWargaController::class, 'dokumen'])
+        ->name('verifikasi-warga.dokumen');
+    Route::patch('/verifikasi-warga/{warga}/verifikasi', [VerifikasiWargaController::class, 'verifikasi'])
+        ->name('verifikasi-warga.verifikasi');
+    Route::patch('/verifikasi-warga/{warga}/tolak', [VerifikasiWargaController::class, 'tolak'])
+        ->name('verifikasi-warga.tolak');
+    Route::get('/api/rumah/{rumah}/kartu-keluarga', [VerifikasiWargaController::class, 'getKkDiRumah'])
+        ->name('api.rumah.kk');
+});
+
+Route::middleware(['auth', 'warga.terverifikasi'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -49,7 +72,7 @@ Route::middleware('auth')->group(function () {
     })->name('notifications.read-all');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'warga.terverifikasi'])->group(function () {
     Route::get('/kas-masuk', [KasMasukController::class, 'index'])->name('kas-masuk.index');
 
     Route::middleware(['permission:manage-finance'])->group(function () {
@@ -58,7 +81,7 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'warga.terverifikasi'])->group(function () {
     Route::get('/kas-keluar', [KasKeluarController::class, 'index'])->name('kas-keluar.index');
 
     Route::middleware(['permission:manage-finance'])->group(function () {
@@ -143,6 +166,35 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/surat/{surat}/setujui-rw', [SuratController::class, 'approveRw'])->name('surat.approve-rw');
     Route::patch('/surat/{surat}/tolak', [SuratController::class, 'reject'])->name('surat.reject');
     Route::get('/surat/{surat}/cetak', [SuratController::class, 'print'])->name('surat.print');
+
+    Route::middleware('permission:manage-posyandu')->group(function () {
+        Route::get('/posyandu/balita/create', [PosyanduController::class, 'create'])
+            ->name('posyandu.create');
+        Route::post('/posyandu/balita', [PosyanduController::class, 'store'])
+            ->name('posyandu.store');
+        Route::get('/posyandu/balita/{balita}/edit', [PosyanduController::class, 'edit'])
+            ->name('posyandu.edit');
+        Route::put('/posyandu/balita/{balita}', [PosyanduController::class, 'update'])
+            ->name('posyandu.update');
+        Route::patch('/posyandu/balita/{balita}/toggle-active', [PosyanduController::class, 'toggleActive'])
+            ->name('posyandu.toggle-active');
+    });
+
+    Route::middleware('permission:record-posyandu')->group(function () {
+        Route::post('/posyandu/balita/{balita}/pemeriksaan', [PemeriksaanPosyanduController::class, 'store'])
+            ->name('posyandu.pemeriksaan.store');
+        Route::put('/posyandu/pemeriksaan/{pemeriksaan}', [PemeriksaanPosyanduController::class, 'update'])
+            ->name('posyandu.pemeriksaan.update');
+        Route::delete('/posyandu/pemeriksaan/{pemeriksaan}', [PemeriksaanPosyanduController::class, 'destroy'])
+            ->name('posyandu.pemeriksaan.destroy');
+    });
+
+    Route::middleware('permission:view-posyandu')->group(function () {
+        Route::get('/posyandu', [PosyanduController::class, 'index'])
+            ->name('posyandu.index');
+        Route::get('/posyandu/balita/{balita}', [PosyanduController::class, 'show'])
+            ->name('posyandu.show');
+    });
 
     Route::middleware('permission:manage-kegiatan')->group(function () {
         Route::get('/kegiatan/create', [KegiatanController::class, 'create'])->name('kegiatan.create');

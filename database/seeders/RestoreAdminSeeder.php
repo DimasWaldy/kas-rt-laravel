@@ -42,7 +42,7 @@ class RestoreAdminSeeder extends Seeder
                     'name' => $data['name'],
                     'password' => Hash::make('password'),
                     'role_id' => $data['role']->id,
-                    'is_kepala_keluarga' => false,
+                    'status_akun' => 'aktif',
                     'email_verified_at' => now(),
                 ]
             );

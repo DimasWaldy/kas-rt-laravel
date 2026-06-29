@@ -35,10 +35,6 @@ class ProfileController extends Controller
 
         $validated = $request->validated();
 
-        if ($request->has('no_kk')) {
-            $validated['is_kepala_keluarga'] = $request->boolean('is_kepala_keluarga');
-        }
-
         $validated['is_penanggung_jawab_rumah'] = $request->boolean('is_penanggung_jawab_rumah');
         $validated['rumah_id'] = $this->resolveRumahId($validated, $user);
         if ($validated['rumah_id']) {
@@ -113,8 +109,6 @@ class ProfileController extends Controller
         $rumah ??= Rumah::create([
                 'kode_rumah' => $kodeRumah,
                 'alamat' => $data['rumah_alamat'] ?? null,
-                'rt' => $data['rt'] ?? null,
-                'rw' => $data['rw'] ?? null,
                 'rt_id' => $user->rt_id,
             ]);
 
@@ -139,8 +133,6 @@ class ProfileController extends Controller
             Rumah::whereKey($user->rumah_id)->update([
                 'penanggung_jawab_id' => $user->id,
                 'rt_id' => $user->rt_id,
-                'rt' => $user->getRawOriginal('rt'),
-                'rw' => $user->rw,
             ]);
         } elseif (Rumah::whereKey($user->rumah_id)->where('penanggung_jawab_id', $user->id)->exists()) {
             Rumah::whereKey($user->rumah_id)->update(['penanggung_jawab_id' => null]);

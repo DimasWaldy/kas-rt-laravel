@@ -46,7 +46,6 @@
                         <th class="px-4 py-3 text-left">No. KK</th>
                         <th class="px-4 py-3 text-left">Telepon</th>
                         <th class="px-4 py-3 text-left">RT/RW</th>
-                        <th class="px-4 py-3 text-left">Jumlah Keluarga</th>
                         <th class="px-4 py-3 text-left">Kepala KK</th>
                         <th class="px-4 py-3 text-left">PJ Iuran</th>
                         <th class="px-4 py-3 text-left">Status Profil</th>
@@ -59,13 +58,12 @@
                             <td class="px-4 py-4 text-slate-700">{{ $user->name }}</td>
                             <td class="px-4 py-4 text-slate-500">{{ $user->email }}</td>
                             <td class="px-4 py-4 text-slate-700">{{ $user->rumah?->kode_rumah ?? '-' }}</td>
-                            <td class="px-4 py-4 text-slate-700">{{ $user->no_kk ?? '-' }}</td>
+                            <td class="px-4 py-4 text-slate-700">{{ $user->warga?->kartuKeluarga?->no_kk ?? '-' }}</td>
                             <td class="px-4 py-4 text-slate-700">{{ $user->phone ?? '-' }}</td>
-                            <td class="px-4 py-4 text-slate-700">{{ trim(($user->rt ?? '-') . '/' . ($user->rw ?? '-'), '/') }}</td>
-                            <td class="px-4 py-4 text-slate-700">{{ $user->jumlah_anggota_keluarga ?? '-' }}</td>
+                            <td class="px-4 py-4 text-slate-700">{{ $user->rt?->name ?? '-' }}</td>
                             <td class="px-4 py-4">
-                                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $user->is_kepala_keluarga ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">
-                                    {{ $user->is_kepala_keluarga ? 'Ya' : 'Tidak' }}
+                                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $user->warga?->status_dalam_kk === 'kepala_keluarga' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">
+                                    {{ $user->warga?->status_dalam_kk === 'kepala_keluarga' ? 'Ya' : 'Tidak' }}
                                 </span>
                             </td>
                             <td class="px-4 py-4">
@@ -91,7 +89,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="px-4 py-6 text-center text-slate-500">Tidak ada warga terdaftar.</td>
+                            <td colspan="10" class="px-4 py-6 text-center text-slate-500">Tidak ada warga terdaftar.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -145,12 +143,6 @@
                         @if(old('_form') === 'admin_warga') @error('password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700">Jumlah Anggota Keluarga</label>
-                        <input type="number" name="jumlah_anggota_keluarga" value="{{ old('_form') === 'admin_warga' ? old('jumlah_anggota_keluarga') : 1 }}" min="1" max="20" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('jumlah_anggota_keluarga') border-red-500 @enderror @endif">
-                        @if(old('_form') === 'admin_warga') @error('jumlah_anggota_keluarga') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
-                    </div>
-
                     <div class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
                         <h3 class="text-sm font-black text-emerald-900">Data Rumah / Unit Hunian</h3>
                         <p class="mt-1 text-xs text-emerald-700">Tagihan iuran dibuat per rumah. Satu rumah bisa punya lebih dari satu KK.</p>
@@ -188,18 +180,6 @@
                         <label class="block text-sm font-bold text-slate-700">Telepon</label>
                         <input type="text" name="phone" value="{{ old('_form') === 'admin_warga' ? old('phone') : '' }}" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" placeholder="10-13 digit angka" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('phone') border-red-500 @enderror @endif">
                         @if(old('_form') === 'admin_warga') @error('phone') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700">RT</label>
-                        <input type="text" name="rt" value="{{ old('_form') === 'admin_warga' ? old('rt') : '' }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('rt') border-red-500 @enderror @endif">
-                        @if(old('_form') === 'admin_warga') @error('rt') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700">RW</label>
-                        <input type="text" name="rw" value="{{ old('_form') === 'admin_warga' ? old('rw') : '' }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('rw') border-red-500 @enderror @endif">
-                        @if(old('_form') === 'admin_warga') @error('rw') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
                     </div>
 
                     <label class="inline-flex items-center gap-2 text-sm font-bold text-slate-700">

@@ -6,6 +6,7 @@ use App\Models\Rt;
 use App\Models\Rw;
 use App\Models\Tagihan;
 use App\Models\User;
+use App\Models\Warga;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -40,23 +41,27 @@ beforeEach(function () {
     $this->wargaSatu = User::factory()->create([
         'role_id' => $roleId('warga'),
         'rt_id' => $this->rtSatu->id,
-        'is_kepala_keluarga' => true,
-        'no_kk' => '3174010101010001',
     ]);
 
     $this->wargaDua = User::factory()->create([
         'role_id' => $roleId('warga'),
         'rt_id' => $this->rtSatu->id,
-        'is_kepala_keluarga' => true,
-        'no_kk' => '3174010101010002',
     ]);
 
     $this->wargaRtDua = User::factory()->create([
         'role_id' => $roleId('warga'),
         'rt_id' => $this->rtDua->id,
-        'is_kepala_keluarga' => true,
-        'no_kk' => '3174010101010003',
     ]);
+
+    foreach ([$this->wargaSatu, $this->wargaDua, $this->wargaRtDua] as $wargaUser) {
+        Warga::create([
+            'user_id' => $wargaUser->id,
+            'nama_lengkap' => $wargaUser->name,
+            'status_dalam_kk' => 'kepala_keluarga',
+            'status_verifikasi' => 'terverifikasi',
+            'diverifikasi_at' => now(),
+        ]);
+    }
 
     $this->payload = [
         'jenis' => 'sosial',

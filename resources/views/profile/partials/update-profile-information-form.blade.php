@@ -65,45 +65,15 @@
             </div>
         </div>
 
-        <div>
-            <x-input-label for="no_kk" value="Nomor KK" />
-            <x-text-input id="no_kk" name="no_kk" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('no_kk', $user->no_kk)" required autocomplete="off" />
-            <x-input-error class="mt-2" :messages="$errors->get('no_kk')" />
-        </div>
-
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
                 <x-input-label for="phone" value="Nomor HP" />
                 <x-text-input id="phone" name="phone" type="text" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('phone', $user->phone)" required autocomplete="tel" />
                 <x-input-error class="mt-2" :messages="$errors->get('phone')" />
             </div>
-            <div>
-                <x-input-label for="rt" value="RT" />
-                <x-text-input id="rt" name="rt" type="text" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('rt', $user->rt)" required autocomplete="off" />
-                <x-input-error class="mt-2" :messages="$errors->get('rt')" />
-            </div>
-            <div>
-                <x-input-label for="rw" value="RW" />
-                <x-text-input id="rw" name="rw" type="text" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('rw', $user->rw)" required autocomplete="off" />
-                <x-input-error class="mt-2" :messages="$errors->get('rw')" />
-            </div>
         </div>
 
-        <div>
-            <x-input-label for="jumlah_anggota_keluarga" value="Jumlah Anggota Keluarga" />
-            <x-text-input id="jumlah_anggota_keluarga" name="jumlah_anggota_keluarga" type="number" min="1" max="20" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('jumlah_anggota_keluarga', $user->jumlah_anggota_keluarga)" required />
-            <x-input-error class="mt-2" :messages="$errors->get('jumlah_anggota_keluarga')" />
-        </div>
-
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700">
-                <input id="is_kepala_keluarga" name="is_kepala_keluarga" type="checkbox" class="mt-0.5 rounded border-gray-300 text-emerald-600 shadow-sm focus:ring-emerald-500" value="1" {{ old('is_kepala_keluarga', $user->is_kepala_keluarga) ? 'checked' : '' }}>
-                <span>
-                    Saya Kepala Keluarga
-                    <span class="block text-xs font-normal text-slate-500">Untuk data kependudukan/KK, bukan dasar tagihan.</span>
-                </span>
-            </label>
-
+        <div class="grid grid-cols-1 gap-3">
             <label class="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-900">
                 <input id="is_penanggung_jawab_rumah" name="is_penanggung_jawab_rumah" type="checkbox" class="mt-0.5 rounded border-emerald-300 text-emerald-600 shadow-sm focus:ring-emerald-500" value="1" {{ old('is_penanggung_jawab_rumah', $user->is_penanggung_jawab_rumah) ? 'checked' : '' }}>
                 <span>

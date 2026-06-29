@@ -27,6 +27,7 @@
         'sekretaris_rw' => 'Sekretaris RW',
         'bendahara_rw' => 'Bendahara RW',
         'petugas_bank_sampah' => 'Petugas Bank Sampah',
+        'petugas_posyandu' => 'Petugas Posyandu',
         'ketua_rt' => 'Ketua RT',
         'sekretaris_rt' => 'Sekretaris RT',
         'bendahara_rt' => 'Bendahara RT',
@@ -253,6 +254,14 @@
                     'icon' => 'fa-calendar-days',
                     'iconClass' => 'text-emerald-600',
                     'visible' => $user->hasPermission('view-kegiatan'),
+                ],
+                [
+                    'label' => 'Posyandu',
+                    'route' => 'posyandu.index',
+                    'active' => 'posyandu*',
+                    'icon' => 'fa-baby',
+                    'iconClass' => 'text-rose-500',
+                    'visible' => $user->hasPermission('view-posyandu'),
                 ],
                 [
                     'label' => 'Bank Sampah',
