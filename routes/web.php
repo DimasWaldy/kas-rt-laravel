@@ -30,13 +30,27 @@ use App\Http\Controllers\SuratController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified', 'warga.terverifikasi'])
-    ->name('dashboard');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/verifikasi-menunggu', [VerifikasiWargaController::class, 'menunggu'])
-        ->name('verifikasi.menunggu');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar'])->name('profile.avatar.destroy');
+
+    Route::post('/notifications/{id}/read', function (string $id) {
+        Auth::user()->notifications()->findOrFail($id)->markAsRead();
+
+        return back();
+    })->name('notifications.read');
+
+    Route::post('/notifications/read-all', function () {
+        Auth::user()->unreadNotifications->markAsRead();
+
+        return back();
+    })->name('notifications.read-all');
 });
 
 Route::middleware(['auth', 'permission:manage-warga'])->group(function () {
@@ -54,25 +68,7 @@ Route::middleware(['auth', 'permission:manage-warga'])->group(function () {
         ->name('api.rumah.kk');
 });
 
-Route::middleware(['auth', 'warga.terverifikasi'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    Route::post('/notifications/{id}/read', function (string $id) {
-        Auth::user()->notifications()->findOrFail($id)->markAsRead();
-
-        return back();
-    })->name('notifications.read');
-
-    Route::post('/notifications/read-all', function () {
-        Auth::user()->unreadNotifications->markAsRead();
-
-        return back();
-    })->name('notifications.read-all');
-});
-
-Route::middleware(['auth', 'warga.terverifikasi'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/kas-masuk', [KasMasukController::class, 'index'])->name('kas-masuk.index');
 
     Route::middleware(['permission:manage-finance'])->group(function () {
@@ -81,7 +77,7 @@ Route::middleware(['auth', 'warga.terverifikasi'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'warga.terverifikasi'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/kas-keluar', [KasKeluarController::class, 'index'])->name('kas-keluar.index');
 
     Route::middleware(['permission:manage-finance'])->group(function () {

@@ -33,14 +33,27 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    /**
-     * Attempt to authenticate the request's credentials.
-     *
-     * @throws ValidationException
-     */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+
+        $user = \App\Models\User::where('email', $this->email)->first();
+
+        if ($user && \Illuminate\Support\Facades\Hash::check($this->password, $user->password)) {
+            if ($user->status_akun === 'pending_verifikasi') {
+                RateLimiter::hit($this->throttleKey());
+                throw ValidationException::withMessages([
+                    'email' => 'Akun Anda belum diaktifkan oleh pengurus RT. Mohon tunggu konfirmasi dari pengurus RT Anda.',
+                ]);
+            }
+
+            if ($user->status_akun === 'ditolak') {
+                RateLimiter::hit($this->throttleKey());
+                throw ValidationException::withMessages([
+                    'email' => 'Pendaftaran Anda ditolak. Hubungi pengurus RT untuk informasi lebih lanjut.',
+                ]);
+            }
+        }
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());

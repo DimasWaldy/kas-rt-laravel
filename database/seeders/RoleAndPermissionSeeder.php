@@ -173,6 +173,7 @@ class RoleAndPermissionSeeder extends Seeder
                 'permissions' => [
                     'view-wilayah',
                     'view-dashboard',
+                    'manage-warga',
                     'manage-pengaduan',
                     'view-finance',
                     'view-surat',

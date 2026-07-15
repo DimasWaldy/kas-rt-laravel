@@ -52,13 +52,27 @@ class ProfileController extends Controller
         }
 
         DB::transaction(function () use ($user, $validated) {
-            $user->fill($validated);
+            $user->fill([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? $user->phone,
+                'rumah_id' => $validated['rumah_id'] ?? $user->rumah_id,
+                'rt_id' => $validated['rt_id'] ?? $user->rt_id,
+                'is_penanggung_jawab_rumah' => $validated['is_penanggung_jawab_rumah'] ?? $user->is_penanggung_jawab_rumah,
+            ]);
 
             if ($user->isDirty('email')) {
                 $user->email_verified_at = null;
             }
 
             $user->save();
+
+            if ($user->warga) {
+                $user->warga->update([
+                    'nik' => $validated['nik'] ?? $user->warga->nik,
+                    'status_dalam_kk' => $validated['status_dalam_kk'] ?? $user->warga->status_dalam_kk,
+                ]);
+            }
 
             $this->syncPenanggungJawabRumah($user);
         });

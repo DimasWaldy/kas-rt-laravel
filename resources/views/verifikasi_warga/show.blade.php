@@ -6,28 +6,8 @@
 <div
     class="space-y-6"
     x-data='{
-        statusDalamKk: @js(old("status_dalam_kk", $warga->status_dalam_kk)),
-        rumahId: @js((string) old("rumah_id", $warga->rumah_diajukan_id ?? $warga->user?->rumah_id ?? "")),
-        kartuKeluargaId: @js((string) old("kartu_keluarga_id", "")),
-        kkOptions: [],
-        kkLoading: false,
-        showTolak: @js($errors->has("catatan_verifikasi")),
-        async loadKk() {
-            this.kkOptions = [];
-            if (!this.rumahId) return;
-            this.kkLoading = true;
-            try {
-                const response = await fetch(`${@js(url("/api/rumah"))}/${this.rumahId}/kartu-keluarga`, {
-                    headers: { "Accept": "application/json" }
-                });
-                if (!response.ok) throw new Error("Gagal mengambil daftar KK");
-                this.kkOptions = await response.json();
-            } finally {
-                this.kkLoading = false;
-            }
-        }
+        showTolak: @js($errors->has("catatan_verifikasi"))
     }'
-    x-init="if (rumahId) loadKk()"
 >
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -89,51 +69,6 @@
             <form method="POST" action="{{ route('verifikasi-warga.verifikasi', $warga) }}" class="mt-6 space-y-5">
                 @csrf
                 @method('PATCH')
-
-                <div>
-                    <label for="rumah_id" class="text-sm font-bold text-slate-700">Rumah final</label>
-                    <select id="rumah_id" name="rumah_id" x-model="rumahId" x-on:change="kartuKeluargaId = ''; loadKk()" required class="mt-2 w-full rounded-2xl border-slate-200 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="">Pilih rumah</option>
-                        @foreach ($rumahs as $rumah)
-                            <option value="{{ $rumah->id }}">{{ $rumah->label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <fieldset>
-                    <legend class="text-sm font-bold text-slate-700">Status dalam KK</legend>
-                    <div class="mt-2 grid gap-3 sm:grid-cols-2">
-                        <label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 p-4">
-                            <input type="radio" name="status_dalam_kk" value="kepala_keluarga" x-model="statusDalamKk" class="text-emerald-600 focus:ring-emerald-500">
-                            <span class="text-sm font-bold">Kepala Keluarga</span>
-                        </label>
-                        <label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 p-4">
-                            <input type="radio" name="status_dalam_kk" value="anggota" x-model="statusDalamKk" class="text-emerald-600 focus:ring-emerald-500">
-                            <span class="text-sm font-bold">Anggota Keluarga</span>
-                        </label>
-                    </div>
-                </fieldset>
-
-                <div x-show="statusDalamKk === 'kepala_keluarga'" x-cloak>
-                    <label for="no_kk" class="text-sm font-bold text-slate-700">Nomor KK baru</label>
-                    <input id="no_kk" name="no_kk" type="text" value="{{ old('no_kk') }}" :required="statusDalamKk === 'kepala_keluarga'" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" class="mt-2 w-full rounded-2xl border-slate-200 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-500" placeholder="16 digit Nomor KK">
-                </div>
-
-                <div x-show="statusDalamKk === 'anggota'" x-cloak>
-                    <label for="kartu_keluarga_id" class="text-sm font-bold text-slate-700">Kartu Keluarga di rumah ini</label>
-                    <select id="kartu_keluarga_id" name="kartu_keluarga_id" x-model="kartuKeluargaId" :required="statusDalamKk === 'anggota'" class="mt-2 w-full rounded-2xl border-slate-200 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="" x-text="kkLoading ? 'Memuat daftar KK...' : 'Pilih Kartu Keluarga'"></option>
-                        <template x-for="kk in kkOptions" :key="kk.id">
-                            <option :value="String(kk.id)" x-text="`${kk.no_kk} — ${kk.nama_kepala_keluarga}`"></option>
-                        </template>
-                    </select>
-                    <p x-show="!kkLoading && rumahId && kkOptions.length === 0" class="mt-2 text-xs text-amber-700">Belum ada KK di rumah ini. Pilih Kepala Keluarga untuk membuat KK baru.</p>
-                </div>
-
-                <div>
-                    <label for="nik" class="text-sm font-bold text-slate-700">NIK final</label>
-                    <input id="nik" name="nik" type="text" value="{{ old('nik', $warga->nik) }}" required inputmode="numeric" pattern="[0-9]{16}" maxlength="16" class="mt-2 w-full rounded-2xl border-slate-200 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-500" placeholder="16 digit NIK">
-                </div>
 
                 <div>
                     <label for="metode_verifikasi" class="text-sm font-bold text-slate-700">Metode verifikasi</label>

@@ -75,9 +75,9 @@
 </head>
 <body class="bg-slate-100 flex items-center justify-center min-h-screen font-sans p-4 overflow-hidden">
 
-    @if(session('success') || session('error'))
-    <div id="toast" class="fixed top-5 right-5 z-[9999] flex items-center p-4 w-full max-w-xs text-white {{ session('success') ? 'bg-emerald-500' : 'bg-rose-500' }} rounded-2xl shadow-2xl toast-animate">
-        <div class="ml-3 text-sm font-bold">{{ session('success') ?? session('error') }}</div>
+    @if(session('success') || session('error') || session('status'))
+    <div id="toast" class="fixed top-5 right-5 z-[9999] flex items-center p-4 w-full max-w-xs text-white {{ session('error') ? 'bg-rose-500' : 'bg-emerald-500' }} rounded-2xl shadow-2xl toast-animate">
+        <div class="ml-3 text-sm font-bold">{{ session('success') ?? session('status') ?? session('error') }}</div>
         <button type="button" onclick="closeToast()" class="ml-auto p-1.5 hover:bg-white/20 rounded-lg transition-colors">
             <i class="fa-solid fa-xmark"></i>
         </button>
@@ -105,30 +105,12 @@
                         <input type="email" name="email" placeholder="Email Aktif" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('email') }}" required>
                     </div>
                     <div class="relative">
-                        <i class="fa-solid fa-id-card absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="text" name="no_kk" placeholder="Nomor Kartu Keluarga (16 digit)" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" autocomplete="off" class="numeric-only w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('no_kk') }}" required>
-                    </div>
-                    <div class="relative">
                         <i class="fa-solid fa-phone absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="text" name="phone" placeholder="Nomor HP Kepala Keluarga (maks. 13 digit)" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" class="numeric-only w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('phone') }}" required>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <input type="text" name="rt" placeholder="RT" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="numeric-only bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('rt') }}" required>
-                        <input type="text" name="rw" placeholder="RW" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="numeric-only bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('rw') }}" required>
+                        <input type="text" name="phone" placeholder="Nomor HP" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" class="numeric-only w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('phone') }}" required>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <input type="password" name="password" placeholder="Password" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" required>
                         <input type="password" name="password_confirmation" placeholder="Konfirmasi" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" required>
-                    </div>
-                    <div class="relative">
-                        <i class="fa-solid fa-users absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="number" min="1" max="20" name="jumlah_anggota_keluarga" placeholder="Jumlah Anggota Keluarga" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('jumlah_anggota_keluarga') ?? 1 }}" required>
-                    </div>
-                    <div class="flex items-center justify-center gap-3 mt-3">
-                        <label class="inline-flex items-center gap-2 text-slate-600 text-sm">
-                            <input type="checkbox" name="is_kepala_keluarga" value="1" class="h-4 w-4 text-green-600 rounded" {{ old('is_kepala_keluarga') ? 'checked' : '' }}>
-                            Saya Kepala Keluarga
-                        </label>
                     </div>
                 </div>
 

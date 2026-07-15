@@ -49,6 +49,15 @@
                     'visible' => true,
                 ],
                 [
+                    'label' => 'Verifikasi Warga',
+                    'route' => 'verifikasi-warga.index',
+                    'active' => 'verifikasi-warga*',
+                    'icon' => 'fa-user-check',
+                    'iconClass' => 'text-emerald-600',
+                    'permission' => 'manage-warga',
+                    'visible' => $user->hasPermission('manage-warga'),
+                ],
+                [
                     'label' => 'Admin Dashboard',
                     'route' => 'admin.dashboard',
                     'active' => 'admin/dashboard',

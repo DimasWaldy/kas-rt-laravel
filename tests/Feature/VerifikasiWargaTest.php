@@ -10,13 +10,12 @@ use App\Notifications\WargaTerverifikasi;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Database\Seeders\WilayahSeeder;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 
 function buatCalonWarga(
-    Rt $rt,
-    Rumah $rumah,
     array $userAttributes = [],
     array $wargaAttributes = []
 ): Warga {
@@ -24,8 +23,6 @@ function buatCalonWarga(
 
     $user = User::factory()->create(array_merge([
         'role_id' => $role->id,
-        'rumah_id' => $rumah->id,
-        'rt_id' => $rt->id,
         'status_akun' => 'pending_verifikasi',
         'phone' => '081234567890',
     ], $userAttributes));
@@ -33,9 +30,7 @@ function buatCalonWarga(
     return Warga::create(array_merge([
         'user_id' => $user->id,
         'nama_lengkap' => $user->name,
-        'status_dalam_kk' => 'anggota',
         'status_verifikasi' => 'pending',
-        'rumah_diajukan_id' => $rumah->id,
     ], $wargaAttributes));
 }
 
@@ -46,14 +41,6 @@ beforeEach(function () {
     ]);
 
     $this->rt = Rt::where('name', 'RT 01')->firstOrFail();
-    $this->rumah = Rumah::create([
-        'kode_rumah' => 'TEST-VER-01',
-        'alamat' => 'Jl. Verifikasi No. 1',
-        'rt' => '01',
-        'rw' => '05',
-        'rt_id' => $this->rt->id,
-        'status' => 'aktif',
-    ]);
 
     $this->petugas = User::factory()->create([
         'role_id' => Role::where('name', 'sekretaris_rt')->value('id'),
@@ -62,73 +49,25 @@ beforeEach(function () {
     ]);
 });
 
-test('warga baru mendaftar tanpa nomor kk dan menjadi pending verifikasi', function () {
-    $screen = $this->get(route('register'));
+test('warga pending tidak bisa login', function () {
+    $warga = buatCalonWarga(['email' => 'pending@example.com']);
 
-    $screen->assertOk()
-        ->assertDontSee('name="no_kk"', false)
-        ->assertDontSee('name="jumlah_anggota_keluarga"', false);
-
-    $response = $this->post(route('register'), [
-        'name' => 'Akun Warga Baru',
-        'email' => 'warga.baru@example.test',
+    $response = $this->post(route('login'), [
+        'email' => 'pending@example.com',
         'password' => 'password',
-        'password_confirmation' => 'password',
-        'phone' => '081234567899',
-        'rumah_id' => $this->rumah->id,
-        'nama_lengkap' => 'Warga Baru Lengkap',
-        'status_dalam_kk' => 'anggota',
     ]);
 
-    $user = User::where('email', 'warga.baru@example.test')->firstOrFail();
-
-    $this->assertAuthenticatedAs($user);
-    $response->assertRedirect(route('verifikasi.menunggu'));
-    expect($user->status_akun)->toBe('pending_verifikasi')
-        ->and($user->warga->status_verifikasi)->toBe('pending')
-        ->and($user->warga->kartu_keluarga_id)->toBeNull()
-        ->and($user->warga->nik)->toBeNull();
-
-    expect(Schema::hasColumn('users', 'no_kk'))->toBeFalse();
+    $response->assertSessionHasErrors('email');
+    $this->assertGuest();
 });
 
-test('warga pending dialihkan dari seluruh fitur warga ke halaman menunggu', function () {
-    $warga = buatCalonWarga($this->rt, $this->rumah);
-
-    $this->actingAs($warga->user)
-        ->get(route('tagihan.index'))
-        ->assertRedirect(route('verifikasi.menunggu'));
-
-    $this->actingAs($warga->user)
-        ->get(route('surat.index'))
-        ->assertRedirect(route('verifikasi.menunggu'));
-
-    $this->actingAs($warga->user)
-        ->get(route('dashboard'))
-        ->assertRedirect(route('verifikasi.menunggu'));
-});
-
-test('rt dapat memverifikasi warga melalui dokumen dan mengaktifkan akun', function () {
+test('rt dapat memverifikasi warga dan mengaktifkan akun', function () {
     Notification::fake();
 
-    $warga = buatCalonWarga(
-        $this->rt,
-        $this->rumah,
-        [],
-        [
-            'status_dalam_kk' => 'kepala_keluarga',
-            'metode_verifikasi' => 'dokumen',
-            'dokumen_kk' => 'verifikasi-warga/kk-demo.pdf',
-            'dokumen_ktp' => 'verifikasi-warga/ktp-demo.pdf',
-        ]
-    );
+    $warga = buatCalonWarga();
 
     $response = $this->actingAs($this->petugas)
         ->patch(route('verifikasi-warga.verifikasi', $warga), [
-            'rumah_id' => $this->rumah->id,
-            'status_dalam_kk' => 'kepala_keluarga',
-            'no_kk' => '3273010101010001',
-            'nik' => '3273010202020001',
             'metode_verifikasi' => 'dokumen',
         ]);
 
@@ -142,7 +81,7 @@ test('rt dapat memverifikasi warga melalui dokumen dan mengaktifkan akun', funct
 });
 
 test('rt dapat menolak warga dengan alasan', function () {
-    $warga = buatCalonWarga($this->rt, $this->rumah);
+    $warga = buatCalonWarga();
 
     $response = $this->actingAs($this->petugas)
         ->patch(route('verifikasi-warga.tolak', $warga), [
@@ -156,110 +95,23 @@ test('rt dapat menolak warga dengan alasan', function () {
         ->and($warga->fresh()->diverifikasi_oleh)->toBe($this->petugas->id);
 });
 
-test('verifikasi kepala keluarga otomatis membuat kartu keluarga baru', function () {
-    $warga = buatCalonWarga(
-        $this->rt,
-        $this->rumah,
-        [],
-        ['status_dalam_kk' => 'kepala_keluarga']
-    );
+test('setelah diverifikasi warga dapat login', function () {
+    $warga = buatCalonWarga(['email' => 'warga@example.com']);
 
     $this->actingAs($this->petugas)
         ->patch(route('verifikasi-warga.verifikasi', $warga), [
-            'rumah_id' => $this->rumah->id,
-            'status_dalam_kk' => 'kepala_keluarga',
-            'no_kk' => '3273010101010002',
-            'nik' => '3273010202020002',
             'metode_verifikasi' => 'tatap_muka',
-        ])
-        ->assertRedirect(route('verifikasi-warga.index'));
+        ]);
 
-    $kartuKeluarga = KartuKeluarga::where('no_kk', '3273010101010002')->firstOrFail();
+    Auth::logout();
 
-    expect($kartuKeluarga->rumah_id)->toBe($this->rumah->id)
-        ->and($kartuKeluarga->nama_kepala_keluarga)->toBe($warga->nama_lengkap)
-        ->and($warga->fresh()->kartu_keluarga_id)->toBe($kartuKeluarga->id);
-});
-
-test('verifikasi anggota menghubungkan warga ke kk yang ada di rumah yang sama', function () {
-    $kartuKeluarga = KartuKeluarga::create([
-        'no_kk' => '3273010101010003',
-        'rumah_id' => $this->rumah->id,
-        'nama_kepala_keluarga' => 'Kepala Keluarga Lama',
+    $response = $this->post(route('login'), [
+        'email' => 'warga@example.com',
+        'password' => 'password',
     ]);
-    $warga = buatCalonWarga($this->rt, $this->rumah);
 
-    $this->actingAs($this->petugas)
-        ->patch(route('verifikasi-warga.verifikasi', $warga), [
-            'rumah_id' => $this->rumah->id,
-            'status_dalam_kk' => 'anggota',
-            'kartu_keluarga_id' => $kartuKeluarga->id,
-            'nik' => '3273010202020003',
-            'metode_verifikasi' => 'tatap_muka',
-        ])
-        ->assertRedirect(route('verifikasi-warga.index'));
-
-    expect($warga->fresh()->kartu_keluarga_id)->toBe($kartuKeluarga->id)
-        ->and($warga->fresh()->rumah_aktual->id)->toBe($this->rumah->id);
-});
-
-test('satu rumah dapat memiliki lebih dari satu kartu keluarga', function () {
-    $wargaPertama = buatCalonWarga(
-        $this->rt,
-        $this->rumah,
-        ['email' => 'kepala.satu@example.test'],
-        ['status_dalam_kk' => 'kepala_keluarga']
-    );
-    $wargaKedua = buatCalonWarga(
-        $this->rt,
-        $this->rumah,
-        ['email' => 'kepala.dua@example.test'],
-        ['status_dalam_kk' => 'kepala_keluarga']
-    );
-
-    foreach ([
-        [$wargaPertama, '3273010101010004', '3273010202020004'],
-        [$wargaKedua, '3273010101010005', '3273010202020005'],
-    ] as [$warga, $noKk, $nik]) {
-        $this->actingAs($this->petugas)
-            ->patch(route('verifikasi-warga.verifikasi', $warga), [
-                'rumah_id' => $this->rumah->id,
-                'status_dalam_kk' => 'kepala_keluarga',
-                'no_kk' => $noKk,
-                'nik' => $nik,
-                'metode_verifikasi' => 'tatap_muka',
-            ])
-            ->assertRedirect(route('verifikasi-warga.index'));
-    }
-
-    expect(KartuKeluarga::where('rumah_id', $this->rumah->id)->count())->toBe(2);
-});
-
-test('setelah diverifikasi warga dapat mengakses fitur normal', function () {
-    $warga = buatCalonWarga(
-        $this->rt,
-        $this->rumah,
-        [],
-        ['status_dalam_kk' => 'kepala_keluarga']
-    );
-
-    $this->actingAs($warga->user)
-        ->get(route('tagihan.index'))
-        ->assertRedirect(route('verifikasi.menunggu'));
-
-    $this->actingAs($this->petugas)
-        ->patch(route('verifikasi-warga.verifikasi', $warga), [
-            'rumah_id' => $this->rumah->id,
-            'status_dalam_kk' => 'kepala_keluarga',
-            'no_kk' => '3273010101010006',
-            'nik' => '3273010202020006',
-            'metode_verifikasi' => 'tatap_muka',
-        ])
-        ->assertRedirect(route('verifikasi-warga.index'));
-
-    $this->actingAs($warga->user->fresh())
-        ->get(route('tagihan.index'))
-        ->assertOk();
+    $this->assertAuthenticatedAs($warga->user);
+    $response->assertRedirect(route('dashboard'));
 });
 
 test('migration memindahkan user lama ke warga dan kartu keluarga tanpa kehilangan data', function () {

@@ -71,6 +71,22 @@
                 <x-text-input id="phone" name="phone" type="text" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('phone', $user->phone)" required autocomplete="tel" />
                 <x-input-error class="mt-2" :messages="$errors->get('phone')" />
             </div>
+
+            <div>
+                <x-input-label for="nik" value="NIK (16 Digit)" />
+                <x-text-input id="nik" name="nik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('nik', $user->warga?->nik)" placeholder="Opsional" />
+                <x-input-error class="mt-2" :messages="$errors->get('nik')" />
+            </div>
+
+            <div class="md:col-span-2">
+                <x-input-label for="status_dalam_kk" value="Status dalam Kartu Keluarga" />
+                <select id="status_dalam_kk" name="status_dalam_kk" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                    <option value="">Pilih Status (Opsional)</option>
+                    <option value="kepala_keluarga" {{ old('status_dalam_kk', $user->warga?->status_dalam_kk) === 'kepala_keluarga' ? 'selected' : '' }}>Kepala Keluarga</option>
+                    <option value="anggota" {{ old('status_dalam_kk', $user->warga?->status_dalam_kk) === 'anggota' ? 'selected' : '' }}>Anggota Keluarga</option>
+                </select>
+                <x-input-error class="mt-2" :messages="$errors->get('status_dalam_kk')" />
+            </div>
         </div>
 
         <div class="grid grid-cols-1 gap-3">

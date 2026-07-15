@@ -23,13 +23,10 @@ test('new users can register and wait for rt verification', function () {
         'password' => 'password',
         'password_confirmation' => 'password',
         'phone' => '081234567890',
-        'rumah_id' => $rumah->id,
-        'nama_lengkap' => 'Test User',
-        'status_dalam_kk' => 'anggota',
     ]);
 
-    $this->assertAuthenticated();
-    $response->assertRedirect(route('verifikasi.menunggu'));
+    $this->assertGuest();
+    $response->assertRedirect(route('login'));
 
     $user = User::where('email', 'test@example.com')->firstOrFail();
     $warga = Warga::where('user_id', $user->id)->firstOrFail();
@@ -39,17 +36,15 @@ test('new users can register and wait for rt verification', function () {
         ->and($warga->kartu_keluarga_id)->toBeNull();
 });
 
-test('registration validates phone and domicile', function () {
+test('registration validates phone and name', function () {
     $response = $this->post('/register', [
-        'name' => 'Test User',
+        'name' => '',
         'email' => 'test@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
         'phone' => '0812abc567890123',
-        'nama_lengkap' => 'Test User',
-        'status_dalam_kk' => 'anggota',
     ]);
 
-    $response->assertSessionHasErrors(['phone', 'rumah_id', 'rumah_baru_alamat']);
+    $response->assertSessionHasErrors(['phone', 'name']);
     $this->assertGuest();
 });
