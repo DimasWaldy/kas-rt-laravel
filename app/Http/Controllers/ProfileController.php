@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\KartuKeluarga;
+use App\Models\Rt;
 use App\Models\Rumah;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -22,7 +24,8 @@ class ProfileController extends Controller
     {
         return view('profile.edit', [
             'user' => auth()->user(),
-            'rumahs' => Rumah::visibleTo($request->user())->orderBy('kode_rumah')->get(),
+            'rumahs' => $this->profileRumahQuery($request->user())->orderBy('kode_rumah')->get(),
+            'rts' => $this->profileRtQuery($request->user())->with('rw')->orderBy('name')->get(),
         ]);
     }
 
@@ -36,9 +39,15 @@ class ProfileController extends Controller
         $validated = $request->validated();
 
         $validated['is_penanggung_jawab_rumah'] = $request->boolean('is_penanggung_jawab_rumah');
+        $validated['rt_id'] = $this->resolveProfileRtId($validated, $user);
         $validated['rumah_id'] = $this->resolveRumahId($validated, $user);
         if ($validated['rumah_id']) {
-            $validated['rt_id'] = Rumah::findOrFail($validated['rumah_id'])->rt_id;
+            $rumah = Rumah::findOrFail($validated['rumah_id']);
+            $validated['rt_id'] = $rumah->rt_id ?: $validated['rt_id'];
+
+            if (! $rumah->rt_id && $validated['rt_id']) {
+                $rumah->update(['rt_id' => $validated['rt_id']]);
+            }
         }
         unset($validated['rumah_kode'], $validated['rumah_alamat']);
 
@@ -67,12 +76,7 @@ class ProfileController extends Controller
 
             $user->save();
 
-            if ($user->warga) {
-                $user->warga->update([
-                    'nik' => $validated['nik'] ?? $user->warga->nik,
-                    'status_dalam_kk' => $validated['status_dalam_kk'] ?? $user->warga->status_dalam_kk,
-                ]);
-            }
+            $this->syncDataWarga($user, $validated);
 
             $this->syncPenanggungJawabRumah($user);
         });
@@ -104,7 +108,7 @@ class ProfileController extends Controller
     private function resolveRumahId(array $data, User $user): ?int
     {
         if (! empty($data['rumah_id'])) {
-            return Rumah::visibleTo($user)->findOrFail($data['rumah_id'])->id;
+            return $this->profileRumahQuery($user)->findOrFail($data['rumah_id'])->id;
         }
 
         if (blank($data['rumah_kode'] ?? null)) {
@@ -112,7 +116,7 @@ class ProfileController extends Controller
         }
 
         $kodeRumah = strtoupper(trim($data['rumah_kode']));
-        $rumah = Rumah::visibleTo($user)->where('kode_rumah', $kodeRumah)->first();
+        $rumah = $this->profileRumahQuery($user)->where('kode_rumah', $kodeRumah)->first();
 
         if (! $rumah && Rumah::where('kode_rumah', $kodeRumah)->exists()) {
             throw ValidationException::withMessages([
@@ -123,7 +127,7 @@ class ProfileController extends Controller
         $rumah ??= Rumah::create([
                 'kode_rumah' => $kodeRumah,
                 'alamat' => $data['rumah_alamat'] ?? null,
-                'rt_id' => $user->rt_id,
+                'rt_id' => $data['rt_id'] ?? $user->rt_id,
             ]);
 
         if (filled($data['rumah_alamat'] ?? null) && blank($rumah->alamat)) {
@@ -131,6 +135,92 @@ class ProfileController extends Controller
         }
 
         return $rumah->id;
+    }
+
+    private function profileRumahQuery(User $user)
+    {
+        $query = Rumah::query();
+
+        if ($user->canAccessAllRts()) {
+            return $query;
+        }
+
+        if ($user->role_name === 'warga') {
+            return $query->where('status', 'aktif');
+        }
+
+        if ($user->rt_id) {
+            return $query->where('rt_id', $user->rt_id);
+        }
+
+        return $query->where('status', 'aktif');
+    }
+
+    private function profileRtQuery(User $user)
+    {
+        $query = Rt::query()->where('is_active', true);
+
+        if ($user->canAccessAllRts() || $user->role_name === 'warga') {
+            return $query;
+        }
+
+        if ($user->rt_id) {
+            return $query->whereKey($user->rt_id);
+        }
+
+        return $query;
+    }
+
+    private function resolveProfileRtId(array $data, User $user): ?int
+    {
+        if (! empty($data['rt_id'])) {
+            return $this->profileRtQuery($user)->findOrFail($data['rt_id'])->id;
+        }
+
+        return $user->rt_id;
+    }
+
+    private function syncDataWarga(User $user, array $validated): void
+    {
+        $warga = $user->warga()->firstOrCreate([], [
+            'nama_lengkap' => $user->name,
+        ]);
+
+        $data = [
+            'nama_lengkap' => $user->name,
+            'nik' => $validated['nik'] ?? $warga->nik,
+            'status_dalam_kk' => $validated['status_dalam_kk'] ?? $warga->status_dalam_kk,
+        ];
+
+        if (filled($validated['no_kk'] ?? null)) {
+            $kartuKeluarga = KartuKeluarga::firstOrCreate(
+                ['no_kk' => $validated['no_kk']],
+                [
+                    'rumah_id' => $user->rumah_id,
+                    'nama_kepala_keluarga' => ($validated['status_dalam_kk'] ?? $warga->status_dalam_kk) === 'kepala_keluarga'
+                        ? $user->name
+                        : $user->name,
+                ]
+            );
+
+            if ($kartuKeluarga->rumah_id && $user->rumah_id && $kartuKeluarga->rumah_id !== $user->rumah_id) {
+                throw ValidationException::withMessages([
+                    'no_kk' => 'Nomor KK tersebut sudah terdaftar di rumah lain.',
+                ]);
+            }
+
+            if (! $kartuKeluarga->rumah_id && $user->rumah_id) {
+                $kartuKeluarga->update(['rumah_id' => $user->rumah_id]);
+            }
+
+            if (($validated['status_dalam_kk'] ?? $warga->status_dalam_kk) === 'kepala_keluarga') {
+                $kartuKeluarga->update(['nama_kepala_keluarga' => $user->name]);
+            }
+
+            $data['kartu_keluarga_id'] = $kartuKeluarga->id;
+        }
+
+        $warga->update($data);
     }
 
     private function syncPenanggungJawabRumah(User $user): void

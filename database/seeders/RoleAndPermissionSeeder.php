@@ -14,6 +14,7 @@ class RoleAndPermissionSeeder extends Seeder
             'admin-only' => 'Akses khusus admin utama',
             'manage-finance' => 'Mengelola kas, iuran, dan tagihan',
             'manage-warga' => 'Mengelola data warga',
+            'view-direktori-rw' => 'Melihat direktori RT, rumah, dan warga sesuai wilayah',
             'manage-pengaduan' => 'Mengelola tanggapan pengaduan warga',
             'view-dashboard' => 'Melihat dashboard aplikasi',
             'view-finance' => 'Melihat laporan kas dan tagihan',
@@ -48,6 +49,11 @@ class RoleAndPermissionSeeder extends Seeder
             'view-posyandu' => 'Melihat data Posyandu sesuai hak akses',
             'manage-posyandu' => 'Mengelola data balita Posyandu',
             'record-posyandu' => 'Mencatat dan memperbarui pemeriksaan Posyandu',
+            'view-koperasi' => 'Melihat dashboard dan transaksi koperasi',
+            'submit-koperasi' => 'Mendaftar anggota dan mengajukan transaksi koperasi',
+            'manage-koperasi' => 'Mengelola anggota dan transaksi koperasi',
+            'approve-koperasi' => 'Memverifikasi simpanan, pinjaman, dan angsuran koperasi',
+            'export-koperasi' => 'Mengekspor laporan koperasi',
         ];
 
         $permissionModels = collect($permissions)->mapWithKeys(function (string $description, string $name) {
@@ -72,6 +78,7 @@ class RoleAndPermissionSeeder extends Seeder
                 'description' => 'Ketua RW, monitoring lintas RT',
                 'permissions' => [
                     'view-wilayah',
+                    'view-direktori-rw',
                     'view-dashboard',
                     'view-finance',
                     'manage-pengaduan',
@@ -96,12 +103,17 @@ class RoleAndPermissionSeeder extends Seeder
                     'daftar-umkm',
                     'view-umkm',
                     'view-posyandu',
+                    'view-koperasi',
+                    'manage-koperasi',
+                    'approve-koperasi',
+                    'export-koperasi',
                 ],
             ],
             'sekretaris_rw' => [
                 'description' => 'Sekretaris RW, administrasi level RW',
                 'permissions' => [
                     'view-wilayah',
+                    'view-direktori-rw',
                     'view-dashboard',
                     'manage-pengaduan',
                     'manage-warga',
@@ -127,12 +139,14 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-umkm',
                     'view-posyandu',
                     'manage-posyandu',
+                    'view-koperasi',
                 ],
             ],
             'bendahara_rw' => [
                 'description' => 'Bendahara RW, rekap keuangan lintas RT',
                 'permissions' => [
                     'view-wilayah',
+                    'view-direktori-rw',
                     'view-dashboard',
                     'view-finance',
                     'export-finance',
@@ -145,12 +159,17 @@ class RoleAndPermissionSeeder extends Seeder
                     'setor-sampah',
                     'view-fasilitas',
                     'view-umkm',
+                    'view-koperasi',
+                    'manage-koperasi',
+                    'approve-koperasi',
+                    'export-koperasi',
                 ],
             ],
             'petugas_bank_sampah' => [
                 'description' => 'Petugas operasional bank sampah RW',
                 'permissions' => [
                     'view-wilayah',
+                    'view-direktori-rw',
                     'view-dashboard',
                     'view-kegiatan',
                     'manage-bank-sampah',
@@ -162,6 +181,7 @@ class RoleAndPermissionSeeder extends Seeder
                 'description' => 'Petugas atau kader operasional Posyandu RW',
                 'permissions' => [
                     'view-wilayah',
+                    'view-direktori-rw',
                     'view-dashboard',
                     'view-posyandu',
                     'manage-posyandu',
@@ -172,6 +192,7 @@ class RoleAndPermissionSeeder extends Seeder
                 'description' => 'Ketua RT, approve surat dan pengaduan RT',
                 'permissions' => [
                     'view-wilayah',
+                    'view-direktori-rw',
                     'view-dashboard',
                     'manage-warga',
                     'manage-pengaduan',
@@ -195,12 +216,16 @@ class RoleAndPermissionSeeder extends Seeder
                     'daftar-umkm',
                     'view-umkm',
                     'view-posyandu',
+                    'view-koperasi',
+                    'manage-koperasi',
+                    'approve-koperasi',
                 ],
             ],
             'bendahara_rt' => [
                 'description' => 'Bendahara RT, pengelola keuangan RT',
                 'permissions' => [
                     'view-dashboard',
+                    'view-direktori-rw',
                     'view-finance',
                     'manage-finance',
                     'verify-payment',
@@ -214,12 +239,17 @@ class RoleAndPermissionSeeder extends Seeder
                     'setor-sampah',
                     'view-fasilitas',
                     'view-umkm',
+                    'view-koperasi',
+                    'manage-koperasi',
+                    'approve-koperasi',
+                    'export-koperasi',
                 ],
             ],
             'sekretaris_rt' => [
                 'description' => 'Sekretaris RT, administrasi level RT',
                 'permissions' => [
                     'view-dashboard',
+                    'view-direktori-rw',
                     'manage-warga',
                     'manage-pengaduan',
                     'submit-pengaduan',
@@ -243,12 +273,14 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-umkm',
                     'view-posyandu',
                     'manage-posyandu',
+                    'view-koperasi',
                 ],
             ],
             'bendahara' => [
                 'description' => 'Bendahara RT',
                 'permissions' => [
                     'view-dashboard',
+                    'view-direktori-rw',
                     'view-finance',
                     'manage-finance',
                     'verify-payment',
@@ -262,12 +294,17 @@ class RoleAndPermissionSeeder extends Seeder
                     'setor-sampah',
                     'view-fasilitas',
                     'view-umkm',
+                    'view-koperasi',
+                    'manage-koperasi',
+                    'approve-koperasi',
+                    'export-koperasi',
                 ],
             ],
             'sekretaris' => [
                 'description' => 'Sekretaris RT',
                 'permissions' => [
                     'view-dashboard',
+                    'view-direktori-rw',
                     'manage-warga',
                     'manage-pengaduan',
                     'submit-pengaduan',
@@ -291,6 +328,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-umkm',
                     'view-posyandu',
                     'manage-posyandu',
+                    'view-koperasi',
                 ],
             ],
             'warga' => [
@@ -314,6 +352,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'daftar-umkm',
                     'view-umkm',
                     'view-posyandu',
+                    'view-koperasi',
+                    'submit-koperasi',
                 ],
             ],
         ];

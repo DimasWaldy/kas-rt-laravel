@@ -28,6 +28,7 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'rt_id' => ['nullable', 'integer', 'exists:rts,id'],
             'rumah_id' => ['nullable', 'integer', 'exists:rumahs,id'],
             'rumah_kode' => ['nullable', 'string', 'max:50'],
             'rumah_alamat' => ['nullable', 'string', 'max:500'],
@@ -37,6 +38,10 @@ class ProfileUpdateRequest extends FormRequest
                 'nullable',
                 'digits:16',
                 Rule::unique('wargas', 'nik')->ignore($wargaId),
+            ],
+            'no_kk' => [
+                'nullable',
+                'digits:16',
             ],
             'status_dalam_kk' => ['nullable', 'in:kepala_keluarga,anggota'],
         ];
@@ -48,6 +53,7 @@ class ProfileUpdateRequest extends FormRequest
             'phone.regex' => 'Nomor HP harus berisi angka saja, minimal 10 digit dan maksimal 13 digit.',
             'nik.digits' => 'NIK harus berisi 16 digit angka.',
             'nik.unique' => 'NIK tersebut sudah terdaftar untuk warga lain.',
+            'no_kk.digits' => 'Nomor KK harus berisi 16 digit angka.',
         ];
     }
 }

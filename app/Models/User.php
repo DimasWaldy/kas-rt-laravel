@@ -72,6 +72,21 @@ class User extends Authenticatable
         return $this->belongsTo(Rt::class);
     }
 
+    public function koperasiMember(): HasOne
+    {
+        return $this->hasOne(KoperasiMember::class);
+    }
+
+    public function koperasiSimpanans(): HasMany
+    {
+        return $this->hasMany(KoperasiSimpanan::class);
+    }
+
+    public function koperasiPinjams(): HasMany
+    {
+        return $this->hasMany(KoperasiPinjam::class);
+    }
+
     public function scopeInRt(Builder $query, int $rtId): Builder
     {
         return $query->where('rt_id', $rtId);
@@ -154,17 +169,40 @@ class User extends Authenticatable
 
     public function getProfileStatusAttribute(): string
     {
-        $required = [
-            $this->warga?->kartuKeluarga?->no_kk,
-            $this->phone,
-            $this->rumah_id,
-            $this->rt_id,
-            $this->warga?->status_dalam_kk,
-        ];
-
-        return collect($required)->every(fn($value) => filled($value))
+        return empty($this->profileCompletionIssues())
             ? 'Lengkap'
             : 'Belum Lengkap';
+    }
+
+    public function profileCompletionIssues(): array
+    {
+        $issues = [];
+
+        if (blank($this->phone)) {
+            $issues[] = 'Nomor HP';
+        }
+
+        if (blank($this->warga?->nik)) {
+            $issues[] = 'NIK';
+        }
+
+        if (blank($this->warga?->kartuKeluarga?->no_kk)) {
+            $issues[] = 'Nomor KK';
+        }
+
+        if (blank($this->rumah_id)) {
+            $issues[] = 'Domisili/Rumah';
+        }
+
+        if (blank($this->rt_id)) {
+            $issues[] = 'RT';
+        }
+
+        if (blank($this->warga?->status_dalam_kk)) {
+            $issues[] = 'Status dalam KK';
+        }
+
+        return $issues;
     }
 
     public function pengaduans(): \Illuminate\Database\Eloquent\Relations\HasMany

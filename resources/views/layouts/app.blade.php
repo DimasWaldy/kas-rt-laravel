@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Smart RW - Dashboard</title>
+    <script>
+        (() => {
+            const storedTheme = localStorage.getItem('smart-rw-theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (storedTheme === 'dark' || (!storedTheme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
@@ -16,6 +26,10 @@
         .sidebar-scroll::-webkit-scrollbar-track { background: #ecfdf5; }
         .sidebar-scroll::-webkit-scrollbar-thumb { background: #86efac; border-radius: 999px; border: 2px solid #ecfdf5; }
         .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #4ade80; }
+        .dark .active-menu { background-color: #059669; box-shadow: 0 10px 18px -12px rgb(16 185 129 / 0.75); }
+        .dark .sidebar-scroll { scrollbar-color: #10b981 #020617; }
+        .dark .sidebar-scroll::-webkit-scrollbar-track { background: #020617; }
+        .dark .sidebar-scroll::-webkit-scrollbar-thumb { background: #10b981; border-color: #020617; }
     </style>
 </head>
 @php
@@ -56,6 +70,15 @@
                     'iconClass' => 'text-emerald-600',
                     'permission' => 'manage-warga',
                     'visible' => $user->hasPermission('manage-warga'),
+                ],
+                [
+                    'label' => 'Direktori RW',
+                    'route' => 'direktori-rw.index',
+                    'active' => 'direktori-rw*',
+                    'icon' => 'fa-address-book',
+                    'iconClass' => 'text-emerald-600',
+                    'permission' => 'view-direktori-rw',
+                    'visible' => $user->hasPermission('view-direktori-rw'),
                 ],
                 [
                     'label' => 'Admin Dashboard',
@@ -170,6 +193,22 @@
                     'icon' => 'fa-clipboard-list',
                     'iconClass' => 'text-green-600',
                     'visible' => $user->canManageFinance(),
+                ],
+                [
+                    'label' => 'Koperasi Warga',
+                    'route' => 'koperasi.index',
+                    'active' => 'koperasi*',
+                    'icon' => 'fa-wallet',
+                    'iconClass' => 'text-blue-600',
+                    'visible' => $user->hasPermission('view-koperasi'),
+                ],
+                [
+                    'label' => 'Kelola Koperasi',
+                    'route' => 'admin.koperasi.index',
+                    'active' => 'admin/koperasi*',
+                    'icon' => 'fa-vault',
+                    'iconClass' => 'text-indigo-600',
+                    'visible' => $user->hasPermission('manage-koperasi'),
                 ],
                 [
                     'label' => 'Demo Aplikasi',
@@ -311,17 +350,23 @@
     });
     $notificationItems = $visibleUnreadNotifications->take(5);
     $visibleUnreadCount = $visibleUnreadNotifications->count();
+    $profileCompletionIssues = $user->role_name === 'warga'
+        ? $user->profileCompletionIssues()
+        : [];
 @endphp
-<body class="bg-gray-50 font-sans text-slate-900" x-data="{ mobileMenuOpen: false }" x-on:keydown.escape.window="mobileMenuOpen = false">
+<body class="bg-gray-50 font-sans text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100" x-data="appShell()" x-on:keydown.escape.window="mobileMenuOpen = false">
 
     <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-40 bg-emerald-950/35 lg:hidden" x-transition.opacity x-on:click="mobileMenuOpen = false"></div>
+    <div x-cloak x-show="navigating" x-transition.opacity class="fixed left-1/2 top-4 z-[9999] -translate-x-1/2 rounded-full bg-emerald-600 px-4 py-2 text-xs font-black text-white shadow-2xl shadow-emerald-900/20">
+        Membuka halaman...
+    </div>
 
     <aside
-        class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] -translate-x-full flex-col border-r border-emerald-100 bg-gradient-to-b from-emerald-50 via-green-50 to-white text-slate-700 shadow-2xl shadow-emerald-950/10 transition-transform duration-300 lg:translate-x-0"
+        class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] -translate-x-full flex-col border-r border-emerald-100 bg-gradient-to-b from-emerald-50 via-green-50 to-white text-slate-700 shadow-2xl shadow-emerald-950/10 transition-transform duration-300 dark:border-slate-800 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-200 lg:translate-x-0"
         :class="{ 'translate-x-0': mobileMenuOpen, '-translate-x-full': !mobileMenuOpen }"
         aria-label="Navigasi utama"
     >
-        <div class="flex items-center justify-between border-b border-emerald-100 bg-white/70 p-5 lg:p-6">
+        <div class="flex items-center justify-between border-b border-emerald-100 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-950/70 lg:p-6">
             <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-3">
                 <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500 shadow-sm shadow-emerald-500/30">
                     <i class="fa-solid fa-wallet text-lg text-white"></i>
@@ -347,8 +392,8 @@
                             <li>
                                 <a
                                     href="{{ route($item['route'], $item['params'] ?? []) }}"
-                                    x-on:click="mobileMenuOpen = false"
-                                    class="sidebar-item flex min-h-12 items-center gap-3 rounded-xl p-3 text-sm font-semibold hover:bg-emerald-100 hover:text-emerald-950 {{ $isActive ? 'active-menu' : '' }}"
+                                    x-on:click="goToMenu($event)"
+                                    class="sidebar-item flex min-h-12 touch-manipulation items-center gap-3 rounded-xl p-3 text-sm font-semibold hover:bg-emerald-100 hover:text-emerald-950 {{ $isActive ? 'active-menu' : '' }}"
                                 >
                                     <i class="fa-solid {{ $item['icon'] }} w-5 flex-shrink-0 text-center {{ $isActive ? 'text-white' : $item['iconClass'] }}"></i>
                                     <span class="min-w-0 truncate font-medium">{{ $item['label'] }}</span>
@@ -360,7 +405,7 @@
             @endforeach
         </nav>
 
-        <div class="border-t border-emerald-100 bg-white/70 p-4">
+        <div class="border-t border-emerald-100 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-950/70">
             <div class="mb-3 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
                 <div class="flex items-center gap-3">
                     <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
@@ -384,7 +429,7 @@
     </aside>
 
     <div class="min-h-screen lg:pl-72">
-        <header class="sticky top-0 z-30 border-b bg-white/95 px-4 py-3 shadow-sm backdrop-blur lg:hidden">
+        <header class="sticky top-0 z-30 border-b bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
             <div class="flex items-center justify-between gap-3">
                 <button type="button" class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/30" x-on:click="mobileMenuOpen = true" aria-label="Buka menu">
                     <i class="fa-solid fa-bars text-lg"></i>
@@ -393,7 +438,14 @@
                 <div class="min-w-0 flex-1">
                     <p class="truncate text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Smart RW</p>
                     <h1 class="truncate text-base font-bold text-slate-800">@yield('title', 'Dashboard')</h1>
+                    <p class="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
+                        <span x-text="formattedDate"></span> · <span x-text="formattedTime"></span> WIB
+                    </p>
                 </div>
+
+                <button type="button" x-on:click="toggleTheme()" class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-amber-300 dark:hover:bg-slate-700" aria-label="Ganti mode terang gelap">
+                    <i class="fa-solid" :class="theme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
+                </button>
 
                 <div class="relative" x-data="{ open: false }">
                     <button type="button" x-on:click="open = !open" class="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700" aria-label="Notifikasi">
@@ -451,7 +503,7 @@
             </div>
         </header>
 
-        <header class="hidden h-20 items-center justify-between border-b bg-white px-8 shadow-sm lg:flex">
+        <header class="hidden h-20 items-center justify-between border-b bg-white px-8 shadow-sm dark:border-slate-800 dark:bg-slate-950 lg:flex">
             <div class="flex min-w-0 items-center gap-2">
                 <h3 class="truncate text-lg font-bold capitalize text-slate-700">
                     @yield('title', 'Dashboard')
@@ -459,6 +511,20 @@
             </div>
 
             <div class="flex items-center gap-4">
+                <div class="hidden items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-emerald-900 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100 xl:flex">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-sm dark:bg-slate-900 dark:text-emerald-300">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </span>
+                    <span class="leading-tight">
+                        <span class="block text-xs font-bold" x-text="formattedDate"></span>
+                        <span class="block text-sm font-black" x-text="formattedTime + ' WIB'"></span>
+                    </span>
+                </div>
+
+                <button type="button" x-on:click="toggleTheme()" class="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-amber-300 dark:hover:bg-slate-700" aria-label="Ganti mode terang gelap">
+                    <i class="fa-solid" :class="theme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
+                </button>
+
                 <div class="relative" x-data="{ open: false }">
                     <button type="button" x-on:click="open = !open" class="relative flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100" aria-label="Notifikasi">
                         <i class="fa-solid fa-bell"></i>
@@ -533,6 +599,31 @@
                     Ada {{ $visibleUnreadCount }} notifikasi baru.
                     <a href="{{ route('tagihan.admin') }}" class="underline">Klik untuk verifikasi</a>.
                 </p>
+            </div>
+        @endif
+
+        @if(count($profileCompletionIssues) > 0)
+            <div class="border-b border-amber-200 bg-amber-50 px-4 py-4 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100 md:px-8">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="flex gap-3">
+                        <span class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                        </span>
+                        <div>
+                            <p class="text-sm font-black">Profil warga belum lengkap</p>
+                            <p class="mt-1 text-sm font-semibold">
+                                Lengkapi data diri dengan benar agar akses layanan warga, tagihan, surat, dan koperasi tidak bermasalah.
+                            </p>
+                            <p class="mt-1 text-xs font-bold text-amber-700 dark:text-amber-200">
+                                Belum lengkap: {{ implode(', ', $profileCompletionIssues) }}.
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{{ route('profile.edit') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-amber-700">
+                        <i class="fa-solid fa-user-pen"></i>
+                        Lengkapi Profil
+                    </a>
+                </div>
             </div>
         @endif
 
