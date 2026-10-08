@@ -225,7 +225,7 @@ test('api kk rumah hanya mengembalikan kk rumah yang boleh diakses petugas', fun
 
 test('migration memindahkan user lama ke warga dan kartu keluarga tanpa kehilangan data', function () {
     Artisan::call('migrate:rollback', [
-        '--step' => 6,
+        '--step' => 7,
         '--force' => true,
     ]);
 

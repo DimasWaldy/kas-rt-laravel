@@ -223,19 +223,14 @@ class KoperasiController extends Controller
         }
 
         if ($actor->isRwOfficial()) {
-            return $query->where(function (Builder $userQuery) use ($actor) {
-                $userQuery->whereHas('rt', function (Builder $rtQuery) use ($actor) {
-                    $rtQuery->where('rw_id', $this->resolveRwId($actor));
-                })->orWhereNull('rt_id');
+            return $query->whereHas('rt', function (Builder $rtQuery) use ($actor) {
+                $rtQuery->where('rw_id', $this->resolveRwId($actor));
             });
         }
 
         abort_unless($actor->rt_id, 403, 'Akun belum terhubung ke RT.');
 
-        return $query->where(function (Builder $userQuery) use ($actor) {
-            $userQuery->where('rt_id', $actor->rt_id)
-                ->orWhereNull('rt_id');
-        });
+        return $query->where('rt_id', $actor->rt_id);
     }
 
     private function authorizeVisibleUser(User $actor, ?User $target): void
@@ -247,16 +242,15 @@ class KoperasiController extends Controller
         }
 
         if ($actor->isRwOfficial()) {
-            if ($target->rt_id === null) {
-                return;
-            }
-
-            abort_unless((int) $target->rt()->value('rw_id') === $this->resolveRwId($actor), 404);
+            abort_unless(
+                $target->rt_id && (int) $target->rt()->value('rw_id') === $this->resolveRwId($actor),
+                404
+            );
 
             return;
         }
 
-        abort_unless($actor->rt_id && ($target->rt_id === null || $target->rt_id === $actor->rt_id), 404);
+        abort_unless($actor->rt_id && $target->rt_id === $actor->rt_id, 404);
     }
 
     private function privateProofResponse(?string $path)

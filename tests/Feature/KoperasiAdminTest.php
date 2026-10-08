@@ -2,14 +2,17 @@
 
 use App\Models\User;
 use App\Models\Role;
+use App\Models\KoperasiMember;
 use App\Models\KoperasiSimpanan;
 use App\Models\KoperasiPinjam;
 use App\Models\KoperasiAngsuran;
 use App\Models\Rt;
 use App\Models\Rw;
+use App\Models\Rumah;
 
 use App\Models\Warga;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 function buatWargaKoperasiAdmin(?Rt $rt = null) {
@@ -62,11 +65,36 @@ test('admin dapat melihat dashboard koperasi', function () {
         ->assertSee('Kelola Koperasi');
 });
 
-test('bendahara dapat melihat pinjaman pending warga yang belum punya rt', function () {
+test('bendahara rt tidak melihat data koperasi warga rt lain dan warga tanpa rt', function () {
+    $rtLain = Rt::create(['rw_id' => $this->admin->rt()->value('rw_id'), 'name' => 'RT 02']);
+    $wargaRtLain = buatWargaKoperasiAdmin($rtLain)->user;
     $wargaTanpaRt = buatWargaKoperasiAdmin()->user;
 
-    $pinjaman = KoperasiPinjam::create([
+    KoperasiMember::create([
+        'user_id' => $wargaRtLain->id,
+        'member_number' => 'KOP-RTLAIN',
+        'joined_at' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
+
+    KoperasiSimpanan::create([
+        'user_id' => $wargaRtLain->id,
+        'type' => 'wajib',
+        'amount' => 50000,
+        'transaction_date' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
+
+    KoperasiSimpanan::create([
         'user_id' => $wargaTanpaRt->id,
+        'type' => 'wajib',
+        'amount' => 60000,
+        'transaction_date' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
+
+    KoperasiPinjam::create([
+        'user_id' => $wargaRtLain->id,
         'amount' => 750000,
         'tenor_months' => 6,
         'service_fee_percentage' => 2.00,
@@ -75,24 +103,242 @@ test('bendahara dapat melihat pinjaman pending warga yang belum punya rt', funct
         'status' => 'menunggu_persetujuan',
     ]);
 
+    $pinjamanTanpaRt = KoperasiPinjam::create([
+        'user_id' => $wargaTanpaRt->id,
+        'amount' => 950000,
+        'tenor_months' => 6,
+        'service_fee_percentage' => 2.00,
+        'service_fee_amount' => 114000,
+        'remaining_amount' => 1064000,
+        'status' => 'menunggu_persetujuan',
+    ]);
+
+    KoperasiAngsuran::create([
+        'koperasi_pinjam_id' => $pinjamanTanpaRt->id,
+        'amount' => 100000,
+        'paid_at' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
+
     $this->actingAs($this->admin)
         ->get(route('admin.koperasi.index'))
         ->assertOk()
-        ->assertSee($wargaTanpaRt->name)
-        ->assertSee('Rp 750.000');
+        ->assertDontSee($wargaRtLain->name)
+        ->assertDontSee($wargaTanpaRt->name)
+        ->assertDontSee('Rp 750.000')
+        ->assertDontSee('Rp 950.000');
+});
+
+test('bendahara rt tidak bisa approve simpanan pinjaman dan angsuran milik rt lain atau user tanpa rt', function () {
+    $rtLain = Rt::create(['rw_id' => $this->admin->rt()->value('rw_id'), 'name' => 'RT 02']);
+    $wargaRtLain = buatWargaKoperasiAdmin($rtLain)->user;
+    $wargaTanpaRt = buatWargaKoperasiAdmin()->user;
+
+    $simpananRtLain = KoperasiSimpanan::create([
+        'user_id' => $wargaRtLain->id,
+        'type' => 'wajib',
+        'amount' => 50000,
+        'transaction_date' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
+
+    $simpananTanpaRt = KoperasiSimpanan::create([
+        'user_id' => $wargaTanpaRt->id,
+        'type' => 'wajib',
+        'amount' => 50000,
+        'transaction_date' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
+
+    $pinjamanRtLain = KoperasiPinjam::create([
+        'user_id' => $wargaRtLain->id,
+        'amount' => 750000,
+        'tenor_months' => 6,
+        'service_fee_percentage' => 2.00,
+        'service_fee_amount' => 90000,
+        'remaining_amount' => 840000,
+        'status' => 'menunggu_persetujuan',
+    ]);
+
+    $pinjamanTanpaRt = KoperasiPinjam::create([
+        'user_id' => $wargaTanpaRt->id,
+        'amount' => 950000,
+        'tenor_months' => 6,
+        'service_fee_percentage' => 2.00,
+        'service_fee_amount' => 114000,
+        'remaining_amount' => 1064000,
+        'status' => 'menunggu_persetujuan',
+    ]);
+
+    $angsuranRtLain = KoperasiAngsuran::create([
+        'koperasi_pinjam_id' => $pinjamanRtLain->id,
+        'amount' => 100000,
+        'paid_at' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
+
+    $angsuranTanpaRt = KoperasiAngsuran::create([
+        'koperasi_pinjam_id' => $pinjamanTanpaRt->id,
+        'amount' => 100000,
+        'paid_at' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
 
     $this->actingAs($this->admin)
-        ->patch(route('admin.koperasi.approve-pinjaman', $pinjaman), [
+        ->patch(route('admin.koperasi.approve-simpanan', $simpananRtLain), [
+            'status' => 'terverifikasi',
+        ])
+        ->assertNotFound();
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.koperasi.approve-simpanan', $simpananTanpaRt), [
+            'status' => 'terverifikasi',
+        ])
+        ->assertNotFound();
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.koperasi.approve-pinjaman', $pinjamanRtLain), [
             'status' => 'disetujui',
         ])
-        ->assertRedirect()
-        ->assertSessionHas('success');
+        ->assertNotFound();
 
-    $this->assertDatabaseHas('koperasi_pinjams', [
-        'id' => $pinjaman->id,
-        'status' => 'disetujui',
-        'approved_by' => $this->admin->id,
+    $this->actingAs($this->admin)
+        ->patch(route('admin.koperasi.approve-pinjaman', $pinjamanTanpaRt), [
+            'status' => 'disetujui',
+        ])
+        ->assertNotFound();
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.koperasi.approve-angsuran', $angsuranRtLain), [
+            'status' => 'terverifikasi',
+        ])
+        ->assertNotFound();
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.koperasi.approve-angsuran', $angsuranTanpaRt), [
+            'status' => 'terverifikasi',
+        ])
+        ->assertNotFound();
+
+    expect($simpananRtLain->fresh()->status)->toBe('pending')
+        ->and($simpananTanpaRt->fresh()->status)->toBe('pending')
+        ->and($pinjamanRtLain->fresh()->status)->toBe('menunggu_persetujuan')
+        ->and($pinjamanTanpaRt->fresh()->status)->toBe('menunggu_persetujuan')
+        ->and($angsuranRtLain->fresh()->status)->toBe('pending')
+        ->and($angsuranTanpaRt->fresh()->status)->toBe('pending');
+});
+
+test('bendahara rt tidak bisa melihat bukti koperasi milik rt lain atau user tanpa rt', function () {
+    Storage::fake('local');
+
+    $rtLain = Rt::create(['rw_id' => $this->admin->rt()->value('rw_id'), 'name' => 'RT 02']);
+    $wargaRtLain = buatWargaKoperasiAdmin($rtLain)->user;
+    $wargaTanpaRt = buatWargaKoperasiAdmin()->user;
+
+    $path = UploadedFile::fake()->image('bukti.jpg')->store('koperasi/test', 'local');
+
+    $simpananRtLain = KoperasiSimpanan::create([
+        'user_id' => $wargaRtLain->id,
+        'type' => 'wajib',
+        'amount' => 50000,
+        'transaction_date' => now()->format('Y-m-d'),
+        'proof_path' => $path,
+        'status' => 'pending',
     ]);
+
+    $simpananTanpaRt = KoperasiSimpanan::create([
+        'user_id' => $wargaTanpaRt->id,
+        'type' => 'wajib',
+        'amount' => 50000,
+        'transaction_date' => now()->format('Y-m-d'),
+        'proof_path' => $path,
+        'status' => 'pending',
+    ]);
+
+    $pinjamanRtLain = KoperasiPinjam::create([
+        'user_id' => $wargaRtLain->id,
+        'amount' => 750000,
+        'tenor_months' => 6,
+        'service_fee_percentage' => 2.00,
+        'service_fee_amount' => 90000,
+        'remaining_amount' => 840000,
+        'proof_path' => $path,
+        'status' => 'menunggu_persetujuan',
+    ]);
+
+    $pinjamanTanpaRt = KoperasiPinjam::create([
+        'user_id' => $wargaTanpaRt->id,
+        'amount' => 950000,
+        'tenor_months' => 6,
+        'service_fee_percentage' => 2.00,
+        'service_fee_amount' => 114000,
+        'remaining_amount' => 1064000,
+        'proof_path' => $path,
+        'status' => 'menunggu_persetujuan',
+    ]);
+
+    $angsuranRtLain = KoperasiAngsuran::create([
+        'koperasi_pinjam_id' => $pinjamanRtLain->id,
+        'amount' => 100000,
+        'paid_at' => now()->format('Y-m-d'),
+        'proof_path' => $path,
+        'status' => 'pending',
+    ]);
+
+    $angsuranTanpaRt = KoperasiAngsuran::create([
+        'koperasi_pinjam_id' => $pinjamanTanpaRt->id,
+        'amount' => 100000,
+        'paid_at' => now()->format('Y-m-d'),
+        'proof_path' => $path,
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->admin)->get(route('admin.koperasi.simpanan-bukti', $simpananRtLain))->assertNotFound();
+    $this->actingAs($this->admin)->get(route('admin.koperasi.simpanan-bukti', $simpananTanpaRt))->assertNotFound();
+    $this->actingAs($this->admin)->get(route('admin.koperasi.pinjaman-bukti', $pinjamanRtLain))->assertNotFound();
+    $this->actingAs($this->admin)->get(route('admin.koperasi.pinjaman-bukti', $pinjamanTanpaRt))->assertNotFound();
+    $this->actingAs($this->admin)->get(route('admin.koperasi.angsuran-bukti', $angsuranRtLain))->assertNotFound();
+    $this->actingAs($this->admin)->get(route('admin.koperasi.angsuran-bukti', $angsuranTanpaRt))->assertNotFound();
+});
+
+test('migration backfill users rt id dari rumah dan rumah diajukan tanpa menimpa rt id lama', function () {
+    $rw = Rw::create(['name' => 'RW Backfill']);
+    $rtRumah = Rt::create(['rw_id' => $rw->id, 'name' => 'RT Rumah']);
+    $rtDiajukan = Rt::create(['rw_id' => $rw->id, 'name' => 'RT Diajukan']);
+    $rtExisting = Rt::create(['rw_id' => $rw->id, 'name' => 'RT Existing']);
+
+    $rumah = Rumah::create([
+        'kode_rumah' => 'BF-001',
+        'alamat' => 'Alamat internal tidak penting',
+        'rt_id' => $rtRumah->id,
+        'status' => 'aktif',
+    ]);
+
+    $rumahDiajukan = Rumah::create([
+        'kode_rumah' => 'BF-002',
+        'alamat' => 'Alamat internal tidak penting',
+        'rt_id' => $rtDiajukan->id,
+        'status' => 'aktif',
+    ]);
+
+    $userDariRumah = User::factory()->create(['rumah_id' => $rumah->id, 'rt_id' => null]);
+    $userDariWarga = User::factory()->create(['rumah_id' => null, 'rt_id' => null]);
+    $userTidakDitimpa = User::factory()->create(['rumah_id' => $rumah->id, 'rt_id' => $rtExisting->id]);
+
+    Warga::create([
+        'user_id' => $userDariWarga->id,
+        'nama_lengkap' => $userDariWarga->name,
+        'rumah_diajukan_id' => $rumahDiajukan->id,
+        'status_verifikasi' => 'pending',
+    ]);
+
+    $migration = include database_path('migrations/2026_10_08_000001_backfill_users_rt_id_from_rumah.php');
+    $migration->up();
+    $migration->up();
+
+    expect($userDariRumah->fresh()->rt_id)->toBe($rtRumah->id)
+        ->and($userDariWarga->fresh()->rt_id)->toBe($rtDiajukan->id)
+        ->and($userTidakDitimpa->fresh()->rt_id)->toBe($rtExisting->id);
 });
 
 test('admin dapat memverifikasi simpanan', function () {
