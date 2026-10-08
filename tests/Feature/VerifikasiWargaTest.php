@@ -224,10 +224,19 @@ test('api kk rumah hanya mengembalikan kk rumah yang boleh diakses petugas', fun
 });
 
 test('migration memindahkan user lama ke warga dan kartu keluarga tanpa kehilangan data', function () {
+    $legacyRefactorMigration = '2026_06_29_000003_refactor_users_remove_kependudukan_fields';
+    $rollbackSteps = DB::table('migrations')
+        ->where('migration', '>=', $legacyRefactorMigration)
+        ->count();
+
+    expect($rollbackSteps)->toBeGreaterThan(0);
+
     Artisan::call('migrate:rollback', [
-        '--step' => 7,
+        '--step' => $rollbackSteps,
         '--force' => true,
     ]);
+
+    expect(Schema::hasColumn('users', 'no_kk'))->toBeTrue();
 
     $rumah = Rumah::create([
         'kode_rumah' => 'LEGACY-01',
