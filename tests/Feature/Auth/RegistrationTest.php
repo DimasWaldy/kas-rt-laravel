@@ -56,6 +56,33 @@ test('new users can register and wait for rt verification', function () {
         ->and($warga->rumah_diajukan_id)->toBe($rumah->id);
 });
 
+test('registration rejects active rumah that is not linked to rt', function () {
+    $rumah = Rumah::create([
+        'kode_rumah' => 'REG-NO-RT',
+        'alamat' => 'Jl. Belum Terhubung RT',
+        'rt' => '01',
+        'rw' => '05',
+        'rt_id' => null,
+        'status' => 'aktif',
+    ]);
+
+    $response = $this->post('/register', [
+        'name' => 'Test User',
+        'email' => 'test@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+        'phone' => '081234567890',
+        'rumah_id' => $rumah->id,
+    ]);
+
+    $response->assertSessionHasErrors([
+        'rumah_id' => 'Rumah/domisili yang dipilih tidak tersedia atau belum terhubung ke RT.',
+    ]);
+
+    expect(User::where('email', 'test@example.com')->exists())->toBeFalse();
+    $this->assertGuest();
+});
+
 test('registration validates phone and name', function () {
     $response = $this->post('/register', [
         'name' => '',

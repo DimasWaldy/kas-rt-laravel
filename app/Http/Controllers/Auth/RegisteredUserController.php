@@ -45,12 +45,14 @@ class RegisteredUserController extends Controller
             'rumah_id' => [
                 'required',
                 'integer',
-                Rule::exists('rumahs', 'id')->where(fn ($query) => $query->where('status', 'aktif')),
+                Rule::exists('rumahs', 'id')->where(fn ($query) => $query
+                    ->where('status', 'aktif')
+                    ->whereNotNull('rt_id')),
             ],
         ], [
             'phone.regex' => 'Nomor HP harus berisi angka saja, minimal 10 digit dan maksimal 13 digit.',
             'rumah_id.required' => 'Domisili/rumah wajib dipilih.',
-            'rumah_id.exists' => 'Rumah/domilisi yang dipilih tidak tersedia.',
+            'rumah_id.exists' => 'Rumah/domisili yang dipilih tidak tersedia atau belum terhubung ke RT.',
         ]);
 
         $user = DB::transaction(function () use ($validated) {
