@@ -55,13 +55,33 @@ class KoperasiController extends Controller
 
     public function approveMember(Request $request, KoperasiMember $member)
     {
-        $this->authorizeVisibleUser($request->user(), $member->user);
-
         $validated = $request->validate([
             'status' => 'required|in:aktif,nonaktif,ditolak',
         ]);
 
-        $member->update(['status' => $validated['status']]);
+        DB::transaction(function () use ($request, $member, $validated) {
+            $lockedMember = KoperasiMember::query()
+                ->with('user')
+                ->whereKey($member->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->authorizeVisibleUser($request->user(), $lockedMember->user);
+
+            $allowedTransitions = [
+                'pending' => ['aktif', 'ditolak'],
+                'aktif' => ['nonaktif'],
+                'nonaktif' => ['aktif'],
+            ];
+
+            if (! in_array($validated['status'], $allowedTransitions[$lockedMember->status] ?? [], true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'Transisi status anggota koperasi tidak valid.',
+                ]);
+            }
+
+            $lockedMember->update(['status' => $validated['status']]);
+        });
 
         return back()->with('success', 'Status anggota berhasil diubah.');
     }

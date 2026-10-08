@@ -65,6 +65,81 @@ test('admin dapat melihat dashboard koperasi', function () {
         ->assertSee('Kelola Koperasi');
 });
 
+test('admin koperasi hanya dapat menjalankan transisi status anggota yang valid', function () {
+    $memberPending = KoperasiMember::create([
+        'user_id' => $this->wargaUser->id,
+        'member_number' => 'KOP-PENDING',
+        'joined_at' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.koperasi.approve-member', $memberPending), [
+            'status' => 'aktif',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($memberPending->fresh()->status)->toBe('aktif');
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.koperasi.approve-member', $memberPending), [
+            'status' => 'nonaktif',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($memberPending->fresh()->status)->toBe('nonaktif');
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.koperasi.approve-member', $memberPending), [
+            'status' => 'aktif',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($memberPending->fresh()->status)->toBe('aktif');
+});
+
+test('admin koperasi menolak transisi status anggota yang tidak valid', function () {
+    $memberPending = KoperasiMember::create([
+        'user_id' => $this->wargaUser->id,
+        'member_number' => 'KOP-INVALID-PENDING',
+        'joined_at' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->from(route('admin.koperasi.index'))
+        ->patch(route('admin.koperasi.approve-member', $memberPending), [
+            'status' => 'nonaktif',
+        ])
+        ->assertRedirect(route('admin.koperasi.index'))
+        ->assertSessionHasErrors('status');
+
+    expect($memberPending->fresh()->status)->toBe('pending');
+
+    $memberDitolak = KoperasiMember::create([
+        'user_id' => User::factory()->create([
+            'role_id' => Role::where('name', 'warga')->value('id'),
+            'rt_id' => $this->admin->rt_id,
+        ])->id,
+        'member_number' => 'KOP-INVALID-DITOLAK',
+        'joined_at' => now()->format('Y-m-d'),
+        'status' => 'ditolak',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->from(route('admin.koperasi.index'))
+        ->patch(route('admin.koperasi.approve-member', $memberDitolak), [
+            'status' => 'aktif',
+        ])
+        ->assertRedirect(route('admin.koperasi.index'))
+        ->assertSessionHasErrors('status');
+
+    expect($memberDitolak->fresh()->status)->toBe('ditolak');
+});
+
 test('bendahara rt tidak melihat data koperasi warga rt lain dan warga tanpa rt', function () {
     $rtLain = Rt::create(['rw_id' => $this->admin->rt()->value('rw_id'), 'name' => 'RT 02']);
     $wargaRtLain = buatWargaKoperasiAdmin($rtLain)->user;
