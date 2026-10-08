@@ -29,6 +29,37 @@ Aplikasi manajemen kas RT berbasis web menggunakan Laravel + MySQL.
 
 ---
 
+## Email/SMTP production
+
+Smart RW memakai verifikasi email untuk akun yang sudah aktif. Di production, pastikan SMTP benar-benar berjalan agar warga bisa menerima link verifikasi.
+
+Variabel email yang perlu dicek di `.env` production:
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=isi_username_smtp
+MAIL_PASSWORD=isi_password_smtp
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="noreply@domainmu.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+Cara tes kirim email lewat tinker:
+
+```bash
+php artisan tinker
+```
+
+```php
+Mail::raw('Tes email Smart RW production', fn ($message) => $message->to('email-tujuan@example.com')->subject('Tes SMTP Smart RW'));
+```
+
+Peringatan: kalau SMTP belum aktif atau salah konfigurasi, warga yang sudah disetujui RT tetap tidak bisa masuk ke area aplikasi yang dilindungi verifikasi email karena link verifikasi tidak terkirim.
+
+---
+
 ## ⚙️ Cara Menjalankan
 
 ```bash

@@ -10,7 +10,9 @@ test('email verification screen can be rendered', function () {
 
     $response = $this->actingAs($user)->get('/verify-email');
 
-    $response->assertStatus(200);
+    $response->assertStatus(200)
+        ->assertSee('Link verifikasi bisa kedaluwarsa')
+        ->assertSee('Kirim ulang email verifikasi');
 });
 
 test('unverified active user is redirected away from verified routes', function () {
