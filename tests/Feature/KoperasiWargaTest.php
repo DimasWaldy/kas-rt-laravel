@@ -63,7 +63,7 @@ test('warga dapat mendaftar menjadi anggota koperasi', function () {
 });
 
 test('warga aktif dapat mengajukan simpanan', function () {
-    Storage::fake('public');
+    Storage::fake('local');
 
     KoperasiMember::create([
         'user_id' => $this->warga->user->id,
@@ -89,6 +89,9 @@ test('warga aktif dapat mengajukan simpanan', function () {
         'amount' => 50000,
         'status' => 'pending',
     ]);
+
+    $simpanan = KoperasiSimpanan::where('user_id', $this->warga->user->id)->firstOrFail();
+    Storage::disk('local')->assertExists($simpanan->proof_path);
 });
 
 test('warga aktif dapat mengajukan pinjaman dengan bunga 2 persen', function () {
@@ -241,4 +244,80 @@ test('warga dapat melihat sisa pinjaman dan riwayat angsuran', function () {
         ->assertSee('Rp 120.000')
         ->assertSee('Riwayat Angsuran Terbaru')
         ->assertSee('Terverifikasi');
+});
+
+test('warga tidak bisa mengajukan angsuran untuk pinjaman yang belum disetujui', function () {
+    Storage::fake('local');
+
+    KoperasiMember::create([
+        'user_id' => $this->warga->user->id,
+        'member_number' => 'KOP-ANGSURAN-PENDING',
+        'joined_at' => now(),
+        'status' => 'aktif',
+    ]);
+
+    $pinjaman = KoperasiPinjam::create([
+        'user_id' => $this->warga->user->id,
+        'amount' => 1000000,
+        'tenor_months' => 12,
+        'service_fee_percentage' => 2.00,
+        'service_fee_amount' => 240000,
+        'remaining_amount' => 1240000,
+        'status' => 'menunggu_persetujuan',
+    ]);
+
+    $this->actingAs($this->warga->user)
+        ->from(route('koperasi.angsuran', $pinjaman))
+        ->post(route('koperasi.store-angsuran', $pinjaman), [
+            'amount' => 120000,
+            'paid_at' => now()->toDateString(),
+            'proof_file' => UploadedFile::fake()->image('bukti-angsuran.jpg'),
+        ])
+        ->assertRedirect(route('koperasi.angsuran', $pinjaman))
+        ->assertSessionHasErrors('amount');
+
+    $this->assertDatabaseMissing('koperasi_angsurans', [
+        'koperasi_pinjam_id' => $pinjaman->id,
+        'amount' => 120000,
+    ]);
+});
+
+test('warga tidak bisa mengajukan angsuran melebihi sisa setelah menghitung angsuran pending', function () {
+    Storage::fake('local');
+
+    KoperasiMember::create([
+        'user_id' => $this->warga->user->id,
+        'member_number' => 'KOP-ANGSURAN-LIMIT',
+        'joined_at' => now(),
+        'status' => 'aktif',
+    ]);
+
+    $pinjaman = KoperasiPinjam::create([
+        'user_id' => $this->warga->user->id,
+        'amount' => 1000000,
+        'tenor_months' => 12,
+        'service_fee_percentage' => 2.00,
+        'service_fee_amount' => 240000,
+        'remaining_amount' => 200000,
+        'status' => 'disetujui',
+    ]);
+
+    KoperasiAngsuran::create([
+        'koperasi_pinjam_id' => $pinjaman->id,
+        'amount' => 150000,
+        'paid_at' => now()->toDateString(),
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->warga->user)
+        ->from(route('koperasi.angsuran', $pinjaman))
+        ->post(route('koperasi.store-angsuran', $pinjaman), [
+            'amount' => 60000,
+            'paid_at' => now()->toDateString(),
+            'proof_file' => UploadedFile::fake()->image('bukti-angsuran-baru.jpg'),
+        ])
+        ->assertRedirect(route('koperasi.angsuran', $pinjaman))
+        ->assertSessionHasErrors('amount');
+
+    expect(KoperasiAngsuran::where('koperasi_pinjam_id', $pinjaman->id)->count())->toBe(1);
 });

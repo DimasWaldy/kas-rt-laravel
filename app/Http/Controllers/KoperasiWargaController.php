@@ -8,6 +8,8 @@ use App\Models\KoperasiPinjam;
 use App\Models\KoperasiSimpanan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class KoperasiWargaController extends Controller
 {
@@ -93,7 +95,7 @@ class KoperasiWargaController extends Controller
             'proof_file' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
-        $path = $request->file('proof_file')->store('koperasi/simpanan', 'public');
+        $path = $request->file('proof_file')->store('koperasi/simpanan', 'local');
 
         KoperasiSimpanan::create([
             'user_id' => Auth::id(),
@@ -178,29 +180,49 @@ class KoperasiWargaController extends Controller
     {
         $this->authorizeMember();
 
-        if ($pinjaman->user_id !== Auth::id()) {
-            abort(403);
-        }
-
         $validated = $request->validate([
             'amount' => 'required|integer|min:10000',
             'paid_at' => 'required|date',
             'proof_file' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
-        if ($validated['amount'] > $pinjaman->remaining_amount) {
-            return back()->with('error', 'Jumlah angsuran melebihi sisa pinjaman.');
-        }
+        DB::transaction(function () use ($request, $validated, $pinjaman) {
+            $lockedPinjaman = KoperasiPinjam::query()
+                ->whereKey($pinjaman->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $path = $request->file('proof_file')->store('koperasi/angsuran', 'public');
+            if ($lockedPinjaman->user_id !== Auth::id()) {
+                abort(403);
+            }
 
-        KoperasiAngsuran::create([
-            'koperasi_pinjam_id' => $pinjaman->id,
-            'amount' => $validated['amount'],
-            'paid_at' => $validated['paid_at'],
-            'proof_path' => $path,
-            'status' => 'pending',
-        ]);
+            if ($lockedPinjaman->status !== 'disetujui') {
+                throw ValidationException::withMessages([
+                    'amount' => 'Angsuran hanya bisa diajukan untuk pinjaman yang sudah disetujui dan masih aktif.',
+                ]);
+            }
+
+            $pendingAngsuran = KoperasiAngsuran::query()
+                ->where('koperasi_pinjam_id', $lockedPinjaman->id)
+                ->where('status', 'pending')
+                ->sum('amount');
+
+            if (($pendingAngsuran + $validated['amount']) > $lockedPinjaman->remaining_amount) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Jumlah angsuran pending dan angsuran baru melebihi sisa pinjaman.',
+                ]);
+            }
+
+            $path = $request->file('proof_file')->store('koperasi/angsuran', 'local');
+
+            KoperasiAngsuran::create([
+                'koperasi_pinjam_id' => $lockedPinjaman->id,
+                'amount' => $validated['amount'],
+                'paid_at' => $validated['paid_at'],
+                'proof_path' => $path,
+                'status' => 'pending',
+            ]);
+        });
 
         return redirect()->route('koperasi.index')->with('success', 'Pembayaran angsuran berhasil diajukan, menunggu verifikasi.');
     }

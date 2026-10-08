@@ -23,7 +23,7 @@ class CheckPermission
         $user = Auth::user();
 
         $allowed = match ($permission) {
-            'admin-only' => $user->isAdmin() || $user->hasPermission('admin-only'),
+            'admin-only' => $user->hasPermission('admin-only'),
             'manage-finance' => $user->canManageFinance(),
             'view-finance' => $user->canViewFinance(),
             'manage-warga' => $user->canManageWarga(),

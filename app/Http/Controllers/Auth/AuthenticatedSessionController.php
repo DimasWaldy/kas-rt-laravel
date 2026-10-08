@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Rumah;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,13 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
-        return view('auth.login');
+        return view('auth.login', [
+            'rumahs' => Rumah::query()
+                ->where('status', 'aktif')
+                ->orderBy('kode_rumah')
+                ->orderBy('alamat')
+                ->get(['id', 'kode_rumah', 'alamat', 'rt_id']),
+        ]);
     }
 
     /**

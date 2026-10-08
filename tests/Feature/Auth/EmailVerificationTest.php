@@ -13,6 +13,16 @@ test('email verification screen can be rendered', function () {
     $response->assertStatus(200);
 });
 
+test('unverified active user is redirected away from verified routes', function () {
+    $user = User::factory()->unverified()->create([
+        'status_akun' => 'aktif',
+    ]);
+
+    $response = $this->actingAs($user)->get(route('dashboard'));
+
+    $response->assertRedirect(route('verification.notice'));
+});
+
 test('email can be verified', function () {
     $user = User::factory()->unverified()->create();
 

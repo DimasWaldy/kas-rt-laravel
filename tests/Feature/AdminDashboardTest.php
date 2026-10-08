@@ -7,7 +7,12 @@ use App\Models\Role;
 use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
+use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Support\Facades\Cache;
+
+beforeEach(function () {
+    $this->seed(RoleAndPermissionSeeder::class);
+});
 
 test('admin dashboard exposes actionable finance and billing data', function () {
     Cache::forget('admin.dashboard.stats');

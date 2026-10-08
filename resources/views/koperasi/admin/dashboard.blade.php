@@ -126,7 +126,7 @@
                                 <p class="font-black text-slate-900">{{ $simpanan->user->name }} · {{ str($simpanan->type)->headline() }}</p>
                                 <p class="text-sm text-slate-500">{{ $simpanan->transaction_date->translatedFormat('d M Y') }} · Rp {{ number_format($simpanan->amount, 0, ',', '.') }}</p>
                                 @if($simpanan->proof_path)
-                                    <a href="{{ Storage::url($simpanan->proof_path) }}" target="_blank" class="mt-1 inline-block text-sm font-bold text-indigo-700">Lihat bukti transfer</a>
+                                    <a href="{{ route('admin.koperasi.simpanan-bukti', $simpanan) }}" target="_blank" class="mt-1 inline-block text-sm font-bold text-indigo-700">Lihat bukti transfer</a>
                                 @endif
                             </div>
                             <div class="flex flex-wrap gap-2">
@@ -193,7 +193,7 @@
                                 <p class="font-black text-slate-900">{{ $angsuran->pinjaman->user->name }}</p>
                                 <p class="text-sm text-slate-500">{{ $angsuran->paid_at?->translatedFormat('d M Y') }} · Rp {{ number_format($angsuran->amount, 0, ',', '.') }}</p>
                                 @if($angsuran->proof_path)
-                                    <a href="{{ Storage::url($angsuran->proof_path) }}" target="_blank" class="mt-1 inline-block text-sm font-bold text-indigo-700">Lihat bukti angsuran</a>
+                                    <a href="{{ route('admin.koperasi.angsuran-bukti', $angsuran) }}" target="_blank" class="mt-1 inline-block text-sm font-bold text-indigo-700">Lihat bukti angsuran</a>
                                 @endif
                             </div>
                             <div class="flex flex-wrap gap-2">

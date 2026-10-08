@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,7 +17,7 @@ use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'rt_id', 'is_penanggung_jawab_rumah', 'phone', 'status_akun'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -162,9 +162,10 @@ class User extends Authenticatable
             return false;
         }
 
-        return $this->role->permissions()
-            ->where('name', $permission)
-            ->exists();
+        $this->loadMissing('role.permissions');
+
+        return $this->role?->permissions
+            ->contains('name', $permission) ?? false;
     }
 
     public function getProfileStatusAttribute(): string
@@ -237,20 +238,17 @@ class User extends Authenticatable
 
     public function canManageFinance(): bool
     {
-        return $this->hasPermission('manage-finance')
-            || in_array($this->role_name, ['admin', 'super_admin', 'bendahara', 'bendahara_rt'], true);
+        return $this->hasPermission('manage-finance');
     }
 
     public function canManageWarga(): bool
     {
-        return $this->hasPermission('manage-warga')
-            || in_array($this->role_name, ['admin', 'super_admin', 'sekretaris', 'sekretaris_rt'], true);
+        return $this->hasPermission('manage-warga');
     }
 
     public function canManagePengaduan(): bool
     {
-        return $this->hasPermission('manage-pengaduan')
-            || in_array($this->role_name, ['admin', 'super_admin', 'sekretaris', 'sekretaris_rt', 'ketua_rt'], true);
+        return $this->hasPermission('manage-pengaduan');
     }
 
     public function canViewFinance(): bool

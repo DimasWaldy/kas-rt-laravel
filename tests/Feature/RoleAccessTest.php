@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 
@@ -97,4 +98,41 @@ test('bendahara cannot access admin dashboard directly', function () {
 
     $response->assertForbidden();
     $response->assertSee('Halaman ini hanya dapat diakses oleh admin.');
+});
+
+test('akses admin mengikuti permission database bukan hanya nama role', function () {
+    $role = Role::firstOrCreate(['name' => 'admin'], ['description' => 'Administrator']);
+    $permission = Permission::firstOrCreate(['name' => 'admin-only'], ['description' => 'Akses admin']);
+    $role->permissions()->syncWithoutDetaching([$permission->id]);
+
+    $admin = User::factory()->create([
+        'role_id' => $role->id,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.dashboard'))
+        ->assertOk();
+
+    $role->permissions()->detach($permission->id);
+
+    $this->actingAs($admin->fresh())
+        ->get(route('admin.dashboard'))
+        ->assertForbidden()
+        ->assertSee('Halaman ini hanya dapat diakses oleh admin.');
+});
+
+test('akses kelola warga mengikuti permission database bukan hanya nama role', function () {
+    $role = Role::firstOrCreate(['name' => 'sekretaris_rt'], ['description' => 'Sekretaris RT']);
+    $permission = Permission::firstOrCreate(['name' => 'manage-warga'], ['description' => 'Kelola warga']);
+    $role->permissions()->syncWithoutDetaching([$permission->id]);
+
+    $sekretaris = User::factory()->create([
+        'role_id' => $role->id,
+    ]);
+
+    expect($sekretaris->fresh()->canManageWarga())->toBeTrue();
+
+    $role->permissions()->detach($permission->id);
+
+    expect($sekretaris->fresh()->canManageWarga())->toBeFalse();
 });

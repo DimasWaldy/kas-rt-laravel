@@ -64,7 +64,7 @@ test('warga pending tidak bisa login', function () {
 test('rt dapat memverifikasi warga dan mengaktifkan akun', function () {
     Notification::fake();
 
-    $warga = buatCalonWarga();
+    $warga = buatCalonWarga(['rt_id' => $this->rt->id]);
 
     $response = $this->actingAs($this->petugas)
         ->patch(route('verifikasi-warga.verifikasi', $warga), [
@@ -81,7 +81,7 @@ test('rt dapat memverifikasi warga dan mengaktifkan akun', function () {
 });
 
 test('rt dapat menolak warga dengan alasan', function () {
-    $warga = buatCalonWarga();
+    $warga = buatCalonWarga(['rt_id' => $this->rt->id]);
 
     $response = $this->actingAs($this->petugas)
         ->patch(route('verifikasi-warga.tolak', $warga), [
@@ -96,7 +96,10 @@ test('rt dapat menolak warga dengan alasan', function () {
 });
 
 test('setelah diverifikasi warga dapat login', function () {
-    $warga = buatCalonWarga(['email' => 'warga@example.com']);
+    $warga = buatCalonWarga([
+        'email' => 'warga@example.com',
+        'rt_id' => $this->rt->id,
+    ]);
 
     $this->actingAs($this->petugas)
         ->patch(route('verifikasi-warga.verifikasi', $warga), [
@@ -114,9 +117,115 @@ test('setelah diverifikasi warga dapat login', function () {
     $response->assertRedirect(route('dashboard'));
 });
 
+test('rt hanya melihat calon warga sesuai wilayahnya', function () {
+    $rtLain = Rt::where('name', 'RT 02')->firstOrFail();
+
+    $rumahRtIni = Rumah::create([
+        'kode_rumah' => 'VRF-RT-01',
+        'alamat' => 'Jl. Verifikasi RT 01',
+        'rt_id' => $this->rt->id,
+        'status' => 'aktif',
+    ]);
+
+    buatCalonWarga(
+        ['name' => 'Calon RT Sendiri', 'rt_id' => $this->rt->id],
+        ['nama_lengkap' => 'Calon RT Sendiri']
+    );
+
+    buatCalonWarga(
+        ['name' => 'Calon Legacy Rumah', 'rt_id' => null],
+        ['nama_lengkap' => 'Calon Legacy Rumah', 'rumah_diajukan_id' => $rumahRtIni->id]
+    );
+
+    buatCalonWarga(
+        ['name' => 'Calon RT Lain', 'rt_id' => $rtLain->id],
+        ['nama_lengkap' => 'Calon RT Lain']
+    );
+
+    buatCalonWarga(
+        ['name' => 'Calon Tanpa Domisili', 'rt_id' => null],
+        ['nama_lengkap' => 'Calon Tanpa Domisili']
+    );
+
+    $response = $this->actingAs($this->petugas)
+        ->get(route('verifikasi-warga.index'));
+
+    $response->assertOk()
+        ->assertSee('Calon RT Sendiri')
+        ->assertSee('Calon Legacy Rumah')
+        ->assertDontSee('Calon RT Lain')
+        ->assertDontSee('Calon Tanpa Domisili');
+});
+
+test('rt tidak dapat memproses calon warga rt lain', function () {
+    $rtLain = Rt::where('name', 'RT 02')->firstOrFail();
+    $warga = buatCalonWarga(['rt_id' => $rtLain->id]);
+
+    $this->actingAs($this->petugas)
+        ->get(route('verifikasi-warga.show', $warga))
+        ->assertNotFound();
+
+    $this->actingAs($this->petugas)
+        ->patch(route('verifikasi-warga.verifikasi', $warga), [
+            'metode_verifikasi' => 'dokumen',
+        ])
+        ->assertNotFound();
+
+    expect($warga->fresh()->status_verifikasi)->toBe('pending')
+        ->and($warga->user->fresh()->status_akun)->toBe('pending_verifikasi');
+});
+
+test('api kk rumah hanya mengembalikan kk rumah yang boleh diakses petugas', function () {
+    $rtLain = Rt::where('name', 'RT 02')->firstOrFail();
+
+    $rumahRtIni = Rumah::create([
+        'kode_rumah' => 'KK-RT-01',
+        'alamat' => 'Jl. KK RT 01',
+        'rt_id' => $this->rt->id,
+        'status' => 'aktif',
+    ]);
+
+    $rumahRtLain = Rumah::create([
+        'kode_rumah' => 'KK-RT-02',
+        'alamat' => 'Jl. KK RT 02',
+        'rt_id' => $rtLain->id,
+        'status' => 'aktif',
+    ]);
+
+    $kk = KartuKeluarga::create([
+        'rumah_id' => $rumahRtIni->id,
+        'no_kk' => '3273010101010101',
+        'nama_kepala_keluarga' => 'Budi Santoso',
+    ]);
+
+    KartuKeluarga::create([
+        'rumah_id' => $rumahRtLain->id,
+        'no_kk' => '3273010101010102',
+        'nama_kepala_keluarga' => 'Warga RT Lain',
+    ]);
+
+    $this->actingAs($this->petugas)
+        ->getJson(route('api.rumah.kk', $rumahRtIni))
+        ->assertOk()
+        ->assertJson([
+            [
+                'id' => $kk->id,
+                'no_kk' => '3273010101010101',
+                'nama_kepala' => 'Budi Santoso',
+            ],
+        ])
+        ->assertJsonMissing([
+            'no_kk' => '3273010101010102',
+        ]);
+
+    $this->actingAs($this->petugas)
+        ->getJson(route('api.rumah.kk', $rumahRtLain))
+        ->assertNotFound();
+});
+
 test('migration memindahkan user lama ke warga dan kartu keluarga tanpa kehilangan data', function () {
     Artisan::call('migrate:rollback', [
-        '--step' => 3,
+        '--step' => 6,
         '--force' => true,
     ]);
 

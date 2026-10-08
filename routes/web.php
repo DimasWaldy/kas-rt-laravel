@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DemoUtsController;
 use App\Http\Controllers\AsetController;
 use App\Http\Controllers\BankSampahController;
 use App\Http\Controllers\FasilitasController;
@@ -115,7 +114,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/iuran-khusus/tagihan/{tagihan}/kecualikan', [IuranKhususController::class, 'kecualikan'])->name('iuran-khusus.kecualikan');
         Route::patch('/iuran-khusus/tagihan/{tagihan}/batal-kecualikan', [IuranKhususController::class, 'batalKecualikan'])->name('iuran-khusus.batal-kecualikan');
 
-        Route::get('/admin/demo-uts', [DemoUtsController::class, 'index'])->name('demo-uts.index');
     });
 
     Route::get('/admin/laporan-kas', [LaporanKasController::class, 'index'])
@@ -494,6 +492,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Koperasi Admin
     Route::middleware('permission:manage-koperasi')->group(function () {
         Route::get('/admin/koperasi', [KoperasiAdminController::class, 'index'])->name('admin.koperasi.index');
+        Route::get('/admin/koperasi/simpanan/{simpanan}/bukti', [KoperasiAdminController::class, 'buktiSimpanan'])->name('admin.koperasi.simpanan-bukti');
+        Route::get('/admin/koperasi/pinjaman/{pinjaman}/bukti', [KoperasiAdminController::class, 'buktiPinjaman'])->name('admin.koperasi.pinjaman-bukti');
+        Route::get('/admin/koperasi/angsuran/{angsuran}/bukti', [KoperasiAdminController::class, 'buktiAngsuran'])->name('admin.koperasi.angsuran-bukti');
         Route::patch('/admin/koperasi/member/{member}/approve', [KoperasiAdminController::class, 'approveMember'])->name('admin.koperasi.approve-member');
         Route::patch('/admin/koperasi/simpanan/{simpanan}/approve', [KoperasiAdminController::class, 'approveSimpanan'])->name('admin.koperasi.approve-simpanan');
         Route::patch('/admin/koperasi/pinjaman/{pinjaman}/approve', [KoperasiAdminController::class, 'approvePinjaman'])->name('admin.koperasi.approve-pinjaman');

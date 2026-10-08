@@ -9,6 +9,8 @@ use App\Models\Rt;
 use App\Models\Rw;
 
 use App\Models\Warga;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 function buatWargaKoperasiAdmin(?Rt $rt = null) {
     $role = Role::firstOrCreate(['name' => 'warga']);
@@ -116,7 +118,28 @@ test('admin dapat memverifikasi simpanan', function () {
     ]);
 });
 
+test('admin dapat melihat bukti simpanan koperasi lewat route privat', function () {
+    Storage::fake('local');
+
+    $path = UploadedFile::fake()->image('bukti-simpanan.jpg')->store('koperasi/simpanan', 'local');
+
+    $simpanan = KoperasiSimpanan::create([
+        'user_id' => $this->wargaUser->id,
+        'type' => 'wajib',
+        'amount' => 50000,
+        'transaction_date' => now()->format('Y-m-d'),
+        'proof_path' => $path,
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.koperasi.simpanan-bukti', $simpanan))
+        ->assertOk();
+});
+
 test('admin dapat menyetujui pinjaman', function () {
+    Storage::fake('local');
+
     $pinjaman = KoperasiPinjam::create([
         'user_id' => $this->wargaUser->id,
         'amount' => 1000000,
@@ -142,6 +165,10 @@ test('admin dapat menyetujui pinjaman', function () {
         'status' => 'disetujui',
         'approved_by' => $this->admin->id,
     ]);
+
+    $pinjaman->refresh();
+    expect($pinjaman->proof_path)->not->toBeNull();
+    Storage::disk('local')->assertExists($pinjaman->proof_path);
 });
 
 test('admin dapat memverifikasi angsuran dan sisa pinjaman berkurang', function () {
@@ -178,4 +205,85 @@ test('admin dapat memverifikasi angsuran dan sisa pinjaman berkurang', function 
         'id' => $pinjaman->id,
         'remaining_amount' => 1200000 - 120000,
     ]);
+});
+
+test('angsuran yang sudah diproses tidak bisa diverifikasi ulang', function () {
+    $pinjaman = KoperasiPinjam::create([
+        'user_id' => $this->wargaUser->id,
+        'amount' => 1000000,
+        'tenor_months' => 10,
+        'service_fee_percentage' => 2.00,
+        'service_fee_amount' => 200000,
+        'remaining_amount' => 1200000,
+        'status' => 'disetujui',
+    ]);
+
+    $angsuran = KoperasiAngsuran::create([
+        'koperasi_pinjam_id' => $pinjaman->id,
+        'amount' => 120000,
+        'paid_at' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.koperasi.approve-angsuran', $angsuran), [
+            'status' => 'terverifikasi',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    $this->actingAs($this->admin)
+        ->from(route('admin.koperasi.index'))
+        ->patch(route('admin.koperasi.approve-angsuran', $angsuran), [
+            'status' => 'terverifikasi',
+        ])
+        ->assertRedirect(route('admin.koperasi.index'))
+        ->assertSessionHasErrors('status');
+
+    expect($pinjaman->fresh()->remaining_amount)->toBe(1080000)
+        ->and($angsuran->fresh()->status)->toBe('terverifikasi');
+});
+
+test('pinjaman yang sudah diproses tidak bisa diapprove ulang', function () {
+    $pinjaman = KoperasiPinjam::create([
+        'user_id' => $this->wargaUser->id,
+        'amount' => 1000000,
+        'tenor_months' => 10,
+        'service_fee_percentage' => 2.00,
+        'service_fee_amount' => 200000,
+        'remaining_amount' => 1200000,
+        'status' => 'disetujui',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->from(route('admin.koperasi.index'))
+        ->patch(route('admin.koperasi.approve-pinjaman', $pinjaman), [
+            'status' => 'ditolak',
+            'rejected_reason' => 'Dokumen tidak valid.',
+        ])
+        ->assertRedirect(route('admin.koperasi.index'))
+        ->assertSessionHasErrors('status');
+
+    expect($pinjaman->fresh()->status)->toBe('disetujui');
+});
+
+test('simpanan yang sudah diproses tidak bisa diverifikasi ulang', function () {
+    $simpanan = KoperasiSimpanan::create([
+        'user_id' => $this->wargaUser->id,
+        'type' => 'wajib',
+        'amount' => 50000,
+        'transaction_date' => now()->format('Y-m-d'),
+        'status' => 'terverifikasi',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->from(route('admin.koperasi.index'))
+        ->patch(route('admin.koperasi.approve-simpanan', $simpanan), [
+            'status' => 'ditolak',
+            'rejected_reason' => 'Bukti tidak valid.',
+        ])
+        ->assertRedirect(route('admin.koperasi.index'))
+        ->assertSessionHasErrors('status');
+
+    expect($simpanan->fresh()->status)->toBe('terverifikasi');
 });

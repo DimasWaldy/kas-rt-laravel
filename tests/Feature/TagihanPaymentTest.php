@@ -9,6 +9,7 @@ use App\Models\KasMasuk;
 use App\Models\Warga;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Database\Seeders\RoleAndPermissionSeeder;
 
 function buatWargaTagihan(array $attributes): User
 {
@@ -26,6 +27,8 @@ function buatWargaTagihan(array $attributes): User
 }
 
 beforeEach(function () {
+    $this->seed(RoleAndPermissionSeeder::class);
+
     // Gunakan firstOrCreate agar tidak duplikat antar test case
     $this->wargaRole = Role::firstOrCreate(
         ['name' => 'warga'],

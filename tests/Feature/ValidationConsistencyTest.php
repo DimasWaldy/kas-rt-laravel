@@ -2,6 +2,11 @@
 
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\RoleAndPermissionSeeder;
+
+beforeEach(function () {
+    $this->seed(RoleAndPermissionSeeder::class);
+});
 
 function validationUserWithRole(string $role): User
 {

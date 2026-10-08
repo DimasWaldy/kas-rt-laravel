@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class KoperasiController extends Controller
 {
@@ -66,61 +68,135 @@ class KoperasiController extends Controller
 
     public function approveSimpanan(Request $request, KoperasiSimpanan $simpanan)
     {
-        $this->authorizeVisibleUser($request->user(), $simpanan->user);
-
         $validated = $request->validate([
             'status' => 'required|in:terverifikasi,ditolak',
             'rejected_reason' => 'required_if:status,ditolak|nullable|string|max:255',
         ]);
 
-        $simpanan->update([
-            'status' => $validated['status'],
-            'verified_by' => Auth::id(),
-            'verified_at' => now(),
-            'rejected_reason' => $validated['rejected_reason'] ?? null,
-        ]);
+        DB::transaction(function () use ($request, $validated, $simpanan) {
+            $lockedSimpanan = KoperasiSimpanan::query()
+                ->with('user')
+                ->whereKey($simpanan->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->authorizeVisibleUser($request->user(), $lockedSimpanan->user);
+
+            if ($lockedSimpanan->status !== 'pending') {
+                throw ValidationException::withMessages([
+                    'status' => 'Simpanan ini sudah diproses sebelumnya.',
+                ]);
+            }
+
+            $lockedSimpanan->update([
+                'status' => $validated['status'],
+                'verified_by' => Auth::id(),
+                'verified_at' => now(),
+                'rejected_reason' => $validated['rejected_reason'] ?? null,
+            ]);
+        });
 
         return back()->with('success', 'Simpanan berhasil diverifikasi.');
     }
 
     public function approvePinjaman(Request $request, KoperasiPinjam $pinjaman)
     {
-        $this->authorizeVisibleUser($request->user(), $pinjaman->user);
-
         $validated = $request->validate([
             'status' => 'required|in:disetujui,ditolak',
             'rejected_reason' => 'required_if:status,ditolak|nullable|string|max:255',
             'proof_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
-        $data = [
-            'status' => $validated['status'],
-            'approved_by' => Auth::id(),
-            'approved_at' => now(),
-            'rejected_reason' => $validated['rejected_reason'] ?? null,
-        ];
+        DB::transaction(function () use ($request, $validated, $pinjaman) {
+            $lockedPinjaman = KoperasiPinjam::query()
+                ->with('user')
+                ->whereKey($pinjaman->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($request->hasFile('proof_file')) {
-            $data['proof_path'] = $request->file('proof_file')->store('koperasi/pinjaman', 'public');
-        }
+            $this->authorizeVisibleUser($request->user(), $lockedPinjaman->user);
 
-        $pinjaman->update($data);
+            if ($lockedPinjaman->status !== 'menunggu_persetujuan') {
+                throw ValidationException::withMessages([
+                    'status' => 'Pinjaman ini sudah diproses sebelumnya.',
+                ]);
+            }
+
+            $data = [
+                'status' => $validated['status'],
+                'approved_by' => Auth::id(),
+                'approved_at' => now(),
+                'rejected_reason' => $validated['rejected_reason'] ?? null,
+            ];
+
+            if ($request->hasFile('proof_file')) {
+                $data['proof_path'] = $request->file('proof_file')->store('koperasi/pinjaman', 'local');
+            }
+
+            $lockedPinjaman->update($data);
+        });
 
         return back()->with('success', 'Pinjaman berhasil diverifikasi.');
     }
 
-    public function approveAngsuran(Request $request, KoperasiAngsuran $angsuran)
+    public function buktiSimpanan(Request $request, KoperasiSimpanan $simpanan)
+    {
+        $simpanan->loadMissing('user');
+        $this->authorizeVisibleUser($request->user(), $simpanan->user);
+
+        return $this->privateProofResponse($simpanan->proof_path);
+    }
+
+    public function buktiPinjaman(Request $request, KoperasiPinjam $pinjaman)
+    {
+        $pinjaman->loadMissing('user');
+        $this->authorizeVisibleUser($request->user(), $pinjaman->user);
+
+        return $this->privateProofResponse($pinjaman->proof_path);
+    }
+
+    public function buktiAngsuran(Request $request, KoperasiAngsuran $angsuran)
     {
         $angsuran->loadMissing('pinjaman.user');
         $this->authorizeVisibleUser($request->user(), $angsuran->pinjaman?->user);
 
+        return $this->privateProofResponse($angsuran->proof_path);
+    }
+
+    public function approveAngsuran(Request $request, KoperasiAngsuran $angsuran)
+    {
         $validated = $request->validate([
             'status' => 'required|in:terverifikasi,ditolak',
             'rejected_reason' => 'required_if:status,ditolak|nullable|string|max:255',
         ]);
 
-        DB::transaction(function () use ($validated, $angsuran) {
-            $angsuran->update([
+        DB::transaction(function () use ($request, $validated, $angsuran) {
+            $lockedAngsuran = KoperasiAngsuran::query()
+                ->with('pinjaman.user')
+                ->whereKey($angsuran->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->authorizeVisibleUser($request->user(), $lockedAngsuran->pinjaman?->user);
+
+            if ($lockedAngsuran->status !== 'pending') {
+                throw ValidationException::withMessages([
+                    'status' => 'Angsuran ini sudah diproses sebelumnya.',
+                ]);
+            }
+
+            $pinjaman = KoperasiPinjam::query()
+                ->whereKey($lockedAngsuran->koperasi_pinjam_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($pinjaman->status !== 'disetujui') {
+                throw ValidationException::withMessages([
+                    'status' => 'Angsuran hanya bisa diproses untuk pinjaman yang masih aktif.',
+                ]);
+            }
+
+            $lockedAngsuran->update([
                 'status' => $validated['status'],
                 'verified_by' => Auth::id(),
                 'verified_at' => now(),
@@ -128,8 +204,7 @@ class KoperasiController extends Controller
             ]);
 
             if ($validated['status'] === 'terverifikasi') {
-                $pinjaman = $angsuran->pinjaman;
-                $newRemaining = $pinjaman->remaining_amount - $angsuran->amount;
+                $newRemaining = $pinjaman->remaining_amount - $lockedAngsuran->amount;
 
                 $pinjaman->update([
                     'remaining_amount' => $newRemaining > 0 ? $newRemaining : 0,
@@ -182,6 +257,21 @@ class KoperasiController extends Controller
         }
 
         abort_unless($actor->rt_id && ($target->rt_id === null || $target->rt_id === $actor->rt_id), 404);
+    }
+
+    private function privateProofResponse(?string $path)
+    {
+        abort_unless($path, 404);
+
+        $disk = Storage::disk('local')->exists($path)
+            ? 'local'
+            : (Storage::disk('public')->exists($path) ? 'public' : null);
+
+        abort_unless($disk, 404);
+
+        return response()->file(Storage::disk($disk)->path($path), [
+            'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
+        ]);
     }
 
     private function resolveRwId(User $user): int

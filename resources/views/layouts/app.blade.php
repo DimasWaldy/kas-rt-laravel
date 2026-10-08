@@ -211,14 +211,6 @@
                     'visible' => $user->hasPermission('manage-koperasi'),
                 ],
                 [
-                    'label' => 'Demo Aplikasi',
-                    'route' => 'demo-uts.index',
-                    'active' => 'admin/demo-uts*',
-                    'icon' => 'fa-chalkboard-user',
-                    'iconClass' => 'text-teal-600',
-                    'visible' => $user->canManageFinance(),
-                ],
-                [
                     'label' => 'Data Rumah',
                     'route' => 'admin.rumah.index',
                     'active' => 'admin/rumah*',
