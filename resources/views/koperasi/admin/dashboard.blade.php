@@ -84,14 +84,14 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex justify-end gap-2">
-                                        @if($member->status !== 'aktif')
+                                        @if(in_array($member->status, ['pending', 'nonaktif'], true))
                                             <form method="POST" action="{{ route('admin.koperasi.approve-member', $member) }}">
                                                 @csrf @method('PATCH')
                                                 <input type="hidden" name="status" value="aktif">
                                                 <button class="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700">Aktifkan</button>
                                             </form>
                                         @endif
-                                        @if($member->status !== 'ditolak')
+                                        @if($member->status === 'pending')
                                             <form method="POST" action="{{ route('admin.koperasi.approve-member', $member) }}">
                                                 @csrf @method('PATCH')
                                                 <input type="hidden" name="status" value="ditolak">
@@ -103,6 +103,13 @@
                                                 @csrf @method('PATCH')
                                                 <input type="hidden" name="status" value="nonaktif">
                                                 <button class="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200">Nonaktifkan</button>
+                                            </form>
+                                        @endif
+                                        @if($member->status === 'ditolak')
+                                            <form method="POST" action="{{ route('admin.koperasi.approve-member', $member) }}">
+                                                @csrf @method('PATCH')
+                                                <input type="hidden" name="status" value="pending">
+                                                <button class="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-100">Buka kembali (pending)</button>
                                             </form>
                                         @endif
                                     </div>

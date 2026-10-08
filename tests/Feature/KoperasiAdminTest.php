@@ -99,6 +99,25 @@ test('admin koperasi hanya dapat menjalankan transisi status anggota yang valid'
         ->assertSessionHas('success');
 
     expect($memberPending->fresh()->status)->toBe('aktif');
+
+    $memberDitolak = KoperasiMember::create([
+        'user_id' => User::factory()->create([
+            'role_id' => Role::where('name', 'warga')->value('id'),
+            'rt_id' => $this->admin->rt_id,
+        ])->id,
+        'member_number' => 'KOP-DITOLAK-PENDING',
+        'joined_at' => now()->format('Y-m-d'),
+        'status' => 'ditolak',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.koperasi.approve-member', $memberDitolak), [
+            'status' => 'pending',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($memberDitolak->fresh()->status)->toBe('pending');
 });
 
 test('admin koperasi menolak transisi status anggota yang tidak valid', function () {
@@ -138,6 +157,21 @@ test('admin koperasi menolak transisi status anggota yang tidak valid', function
         ->assertSessionHasErrors('status');
 
     expect($memberDitolak->fresh()->status)->toBe('ditolak');
+});
+
+test('dashboard anggota koperasi hanya menampilkan tombol sesuai transisi status valid', function () {
+    KoperasiMember::create([
+        'user_id' => $this->wargaUser->id,
+        'member_number' => 'KOP-VIEW-DITOLAK',
+        'joined_at' => now()->format('Y-m-d'),
+        'status' => 'ditolak',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.koperasi.index'))
+        ->assertOk()
+        ->assertSee('Buka kembali (pending)')
+        ->assertDontSee('Aktifkan');
 });
 
 test('bendahara rt tidak melihat data koperasi warga rt lain dan warga tanpa rt', function () {
@@ -209,6 +243,13 @@ test('bendahara rt tidak bisa approve simpanan pinjaman dan angsuran milik rt la
     $wargaRtLain = buatWargaKoperasiAdmin($rtLain)->user;
     $wargaTanpaRt = buatWargaKoperasiAdmin()->user;
 
+    $memberRtLain = KoperasiMember::create([
+        'user_id' => $wargaRtLain->id,
+        'member_number' => 'KOP-MEMBER-RTLAIN',
+        'joined_at' => now()->format('Y-m-d'),
+        'status' => 'pending',
+    ]);
+
     $simpananRtLain = KoperasiSimpanan::create([
         'user_id' => $wargaRtLain->id,
         'type' => 'wajib',
@@ -260,6 +301,12 @@ test('bendahara rt tidak bisa approve simpanan pinjaman dan angsuran milik rt la
     ]);
 
     $this->actingAs($this->admin)
+        ->patch(route('admin.koperasi.approve-member', $memberRtLain), [
+            'status' => 'aktif',
+        ])
+        ->assertNotFound();
+
+    $this->actingAs($this->admin)
         ->patch(route('admin.koperasi.approve-simpanan', $simpananRtLain), [
             'status' => 'terverifikasi',
         ])
@@ -295,7 +342,8 @@ test('bendahara rt tidak bisa approve simpanan pinjaman dan angsuran milik rt la
         ])
         ->assertNotFound();
 
-    expect($simpananRtLain->fresh()->status)->toBe('pending')
+    expect($memberRtLain->fresh()->status)->toBe('pending')
+        ->and($simpananRtLain->fresh()->status)->toBe('pending')
         ->and($simpananTanpaRt->fresh()->status)->toBe('pending')
         ->and($pinjamanRtLain->fresh()->status)->toBe('menunggu_persetujuan')
         ->and($pinjamanTanpaRt->fresh()->status)->toBe('menunggu_persetujuan')

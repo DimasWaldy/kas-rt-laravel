@@ -56,7 +56,7 @@ class KoperasiController extends Controller
     public function approveMember(Request $request, KoperasiMember $member)
     {
         $validated = $request->validate([
-            'status' => 'required|in:aktif,nonaktif,ditolak',
+            'status' => 'required|in:pending,aktif,nonaktif,ditolak',
         ]);
 
         DB::transaction(function () use ($request, $member, $validated) {
@@ -72,6 +72,7 @@ class KoperasiController extends Controller
                 'pending' => ['aktif', 'ditolak'],
                 'aktif' => ['nonaktif'],
                 'nonaktif' => ['aktif'],
+                'ditolak' => ['pending'],
             ];
 
             if (! in_array($validated['status'], $allowedTransitions[$lockedMember->status] ?? [], true)) {
