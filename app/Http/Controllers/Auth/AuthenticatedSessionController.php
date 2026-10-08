@@ -19,10 +19,12 @@ class AuthenticatedSessionController extends Controller
     {
         return view('auth.login', [
             'rumahs' => Rumah::query()
+                ->with('rt:id,name')
                 ->where('status', 'aktif')
+                ->whereNotNull('rt_id')
+                ->orderBy('rt_id')
                 ->orderBy('kode_rumah')
-                ->orderBy('alamat')
-                ->get(['id', 'kode_rumah', 'alamat', 'rt_id']),
+                ->get(['id', 'kode_rumah', 'rt_id']),
         ]);
     }
 

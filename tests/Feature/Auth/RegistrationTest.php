@@ -12,6 +12,34 @@ test('registration screen can be rendered', function () {
     $response->assertStatus(200);
 });
 
+test('registration screen lists active rumah without exposing full address', function () {
+    $rw = Rw::create(['name' => 'RW Register', 'is_active' => true]);
+    $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT 02', 'is_active' => true]);
+
+    Rumah::create([
+        'kode_rumah' => 'REGISTER-001',
+        'alamat' => 'Jl. Rahasia Register No. 88',
+        'rt_id' => $rt->id,
+        'status' => 'aktif',
+    ]);
+
+    Rumah::create([
+        'kode_rumah' => 'REGISTER-NONAKTIF',
+        'alamat' => 'Jl. Nonaktif Tidak Muncul',
+        'rt_id' => $rt->id,
+        'status' => 'nonaktif',
+    ]);
+
+    $response = $this->get('/register');
+
+    $response->assertOk()
+        ->assertSee('RT 02')
+        ->assertSee('RT 02 - REGISTER-001')
+        ->assertDontSee('Jl. Rahasia Register No. 88')
+        ->assertDontSee('REGISTER-NONAKTIF')
+        ->assertDontSee('Jl. Nonaktif Tidak Muncul');
+});
+
 test('new users can register and wait for rt verification', function () {
     $rw = Rw::create([
         'name' => 'RW 05',

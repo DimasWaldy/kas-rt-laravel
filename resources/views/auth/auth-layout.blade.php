@@ -127,10 +127,15 @@
                             <i class="fa-solid fa-house-user absolute left-4 top-4 text-xs text-slate-400"></i>
                             <select name="rumah_id" class="auth-input w-full appearance-none rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-10 text-sm font-semibold text-slate-700 outline-none transition-all focus:ring-2 focus:ring-indigo-500" required>
                                 <option value="">Pilih Domisili / Rumah</option>
-                                @foreach (($rumahs ?? collect()) as $rumah)
-                                    <option value="{{ $rumah->id }}" {{ old('rumah_id') == $rumah->id ? 'selected' : '' }}>
-                                        {{ $rumah->label }}
-                                    </option>
+                                @foreach (($rumahs ?? collect())->groupBy('rt_id') as $rumahGroup)
+                                    @php($rtLabel = $rumahGroup->first()->rt?->name ?? 'RT ' . $rumahGroup->first()->rt_id)
+                                    <optgroup label="{{ $rtLabel }}">
+                                        @foreach ($rumahGroup as $rumah)
+                                            <option value="{{ $rumah->id }}" {{ old('rumah_id') == $rumah->id ? 'selected' : '' }}>
+                                                {{ $rtLabel }} - {{ $rumah->kode_rumah }}
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
                                 @endforeach
                             </select>
                             <i class="fa-solid fa-chevron-down pointer-events-none absolute right-4 top-4 text-xs text-slate-400"></i>
