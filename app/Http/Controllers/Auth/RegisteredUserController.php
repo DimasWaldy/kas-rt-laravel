@@ -84,7 +84,11 @@ class RegisteredUserController extends Controller
             return $user;
         });
 
-        event(new Registered($user));
+        try {
+            event(new Registered($user));
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         session()->flash('status', 'Pendaftaran berhasil! Akun Anda sedang menunggu aktivasi dari pengurus RT. Anda akan mendapat kabar setelah akun diaktifkan.');
 

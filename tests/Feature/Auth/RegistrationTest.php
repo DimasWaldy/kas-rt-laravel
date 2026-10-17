@@ -5,6 +5,9 @@ use App\Models\Rw;
 use App\Models\Rumah;
 use App\Models\User;
 use App\Models\Warga;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
 
 test('registration screen can be rendered', function () {
     $response = $this->get('/register');
@@ -121,5 +124,39 @@ test('registration validates phone and name', function () {
     ]);
 
     $response->assertSessionHasErrors(['phone', 'name']);
+    $this->assertGuest();
+});
+
+test('registration tetap sukses dan melaporkan kegagalan email setelah akun disimpan', function () {
+    Exceptions::fake();
+    $failure = new RuntimeException('SMTP tidak tersedia');
+    Event::listen(Registered::class, function () use ($failure) {
+        throw $failure;
+    });
+
+    $rw = Rw::create(['name' => 'RW SMTP', 'is_active' => true]);
+    $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT SMTP', 'is_active' => true]);
+    $rumah = Rumah::create(['kode_rumah' => 'SMTP-01', 'rt_id' => $rt->id, 'status' => 'aktif']);
+
+    $this->post('/register', [
+        'name' => 'Warga SMTP',
+        'email' => 'smtp-failure@example.test',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+        'phone' => '081234567890',
+        'rumah_id' => $rumah->id,
+    ])->assertRedirect(route('login'))
+        ->assertSessionHas('status', 'Pendaftaran berhasil! Akun Anda sedang menunggu aktivasi dari pengurus RT. Anda akan mendapat kabar setelah akun diaktifkan.');
+
+    $user = User::where('email', 'smtp-failure@example.test')->sole();
+    expect($user->status_akun)->toBe('pending_verifikasi')
+        ->and($user->email_verified_at)->toBeNull()
+        ->and($user->rt_id)->toBe($rt->id);
+    $this->assertDatabaseHas('wargas', [
+        'user_id' => $user->id,
+        'rumah_diajukan_id' => $rumah->id,
+        'status_verifikasi' => 'pending',
+    ]);
+    Exceptions::assertReported(fn (RuntimeException $e) => $e === $failure);
     $this->assertGuest();
 });
