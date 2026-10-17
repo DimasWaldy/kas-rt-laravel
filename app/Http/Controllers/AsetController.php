@@ -251,7 +251,9 @@ class AsetController extends Controller
 
     private function resolveRtId(User $user): int
     {
-        abort_unless($user->rt_id, 403, 'Akun belum terhubung ke RT.');
+        abort_unless($user->rt_id, 403, $user->isGlobalOperator()
+            ? "Akun admin belum terhubung ke RT. Hubungkan akun ke sebuah RT (lihat README, bagian 'Admin awal') agar modul ini bisa dibuka."
+            : 'Akun belum terhubung ke RT.');
 
         return (int) $user->rt_id;
     }

@@ -29,6 +29,25 @@ Aplikasi manajemen kas RT berbasis web menggunakan Laravel + MySQL.
 
 ---
 
+## Admin awal
+
+Siapkan RT aktif, lalu isi `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` (minimal 12 karakter, unik dan kuat), dan `SEED_ADMIN_RT` dengan nama RT persis, misalnya `RT 01`. `SEED_ADMIN_NAME` opsional. Jalankan:
+
+```bash
+php artisan config:clear
+php artisan db:seed --class=RestoreAdminSeeder --force
+```
+
+Seeder ini memperbarui password akun bila email sudah ada. RT hanya dihubungkan bila namanya cocok dengan tepat satu RT aktif. Nama tidak ditemukan/ambigu menghasilkan warning dan tidak mengubah RT akun lama. Tanpa RT, modul Aset dan Peminjaman Aset menolak akses (403). Hapus variabel kredensial seeder setelah selesai, lalu cache konfigurasi kembali bila dipakai pada deployment.
+
+Untuk menghubungkan admin yang sudah ada tanpa mengganti password, jalankan `php artisan tinker`, ganti email/nama RT berikut, dan pastikan hanya ada satu RT aktif yang cocok:
+
+```php
+$admin = App\Models\User::where('email', 'admin@example.com')->whereHas('role', fn ($q) => $q->whereIn('name', ['admin', 'super_admin']))->sole();
+$rt = App\Models\Rt::where('name', 'RT 01')->where('is_active', true)->sole();
+$admin->update(['rt_id' => $rt->id]);
+```
+
 ## Email/SMTP production
 
 Smart RW memakai verifikasi email untuk akun yang sudah aktif. Di production, pastikan SMTP benar-benar berjalan agar warga bisa menerima link verifikasi.
