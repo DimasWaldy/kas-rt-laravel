@@ -116,7 +116,7 @@
                             <td class="px-4 py-3">
                                 <p class="font-black text-slate-900">{{ $warga->name }}</p>
                                 <p class="text-xs text-slate-500">{{ $warga->email }}</p>
-                                <p class="mt-1 text-xs text-slate-400">NIK: {{ $warga->warga?->nik ?: '-' }}</p>
+                                <p class="mt-1 text-xs text-slate-400">NIK: {{ \App\Support\Mask::nik($warga->warga?->nik) }}</p>
                             </td>
                             <td class="px-4 py-3">
                                 <a href="{{ route('direktori-rw.rt.show', $warga->rt) }}" class="font-bold text-emerald-700 hover:text-emerald-900">{{ $warga->rt?->name ?? '-' }}</a>

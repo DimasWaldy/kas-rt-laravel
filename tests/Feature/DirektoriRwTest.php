@@ -108,3 +108,18 @@ test('warga biasa tidak dapat mengakses direktori rw', function () {
         ->get(route('direktori-rw.index'))
         ->assertForbidden();
 });
+
+test('daftar warga direktori menyamarkan nik tanpa mengubah data', function (string $routeName) {
+    $rw = Rw::create(['name' => 'RW Mask', 'is_active' => true]);
+    $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT Mask', 'is_active' => true]);
+    $resident = wargaDirektori('Warga Mask', $rt, 'mask@example.test', '081234567890', 'MASK-01', '3273010101900001', '3273000000000201');
+    $actor = User::factory()->create(['role_id' => roleDirektori('ketua_rw')->id, 'rt_id' => $rt->id]);
+
+    $this->actingAs($actor)
+        ->get(route($routeName, $routeName === 'direktori-rw.rt.show' ? [$rt] : []))
+        ->assertOk()
+        ->assertSee('3273********0001')
+        ->assertDontSee('3273010101900001');
+
+    expect($resident->fresh()->warga->nik)->toBe('3273010101900001');
+})->with(['direktori-rw.index', 'direktori-rw.rt.show']);
