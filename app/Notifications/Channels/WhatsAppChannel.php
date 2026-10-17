@@ -14,6 +14,15 @@ class WhatsAppChannel
             return;
         }
 
+        $apiUrl = config('services.whatsapp.url');
+        $apiToken = config('services.whatsapp.token');
+        $from = config('services.whatsapp.from');
+
+        if (blank($apiUrl) || blank($apiToken) || blank($from)) {
+            Log::info('WhatsApp notification skipped: WhatsApp service not configured.');
+            return;
+        }
+
         $to = $notifiable->routeNotificationFor('whatsapp', $notification);
         if (! $to) {
             Log::warning('WhatsApp notification skipped: no destination phone number. Notifiable class: ' . get_class($notifiable));
@@ -23,15 +32,6 @@ class WhatsAppChannel
         $message = $notification->toWhatsapp($notifiable);
         if (! is_array($message) || empty($message['body'])) {
             Log::warning('WhatsApp notification skipped: invalid payload.', ['notification' => get_class($notification)]);
-            return;
-        }
-
-        $apiUrl = config('services.whatsapp.url');
-        $apiToken = config('services.whatsapp.token');
-        $from = config('services.whatsapp.from');
-
-        if (! $apiUrl || ! $apiToken || ! $from) {
-            Log::warning('WhatsApp notification skipped: WhatsApp service not configured.');
             return;
         }
 

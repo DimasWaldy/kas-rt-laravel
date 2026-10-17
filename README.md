@@ -48,6 +48,33 @@ $rt = App\Models\Rt::where('name', 'RT 01')->where('is_active', true)->sole();
 $admin->update(['rt_id' => $rt->id]);
 ```
 
+## Queue
+
+`.env.production.example` memakai `QUEUE_CONNECTION=sync`: pekerjaan dijalankan dalam request, sehingga tidak memerlukan worker. `PaymentReceived` saat ini mengirim lewat kanal database secara langsung dan tidak mengimplementasikan `ShouldQueue`; trait `Queueable` saja tidak membuat notifikasi antre.
+
+Untuk pekerjaan asynchronous, pilih `QUEUE_CONNECTION=database`, pastikan tabel `jobs` dari migration sudah tersedia, dan jalankan `php artisan queue:work --tries=3` menggunakan systemd atau Supervisor. Tanpa worker, pekerjaan yang masuk antrean tidak diproses. Setelah mengubah konfigurasi jalankan `php artisan config:cache`; restart worker setiap deployment dengan `php artisan queue:restart`.
+
+Contoh unit systemd berikut hanya contoh teks; sesuaikan user, path PHP, dan direktori deployment:
+
+```ini
+[Unit]
+Description=Smart RW queue worker
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/smart-rw
+ExecStart=/usr/bin/php artisan queue:work --tries=3
+Restart=always
+RestartSec=5
+TimeoutStopSec=3600
+
+[Install]
+WantedBy=multi-user.target
+```
+
+WhatsApp dilewati dengan log info bila URL, token, atau nomor pengirim belum diisi. Tidak ada HTTP request dalam kondisi tersebut.
+
 ## Email/SMTP production
 
 Smart RW memakai verifikasi email untuk akun yang sudah aktif. Di production, pastikan SMTP benar-benar berjalan agar warga bisa menerima link verifikasi.
