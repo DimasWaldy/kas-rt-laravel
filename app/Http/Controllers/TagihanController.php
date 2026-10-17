@@ -191,6 +191,7 @@ class TagihanController extends Controller
             ->paginate(20);
 
         $users = User::whereRelation('role', 'name', 'warga')
+            ->with('rt:id,name')
             ->visibleTo($request->user())
             ->whereHas('warga', fn ($query) => $query->where('status_dalam_kk', 'kepala_keluarga'))
             ->orderBy('name')
@@ -307,6 +308,7 @@ class TagihanController extends Controller
     public function create(): View
     {
         $users = User::whereRelation('role', 'name', 'warga')
+            ->with('rt:id,name')
             ->visibleTo(Auth::user())
             ->whereHas('warga', fn ($query) => $query->where('status_dalam_kk', 'kepala_keluarga'))
             ->orderBy('name')

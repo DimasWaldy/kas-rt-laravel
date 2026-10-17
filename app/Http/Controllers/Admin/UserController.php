@@ -19,7 +19,7 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
-        $usersQuery = User::with(['rumah', 'warga.kartuKeluarga'])
+        $usersQuery = User::with(['rumah', 'warga.kartuKeluarga', 'rt:id,name'])
             ->visibleTo($request->user())
             ->whereRelation('role', 'name', 'warga');
 
