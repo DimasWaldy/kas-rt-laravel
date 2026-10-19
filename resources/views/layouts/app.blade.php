@@ -604,6 +604,7 @@
                             <p class="text-sm font-black">Profil warga belum lengkap</p>
                             <p class="mt-1 text-sm font-semibold">
                                 Lengkapi data diri dengan benar agar akses layanan warga, tagihan, surat, dan koperasi tidak bermasalah.
+                                Jika RT atau rumah belum ditetapkan, hubungi pengurus untuk melengkapi domisili.
                             </p>
                             <p class="mt-1 text-xs font-bold text-amber-700 dark:text-amber-200">
                                 Belum lengkap: {{ implode(', ', $profileCompletionIssues) }}.

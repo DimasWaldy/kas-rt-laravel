@@ -81,8 +81,8 @@ test('warga dapat melengkapi profil dari halaman edit sehingga notifikasi hilang
         'name' => 'Warga Update Profil',
         'email' => 'warga-update-profil@example.test',
         'phone' => null,
-        'rumah_id' => null,
-        'rt_id' => null,
+        'rumah_id' => $rumah->id,
+        'rt_id' => $rt->id,
     ]);
 
     Warga::create([
@@ -99,7 +99,6 @@ test('warga dapat melengkapi profil dari halaman edit sehingga notifikasi hilang
             'nik' => '3273000000000003',
             'no_kk' => '3273000000000004',
             'status_dalam_kk' => 'kepala_keluarga',
-            'is_penanggung_jawab_rumah' => '1',
         ])
         ->assertRedirect(route('profile.edit'));
 
@@ -118,7 +117,7 @@ test('warga dapat melengkapi profil dari halaman edit sehingga notifikasi hilang
         ->assertDontSee('Profil warga belum lengkap');
 });
 
-test('warga dapat memilih rt saat membuat rumah baru dari halaman edit profil', function () {
+test('warga tanpa domisili tidak dapat menetapkan rt dan rumah sendiri dari profil', function () {
     $role = Role::firstOrCreate(['name' => 'warga']);
     $rw = Rw::create(['name' => 'RW Rumah Baru Profil']);
     $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT 03']);
@@ -149,26 +148,19 @@ test('warga dapat memilih rt saat membuat rumah baru dari halaman edit profil', 
             'status_dalam_kk' => 'kepala_keluarga',
             'is_penanggung_jawab_rumah' => '1',
         ])
-        ->assertRedirect(route('profile.edit'));
+        ->assertSessionHasErrors(['rt_id', 'rumah_kode']);
 
-    $rumah = Rumah::where('kode_rumah', 'C-03')->firstOrFail();
-
-    $user->refresh();
-    $user->load('warga.kartuKeluarga');
-
-    expect($rumah->rt_id)->toBe($rt->id)
-        ->and($user->profile_status)->toBe('Lengkap')
-        ->and($user->rt_id)->toBe($rt->id)
-        ->and($user->rumah_id)->toBe($rumah->id)
-        ->and($user->warga->kartuKeluarga->rumah_id)->toBe($rumah->id);
+    expect(Rumah::where('kode_rumah', 'C-03')->exists())->toBeFalse()
+        ->and($user->fresh()->rt_id)->toBeNull()
+        ->and($user->fresh()->rumah_id)->toBeNull();
 
     $this->actingAs($user)
         ->get(route('profile.edit'))
         ->assertOk()
-        ->assertDontSee('Profil warga belum lengkap');
+        ->assertSee('Hubungi pengurus untuk menetapkan atau mengubah RT');
 });
 
-test('warga dapat melengkapi rt saat memilih rumah lama yang belum punya rt', function () {
+test('warga tidak dapat mengubah rt rumah lama yang belum punya rt', function () {
     $role = Role::firstOrCreate(['name' => 'warga']);
     $rw = Rw::create(['name' => 'RW Rumah Lama Profil']);
     $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT 04']);
@@ -206,14 +198,13 @@ test('warga dapat melengkapi rt saat memilih rumah lama yang belum punya rt', fu
             'status_dalam_kk' => 'kepala_keluarga',
             'is_penanggung_jawab_rumah' => '1',
         ])
-        ->assertRedirect(route('profile.edit'));
+        ->assertSessionHasErrors(['rt_id', 'rumah_id', 'rumah_kode']);
 
     $user->refresh();
     $rumah->refresh();
 
-    expect($user->profile_status)->toBe('Lengkap')
-        ->and($user->rt_id)->toBe($rt->id)
-        ->and($user->rumah_id)->toBe($rumah->id)
-        ->and($rumah->rt_id)->toBe($rt->id)
+    expect($user->rt_id)->toBeNull()
+        ->and($user->rumah_id)->toBeNull()
+        ->and($rumah->rt_id)->toBeNull()
         ->and(Rumah::where('kode_rumah', 'HARUS-DIABAIKAN')->exists())->toBeFalse();
 });
