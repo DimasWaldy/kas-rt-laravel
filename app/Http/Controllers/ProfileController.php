@@ -95,9 +95,15 @@ class ProfileController extends Controller
 
         $user = auth()->user();
 
-        Auth::logout();
+        try {
+            DB::transaction(function () use ($user) {
+                User::whereKey($user->id)->lockForUpdate()->firstOrFail()->delete();
+            });
+        } catch (ValidationException $exception) {
+            throw $exception->errorBag('userDeletion');
+        }
 
-        $user->delete();
+        Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

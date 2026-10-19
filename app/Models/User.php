@@ -22,6 +22,17 @@ class User extends Authenticatable implements MustVerifyEmail
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user) {
+            if (\App\Support\FinancialHistory::existsForUser($user->id)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'account' => \App\Support\FinancialHistory::DELETION_MESSAGE,
+                ]);
+            }
+        });
+    }
+
     protected $attributes = [
         'status_akun' => 'aktif',
     ];
