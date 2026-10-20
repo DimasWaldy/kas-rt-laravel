@@ -10,7 +10,7 @@
         <p class="text-sm text-slate-500">Daftarkan fasilitas publik atau titik keamanan di lingkungan RW/RT.</p>
     </div>
 
-    <form method="POST" action="{{ route('fasilitas.store') }}" enctype="multipart/form-data" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form method="POST" action="{{ route('fasilitas.store') }}" enctype="multipart/form-data" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         @csrf
         @include('fasilitas.partials.form', ['submitLabel' => 'Simpan Fasilitas'])
     </form>

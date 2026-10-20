@@ -5,7 +5,7 @@
 @section('content')
 <div class="space-y-6" x-data="{ showWargaForm: {{ old('_form') === 'admin_warga' ? 'true' : 'false' }} }">
     <x-input-error :messages="$errors->get('account')" />
-    <div class="rounded-3xl bg-white shadow-sm p-6">
+    <div class="rounded-3xl bg-white shadow-xs p-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800">Data Warga</h1>
@@ -18,12 +18,12 @@
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-600">Cari Warga</label>
-                    <input type="search" name="search" value="{{ request('search') }}" placeholder="Nama, No. KK, kode rumah, alamat, telepon" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-200 focus:ring-2" />
+                    <input type="search" name="search" value="{{ request('search') }}" placeholder="Nama, No. KK, kode rumah, alamat, telepon" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-xs focus:border-emerald-500 focus:ring-emerald-200 focus:ring-2" />
                 </div>
 
                 <div class="sm:col-span-1 xl:col-span-2">
                     <label class="block text-sm font-medium text-slate-600">Filter Kepala Keluarga</label>
-                    <select name="filter_head" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-200 focus:ring-2">
+                    <select name="filter_head" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-xs focus:border-emerald-500 focus:ring-emerald-200 focus:ring-2">
                         <option value="" {{ request('filter_head') === null ? 'selected' : '' }}>Semua</option>
                         <option value="kepala" {{ request('filter_head') === 'kepala' ? 'selected' : '' }}>Kepala Keluarga</option>
                         <option value="warga" {{ request('filter_head') === 'warga' ? 'selected' : '' }}>Warga Biasa</option>
@@ -32,7 +32,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition">Cari</button>
+                <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-xs hover:bg-emerald-700 transition">Cari</button>
                 <a href="{{ route('admin.warga.index') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">Reset</a>
             </div>
         </form>
@@ -102,7 +102,7 @@
         </div>
     </div>
 
-    <div x-cloak x-show="showWargaForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" x-on:click.self="showWargaForm = false">
+    <div x-cloak x-show="showWargaForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs" x-on:click.self="showWargaForm = false">
         <section x-transition class="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
             <div class="flex items-start justify-between bg-emerald-800 p-6 text-white">
                 <div>
@@ -184,12 +184,12 @@
                     </div>
 
                     <label class="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
-                        <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('_form') === 'admin_warga' && old('is_kepala_keluarga') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('_form') === 'admin_warga' && old('is_kepala_keluarga') ? 'checked' : '' }} class="h-4 w-4 rounded-sm border-slate-300 text-emerald-600 focus:ring-emerald-500">
                         Kepala Keluarga
                     </label>
 
                     <label class="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
-                        <input type="checkbox" name="is_penanggung_jawab_rumah" value="1" {{ old('_form') === 'admin_warga' && old('is_penanggung_jawab_rumah') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" name="is_penanggung_jawab_rumah" value="1" {{ old('_form') === 'admin_warga' && old('is_penanggung_jawab_rumah') ? 'checked' : '' }} class="h-4 w-4 rounded-sm border-slate-300 text-emerald-600 focus:ring-emerald-500">
                         Penanggung Jawab Iuran Rumah
                     </label>
                 </div>
@@ -203,7 +203,7 @@
     </div>
 </div>
 
-<div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+<div id="deleteModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-lg max-w-sm w-full p-6 space-y-4">
         <h2 class="text-xl font-bold text-slate-800">Hapus Warga?</h2>
         <p id="deleteMessage" class="text-slate-600"></p>

@@ -16,25 +16,25 @@
     </div>
 
     <div class="grid gap-4 md:grid-cols-4">
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Rumah</p>
             <p class="mt-2 text-3xl font-black text-emerald-700">{{ $statistik['total_rumah'] }}</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Warga</p>
             <p class="mt-2 text-3xl font-black text-blue-700">{{ $statistik['total_warga'] }}</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Kepala Keluarga</p>
             <p class="mt-2 text-3xl font-black text-indigo-700">{{ $statistik['kepala_keluarga'] }}</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Profil Lengkap</p>
             <p class="mt-2 text-3xl font-black text-emerald-700">{{ $statistik['profil_lengkap'] }}</p>
         </div>
     </div>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <h2 class="mb-4 text-lg font-black text-slate-900">Pengurus RT</h2>
         <div class="grid gap-3 md:grid-cols-3">
             @forelse($pengurus as $pengurusRt)
@@ -56,7 +56,7 @@
         </div>
     </section>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <h2 class="mb-4 text-lg font-black text-slate-900">Daftar Rumah</h2>
         <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             @forelse($rumahs as $rumah)
@@ -75,7 +75,7 @@
         </div>
     </section>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <h2 class="mb-4 text-lg font-black text-slate-900">Daftar Warga {{ $rt->name }}</h2>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">

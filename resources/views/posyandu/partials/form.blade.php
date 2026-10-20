@@ -112,7 +112,7 @@
     @if($editing)
         <label class="sm:col-span-2 inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-700">
             <input type="hidden" name="is_active" value="0">
-            <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $balita->is_active)) class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+            <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $balita->is_active)) class="rounded-sm border-slate-300 text-rose-600 focus:ring-rose-500">
             Data balita aktif dan masih mengikuti Posyandu
         </label>
     @endif

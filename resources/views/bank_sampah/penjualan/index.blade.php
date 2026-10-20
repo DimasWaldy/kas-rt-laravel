@@ -17,17 +17,17 @@
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Kas Bank Sampah</p>
             <p class="mt-2 text-3xl font-black text-emerald-700">Rp {{ number_format($totalKas, 0, ',', '.') }}</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Penjualan Bulan Ini</p>
             <p class="mt-2 text-3xl font-black text-slate-900">Rp {{ number_format($totalBulanIni, 0, ',', '.') }}</p>
         </div>
     </div>
 
-    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50 text-left text-xs font-bold uppercase tracking-wider text-slate-500">

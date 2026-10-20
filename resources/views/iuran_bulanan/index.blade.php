@@ -13,7 +13,7 @@
 @endphp
 
 <div class="space-y-6" x-data="{ showIuranForm: {{ old('_form') === 'iuran_bulanan' ? 'true' : 'false' }} }">
-    <div class="rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-100">
+    <div class="rounded-3xl border border-emerald-100 bg-linear-to-r/srgb from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-100">
         <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">Iuran Bulanan</p>
@@ -29,7 +29,7 @@
                     @csrf
                     <input type="hidden" name="bulan" value="{{ $bulanAktif }}">
                     <input type="hidden" name="tahun" value="{{ $tahunAktif }}">
-                    <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-50 sm:w-auto">
+                    <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-xs transition hover:bg-emerald-50 sm:w-auto">
                         <i class="fa-solid fa-bolt mr-2"></i>
                         Generate Tagihan
                     </button>
@@ -44,19 +44,19 @@
     </div>
 
     <div class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Periode Aktif</p>
             <p class="mt-3 text-2xl font-black text-slate-900">{{ $namaBulanAktif }} {{ $tahunAktif }}</p>
             <p class="mt-1 text-sm text-slate-500">Bulan yang akan diproses tombol generate.</p>
         </div>
 
-        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Total Per Rumah</p>
             <p class="mt-3 text-2xl font-black text-slate-900">Rp {{ number_format($totalBulanIni, 0, ',', '.') }}</p>
             <p class="mt-1 text-sm text-slate-500">{{ $iuranBulanIni->count() }} komponen iuran bulan ini.</p>
         </div>
 
-        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Komponen Wajib</p>
             <p class="mt-3 text-2xl font-black text-slate-900">{{ $wajibBulanIni }}</p>
             <p class="mt-1 text-sm text-slate-500">Komponen yang masuk tagihan utama.</p>
@@ -64,7 +64,7 @@
     </div>
 
     <div class="grid gap-6 lg:grid-cols-[0.85fr_1.6fr]">
-        <aside class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <aside class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
             <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800">
                 <i class="fa-solid fa-house-circle-check text-xl"></i>
             </div>
@@ -85,7 +85,7 @@
             </div>
         </aside>
 
-        <section class="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm">
+        <section class="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-xs">
             <div class="border-b border-slate-100 p-5">
                 <h3 class="text-lg font-black text-slate-900">Daftar Komponen Iuran</h3>
                 <p class="mt-1 text-sm text-slate-500">Data terbaru ditampilkan dari periode paling baru.</p>
@@ -131,7 +131,7 @@
         </section>
     </div>
 
-    <div x-cloak x-show="showIuranForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" x-on:click.self="showIuranForm = false">
+    <div x-cloak x-show="showIuranForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs" x-on:click.self="showIuranForm = false">
         <section x-transition class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
             <div class="flex items-start justify-between bg-emerald-800 p-6 text-white">
                 <div>

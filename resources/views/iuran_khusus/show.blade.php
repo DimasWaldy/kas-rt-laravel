@@ -17,20 +17,20 @@
     </div>
 
     <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Tagihan</p><p class="mt-2 text-3xl font-black text-slate-900">{{ $iuranKhusus->total_tagihan }}</p></div>
-        <div class="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-emerald-600">Sudah Lunas</p><p class="mt-2 text-3xl font-black text-emerald-800">{{ $lunas }}</p><p class="mt-1 text-xs text-emerald-700">Terkumpul Rp {{ number_format($terkumpul, 0, ',', '.') }}</p></div>
-        <div class="rounded-3xl border border-purple-200 bg-purple-50 p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-purple-600">Dikecualikan</p><p class="mt-2 text-3xl font-black text-purple-800">{{ $dikecualikan }}</p></div>
-        <div class="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-amber-600">Belum Bayar</p><p class="mt-2 text-3xl font-black text-amber-800">{{ $belumBayar }}</p></div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs"><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Tagihan</p><p class="mt-2 text-3xl font-black text-slate-900">{{ $iuranKhusus->total_tagihan }}</p></div>
+        <div class="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-xs"><p class="text-xs font-bold uppercase tracking-wider text-emerald-600">Sudah Lunas</p><p class="mt-2 text-3xl font-black text-emerald-800">{{ $lunas }}</p><p class="mt-1 text-xs text-emerald-700">Terkumpul Rp {{ number_format($terkumpul, 0, ',', '.') }}</p></div>
+        <div class="rounded-3xl border border-purple-200 bg-purple-50 p-5 shadow-xs"><p class="text-xs font-bold uppercase tracking-wider text-purple-600">Dikecualikan</p><p class="mt-2 text-3xl font-black text-purple-800">{{ $dikecualikan }}</p></div>
+        <div class="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-xs"><p class="text-xs font-bold uppercase tracking-wider text-amber-600">Belum Bayar</p><p class="mt-2 text-3xl font-black text-amber-800">{{ $belumBayar }}</p></div>
     </section>
 
-    <section class="grid gap-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+    <section class="grid gap-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs sm:grid-cols-2 lg:grid-cols-4">
         <div><p class="text-xs text-slate-400">Wilayah</p><p class="mt-1 font-bold text-slate-800">{{ $iuranKhusus->rt->name }}</p></div>
         <div><p class="text-xs text-slate-400">Dibuat oleh</p><p class="mt-1 font-bold text-slate-800">{{ $iuranKhusus->creator->name }}</p></div>
         <div><p class="text-xs text-slate-400">Tanggal kejadian</p><p class="mt-1 font-bold text-slate-800">{{ $iuranKhusus->tanggal_kejadian?->translatedFormat('d F Y') ?? '-' }}</p></div>
         <div><p class="text-xs text-slate-400">Nominal per warga</p><p class="mt-1 font-bold text-slate-800">Rp {{ number_format($iuranKhusus->nominal_per_warga, 0, ',', '.') }}</p></div>
     </section>
 
-    <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs">
         <div class="border-b border-slate-100 p-5"><h2 class="text-lg font-black text-slate-900">Daftar Tagihan Warga</h2><p class="mt-1 text-sm text-slate-500">Kelola pengecualian tanpa mengubah alur pembayaran tagihan.</p></div>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">

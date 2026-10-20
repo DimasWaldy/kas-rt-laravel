@@ -10,7 +10,7 @@
         <p class="mt-1 text-sm text-slate-500">Pengajuan akan dikonfirmasi petugas setelah pembayaran tunai dilakukan.</p>
     </div>
 
-    <form method="POST" action="{{ route('penarikan-sampah.store') }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm" x-data="{ saldo: {{ $saldo->saldo }}, jumlah: '{{ old('jumlah', '') }}' }">
+    <form method="POST" action="{{ route('penarikan-sampah.store') }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs" x-data="{ saldo: {{ $saldo->saldo }}, jumlah: '{{ old('jumlah', '') }}' }">
         @csrf
 
         <div class="mb-6 rounded-2xl bg-emerald-50 p-5">

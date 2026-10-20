@@ -20,12 +20,12 @@
     </div>
 
     <section class="grid gap-4 sm:grid-cols-3">
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Terlihat</p><p class="mt-2 text-3xl font-black text-slate-900">{{ $stats['total'] }}</p></div>
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-emerald-600">Balita Aktif</p><p class="mt-2 text-3xl font-black text-emerald-800">{{ $stats['aktif'] }}</p></div>
-        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-amber-600">Perlu Perhatian BB/U</p><p class="mt-2 text-3xl font-black text-amber-800">{{ $stats['perlu_perhatian'] }}</p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Terlihat</p><p class="mt-2 text-3xl font-black text-slate-900">{{ $stats['total'] }}</p></div>
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-xs"><p class="text-xs font-bold uppercase tracking-wider text-emerald-600">Balita Aktif</p><p class="mt-2 text-3xl font-black text-emerald-800">{{ $stats['aktif'] }}</p></div>
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-xs"><p class="text-xs font-bold uppercase tracking-wider text-amber-600">Perlu Perhatian BB/U</p><p class="mt-2 text-3xl font-black text-amber-800">{{ $stats['perlu_perhatian'] }}</p></div>
     </section>
 
-    <form method="GET" action="{{ route('posyandu.index') }}" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_12rem_12rem_auto]">
+    <form method="GET" action="{{ route('posyandu.index') }}" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs md:grid-cols-[1fr_12rem_12rem_auto]">
         <input name="search" value="{{ $filters['search'] }}" placeholder="Cari nama, NIK, KK, atau orang tua..." class="rounded-xl border-slate-200 text-sm focus:border-rose-500 focus:ring-rose-500">
         @if($rts->isNotEmpty())
             <select name="rt_id" class="rounded-xl border-slate-200 text-sm focus:border-rose-500 focus:ring-rose-500">
@@ -60,7 +60,7 @@
                         default => ['Belum diperiksa', 'bg-slate-50 text-slate-600 border-slate-200'],
                     };
                 @endphp
-                <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs transition hover:-translate-y-0.5 hover:shadow-lg">
                     <div class="flex items-start justify-between gap-3">
                         <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl {{ $balita->jenis_kelamin === 'laki_laki' ? 'bg-blue-50 text-blue-600' : 'bg-rose-50 text-rose-600' }}"><i class="fa-solid fa-child-reaching text-xl"></i></span>
                         <div class="flex flex-wrap justify-end gap-2">

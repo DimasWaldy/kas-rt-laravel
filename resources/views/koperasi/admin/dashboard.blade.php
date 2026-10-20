@@ -27,29 +27,29 @@
     @endif
 
     <div class="grid gap-4 md:grid-cols-4">
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Anggota</p>
             <p class="mt-2 text-3xl font-black text-slate-900">{{ $members->count() }}</p>
             <p class="mt-1 text-xs text-slate-500">{{ $members->where('status', 'pending')->count() }} menunggu verifikasi</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Simpanan Pending</p>
             <p class="mt-2 text-3xl font-black text-emerald-700">{{ $pendingSimpanans->count() }}</p>
             <p class="mt-1 text-xs text-slate-500">Bukti transfer perlu dicek</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Pinjaman Pending</p>
             <p class="mt-2 text-3xl font-black text-amber-700">{{ $pendingPinjamans->count() }}</p>
             <p class="mt-1 text-xs text-slate-500">Butuh keputusan pengurus</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Angsuran Pending</p>
             <p class="mt-2 text-3xl font-black text-blue-700">{{ $pendingAngsurans->count() }}</p>
             <p class="mt-1 text-xs text-slate-500">Mengurangi sisa pinjaman saat valid</p>
         </div>
     </div>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm" x-data="{ tab: 'anggota' }">
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs" x-data="{ tab: 'anggota' }">
         <div class="mb-6 flex flex-wrap gap-2">
             <button type="button" x-on:click="tab = 'anggota'" :class="tab === 'anggota' ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'" class="rounded-xl px-4 py-2 text-sm font-bold">Anggota</button>
             <button type="button" x-on:click="tab = 'simpanan'" :class="tab === 'simpanan' ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'" class="rounded-xl px-4 py-2 text-sm font-bold">Simpanan</button>

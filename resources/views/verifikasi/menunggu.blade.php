@@ -10,7 +10,7 @@
 <body class="flex min-h-screen items-center justify-center bg-slate-100 p-4 font-sans text-slate-900">
     <main class="w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-200/70">
         @if ($user->status_akun === 'ditolak')
-            <div class="bg-gradient-to-r from-rose-700 to-rose-500 px-8 py-10 text-center text-white">
+            <div class="bg-linear-to-r/srgb from-rose-700 to-rose-500 px-8 py-10 text-center text-white">
                 <span class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white/15 text-4xl">
                     <i class="fa-solid fa-circle-xmark"></i>
                 </span>
@@ -25,7 +25,7 @@
                 <p class="text-center text-sm text-slate-600">Hubungi pengurus RT untuk klarifikasi atau perbaikan data.</p>
             </div>
         @else
-            <div class="bg-gradient-to-r from-amber-500 to-orange-400 px-8 py-10 text-center text-white">
+            <div class="bg-linear-to-r/srgb from-amber-500 to-orange-400 px-8 py-10 text-center text-white">
                 <span class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white/15 text-4xl">
                     <i class="fa-regular fa-clock"></i>
                 </span>

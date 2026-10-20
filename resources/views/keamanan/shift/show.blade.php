@@ -11,7 +11,7 @@
     </div>
 
     <div class="grid gap-6 lg:grid-cols-3">
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs lg:col-span-2">
             <h2 class="font-black text-slate-900">Log Patroli</h2>
             <div class="mt-4 space-y-3">
                 @forelse($shift->logPatrolis->sortByDesc('waktu_patroli') as $log)
@@ -30,7 +30,7 @@
         </section>
 
         <aside class="space-y-4">
-            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
                 <h2 class="font-black text-slate-900">Info Shift</h2>
                 <dl class="mt-4 space-y-3 text-sm">
                     <div><dt class="font-bold text-slate-400">Satpam</dt><dd class="text-slate-700">{{ $shift->nama_satpam }}</dd></div>
@@ -40,7 +40,7 @@
                 </dl>
             </div>
 
-            <form method="POST" action="{{ route('keamanan.patroli.store', $shift) }}" class="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <form method="POST" action="{{ route('keamanan.patroli.store', $shift) }}" class="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
                 @csrf
                 <h2 class="font-black text-slate-900">Tambah Log Patroli</h2>
                 <div>
@@ -54,7 +54,7 @@
                     @error('catatan')<p class="mt-1 text-xs font-semibold text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                    <input type="checkbox" name="ada_kejadian" value="1" class="rounded border-slate-300 text-emerald-700" @checked(old('ada_kejadian'))>
+                    <input type="checkbox" name="ada_kejadian" value="1" class="rounded-sm border-slate-300 text-emerald-700" @checked(old('ada_kejadian'))>
                     Ada kejadian khusus
                 </label>
                 <button class="w-full rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800">Simpan Log</button>

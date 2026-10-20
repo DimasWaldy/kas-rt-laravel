@@ -13,29 +13,29 @@
     </div>
 
     <div class="grid gap-4 md:grid-cols-5">
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total RT</p>
             <p class="mt-2 text-3xl font-black text-slate-900">{{ $statistik['total_rt'] }}</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Rumah</p>
             <p class="mt-2 text-3xl font-black text-emerald-700">{{ $statistik['total_rumah'] }}</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Warga</p>
             <p class="mt-2 text-3xl font-black text-blue-700">{{ $statistik['total_warga'] }}</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Kepala Keluarga</p>
             <p class="mt-2 text-3xl font-black text-indigo-700">{{ $statistik['kepala_keluarga'] }}</p>
         </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Profil Belum Lengkap</p>
             <p class="mt-2 text-3xl font-black text-amber-700">{{ $statistik['profil_belum_lengkap'] }}</p>
         </div>
     </div>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <div class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h2 class="text-lg font-black text-slate-900">Daftar RT</h2>
@@ -73,7 +73,7 @@
         </div>
     </section>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <div class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h2 class="text-lg font-black text-slate-900">Daftar Warga</h2>

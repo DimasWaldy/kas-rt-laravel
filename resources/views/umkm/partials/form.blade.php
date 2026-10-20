@@ -109,7 +109,7 @@
                     <p class="text-sm font-black text-slate-800" x-text="jadwal.label"></p>
 
                     <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600">
-                        <input type="checkbox" x-model="jadwal.is_tutup" class="rounded border-slate-300 text-emerald-700 focus:ring-emerald-500">
+                        <input type="checkbox" x-model="jadwal.is_tutup" class="rounded-sm border-slate-300 text-emerald-700 focus:ring-emerald-500">
                         Tutup
                     </label>
 

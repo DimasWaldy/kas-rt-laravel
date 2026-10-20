@@ -19,7 +19,7 @@
         @endif
     </div>
 
-    <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs">
         <div class="relative h-72 bg-slate-100 sm:h-96">
             @if($umkm->foto_usaha)
                 <img src="{{ route('umkm.foto', $umkm) }}" alt="Foto {{ $umkm->nama_usaha }}" class="h-full w-full object-cover">
@@ -66,7 +66,7 @@
         </div>
     </article>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <p class="text-sm font-semibold text-emerald-700">Waktu pelayanan</p>
@@ -94,7 +94,7 @@
         </div>
     </section>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8">
         <div>
             <p class="text-sm font-semibold text-emerald-700">Katalog</p>
             <h2 class="text-xl font-black text-slate-900">Produk & Jasa Tersedia</h2>

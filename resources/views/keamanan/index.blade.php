@@ -15,7 +15,7 @@
         </a>
     </div>
 
-    <form method="GET" action="{{ route('keamanan.index') }}" class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_auto]">
+    <form method="GET" action="{{ route('keamanan.index') }}" class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs md:grid-cols-[1fr_1fr_auto]">
         <div>
             <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Tanggal mulai</label>
             <input type="date" name="tanggal_mulai" value="{{ $tanggalMulai->toDateString() }}" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm">
@@ -30,7 +30,7 @@
     </form>
 
     <div class="grid gap-6 lg:grid-cols-3">
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs lg:col-span-2">
             <h2 class="font-black text-slate-900">Jadwal Shift</h2>
             <div class="mt-4 space-y-3">
                 @forelse($shifts as $shift)
@@ -47,7 +47,7 @@
             </div>
         </section>
 
-        <aside class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <aside class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
             <h2 class="font-black text-slate-900">Log Patroli Terbaru</h2>
             <div class="mt-4 space-y-3">
                 @forelse($logs->take(8) as $log)

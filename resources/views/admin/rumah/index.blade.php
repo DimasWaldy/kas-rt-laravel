@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+    <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h1 class="text-2xl font-black text-slate-900">Data Rumah / Unit Hunian</h1>
@@ -20,25 +20,25 @@
     </div>
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Total Rumah</p>
             <p class="mt-2 text-3xl font-black text-slate-900">{{ $stats['total'] }}</p>
         </div>
-        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Rumah Aktif</p>
             <p class="mt-2 text-3xl font-black text-emerald-700">{{ $stats['aktif'] }}</p>
         </div>
-        <div class="rounded-2xl border border-amber-100 bg-amber-50 p-5 shadow-sm">
+        <div class="rounded-2xl border border-amber-100 bg-amber-50 p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Tanpa PJ</p>
             <p class="mt-2 text-3xl font-black text-amber-800">{{ $stats['tanpa_pj'] }}</p>
         </div>
-        <div class="rounded-2xl border border-lime-100 bg-lime-50 p-5 shadow-sm">
+        <div class="rounded-2xl border border-lime-100 bg-lime-50 p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-lime-700">Belum Lunas</p>
             <p class="mt-2 text-3xl font-black text-lime-800">{{ $stats['belum_lunas'] }}</p>
         </div>
     </div>
 
-    <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+    <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-emerald-100 text-sm">
                 <thead class="bg-emerald-50 text-left text-[11px] uppercase tracking-[0.2em] text-slate-600">

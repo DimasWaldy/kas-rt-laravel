@@ -29,7 +29,7 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
-            <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs">
                 <div class="relative h-80 bg-slate-100">
                     @if($aset->foto)
                         <img src="{{ route($fotoRoute, $aset) }}" alt="Foto {{ $aset->nama }}" class="h-full w-full object-cover">
@@ -56,7 +56,7 @@
                 </div>
             </article>
 
-            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                 <h2 class="font-bold text-slate-900">Peminjaman Aktif</h2>
                 <div class="mt-4 overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-100 text-sm">
@@ -89,7 +89,7 @@
             </section>
 
             @if($canManage)
-                <section class="rounded-3xl border border-red-200 bg-white p-6 shadow-sm">
+                <section class="rounded-3xl border border-red-200 bg-white p-6 shadow-xs">
                     <h2 class="font-bold text-red-900">Hapus Aset</h2>
                     <p class="mt-1 text-xs text-red-600">Aset tidak bisa dihapus jika masih ada peminjaman aktif.</p>
                     <form method="POST" action="{{ route($destroyRoute, $aset) }}" class="mt-4" onsubmit="return confirm('Hapus aset ini?')">
@@ -100,7 +100,7 @@
                 </section>
             @endif
 
-            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                 <h2 class="font-bold text-slate-900">Riwayat Peminjaman</h2>
                 <div class="mt-4 space-y-3">
                     @forelse($riwayat->whereIn('status', ['dikembalikan', 'ditolak']) as $peminjaman)

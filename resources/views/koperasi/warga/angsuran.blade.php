@@ -14,7 +14,7 @@
         <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{{ session('error') }}</div>
     @endif
 
-    <section class="rounded-3xl bg-gradient-to-br from-blue-700 to-indigo-600 p-6 text-white shadow-lg shadow-blue-700/20">
+    <section class="rounded-3xl bg-linear-to-br/srgb from-blue-700 to-indigo-600 p-6 text-white shadow-lg shadow-blue-700/20">
         <p class="text-sm font-bold text-blue-100">Sisa Pinjaman</p>
         <p class="mt-2 text-4xl font-black">Rp {{ number_format($pinjaman->remaining_amount, 0, ',', '.') }}</p>
         <div class="mt-5 grid gap-3 sm:grid-cols-2">
@@ -29,7 +29,7 @@
         </div>
     </section>
 
-    <form method="POST" action="{{ route('koperasi.store-angsuran', $pinjaman) }}" enctype="multipart/form-data" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form method="POST" action="{{ route('koperasi.store-angsuran', $pinjaman) }}" enctype="multipart/form-data" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         @csrf
         <div>
             <label for="amount" class="text-sm font-bold text-slate-700">Nominal Angsuran</label>

@@ -15,7 +15,7 @@
     @endif
 
     <div class="grid gap-6 lg:grid-cols-[1fr_22rem]" x-data="{ amount: Number(@js(old('amount', 0))), tenor: Number(@js(old('tenor_months', 1))), simpananWajib: Number(@js($simpananWajibTerverifikasi)), format(value) { return new Intl.NumberFormat('id-ID').format(value || 0) }, get fee() { return Math.round(this.amount * 0.02 * this.tenor) }, get total() { return this.amount + this.fee }, get highLoanNeedsSaving() { return this.amount >= 1000000 && this.simpananWajib < 50000 } }">
-        <form method="POST" action="{{ route('koperasi.store-pinjam') }}" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <form method="POST" action="{{ route('koperasi.store-pinjam') }}" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
             @csrf
             <div class="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-900">
                 <p class="font-black">Ketentuan pinjaman</p>
@@ -58,7 +58,7 @@
             </div>
         </form>
 
-        <aside class="rounded-3xl bg-gradient-to-br from-indigo-700 to-blue-600 p-6 text-white shadow-lg shadow-indigo-700/20">
+        <aside class="rounded-3xl bg-linear-to-br/srgb from-indigo-700 to-blue-600 p-6 text-white shadow-lg shadow-indigo-700/20">
             <p class="text-sm font-bold text-indigo-100">Estimasi Pengembalian</p>
             <div class="mt-6 space-y-4">
                 <div class="rounded-2xl bg-white/15 p-4">

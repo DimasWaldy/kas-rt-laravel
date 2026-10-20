@@ -30,7 +30,7 @@
 
     <div class="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <div class="space-y-6">
-            <section class="rounded-3xl bg-white p-6 shadow-sm">
+            <section class="rounded-3xl bg-white p-6 shadow-xs">
                 <h2 class="font-black text-slate-800">Data Calon Warga</h2>
                 <dl class="mt-5 space-y-4 text-sm">
                     <div><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Nama akun</dt><dd class="mt-1 font-semibold text-slate-800">{{ $warga->user?->name }}</dd></div>
@@ -42,7 +42,7 @@
                 </dl>
             </section>
 
-            <section class="rounded-3xl bg-white p-6 shadow-sm">
+            <section class="rounded-3xl bg-white p-6 shadow-xs">
                 <h2 class="font-black text-slate-800">Dokumen Pendukung</h2>
                 <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                     @if ($warga->dokumen_kk)
@@ -62,7 +62,7 @@
             </section>
         </div>
 
-        <section class="rounded-3xl bg-white p-6 shadow-sm sm:p-8">
+        <section class="rounded-3xl bg-white p-6 shadow-xs sm:p-8">
             <h2 class="text-lg font-black text-slate-800">Konfirmasi Data Final</h2>
             <p class="mt-1 text-sm text-slate-500">Pastikan Rumah, KK, dan NIK sesuai dokumen atau hasil pertemuan.</p>
 

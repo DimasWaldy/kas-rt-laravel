@@ -16,7 +16,7 @@
     </div>
 
     <div class="grid gap-6 lg:grid-cols-3">
-        <section class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+        <section class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs lg:col-span-2">
             <div>
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Fasilitas</p>
                 <h2 class="mt-1 text-xl font-black text-slate-900">{{ $pengaduan->fasilitas->nama }}</h2>
@@ -49,7 +49,7 @@
         </section>
 
         <aside class="space-y-4">
-            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
                 <h2 class="font-black text-slate-900">Info Laporan</h2>
                 <dl class="mt-4 space-y-3 text-sm">
                     <div><dt class="font-bold text-slate-400">Pelapor</dt><dd class="text-slate-700">{{ $pengaduan->pelapor?->name ?? '-' }}</dd></div>
@@ -59,7 +59,7 @@
             </div>
 
             @if($canManage && in_array($pengaduan->status, ['dilaporkan', 'ditindaklanjuti'], true))
-                <div class="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
                     @if($pengaduan->status === 'dilaporkan')
                         <form action="{{ route('pengaduan-fasilitas.tindak-lanjut', $pengaduan) }}" method="POST" class="space-y-3">
                             @csrf
@@ -84,7 +84,7 @@
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">Catatan selesai</label>
                         <textarea name="catatan_tindak_lanjut" rows="3" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm">{{ old('catatan_tindak_lanjut', $pengaduan->catatan_tindak_lanjut) }}</textarea>
                         <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                            <input type="checkbox" name="update_kondisi_baik" value="1" class="rounded border-slate-300 text-emerald-700">
+                            <input type="checkbox" name="update_kondisi_baik" value="1" class="rounded-sm border-slate-300 text-emerald-700">
                             Update kondisi fasilitas menjadi baik
                         </label>
                         <button class="w-full rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800">Tandai Selesai</button>

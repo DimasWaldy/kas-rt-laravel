@@ -10,7 +10,7 @@
         <p class="mt-1 text-sm text-slate-500">Total kas dihitung dari berat total dikali harga jual per satuan.</p>
     </div>
 
-    <form method="POST" action="{{ route('penjualan-sampah.store') }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm" x-data="{
+    <form method="POST" action="{{ route('penjualan-sampah.store') }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs" x-data="{
         selected: '',
         berat: '{{ old('berat_total', '') }}',
         harga: '{{ old('harga_jual', '') }}',

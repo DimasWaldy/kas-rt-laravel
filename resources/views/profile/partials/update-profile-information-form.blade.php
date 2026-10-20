@@ -68,7 +68,7 @@
 
             <div class="md:col-span-2">
                 <x-input-label for="status_dalam_kk" value="Status dalam Kartu Keluarga" />
-                <select id="status_dalam_kk" name="status_dalam_kk" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                <select id="status_dalam_kk" name="status_dalam_kk" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500">
                     <option value="">Pilih Status dalam KK</option>
                     <option value="kepala_keluarga" {{ old('status_dalam_kk', $user->warga?->status_dalam_kk) === 'kepala_keluarga' ? 'selected' : '' }}>Kepala Keluarga</option>
                     <option value="anggota" {{ old('status_dalam_kk', $user->warga?->status_dalam_kk) === 'anggota' ? 'selected' : '' }}>Anggota Keluarga</option>
@@ -82,7 +82,7 @@
                 <p class="mt-2 text-sm text-slate-700">
                     Email Anda belum diverifikasi.
 
-                    <button form="send-verification" class="rounded-md text-sm text-emerald-700 underline hover:text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                    <button form="send-verification" class="rounded-md text-sm text-emerald-700 underline hover:text-emerald-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
                         Kirim ulang email verifikasi.
                     </button>
                 </p>

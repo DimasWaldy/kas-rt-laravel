@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="mx-auto max-w-4xl space-y-6">
-    <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+    <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
         <h1 class="text-2xl font-black text-slate-900">Edit Rumah / Unit Hunian</h1>
         <p class="mt-2 text-sm text-slate-500">Atur alamat, status rumah, dan penanggung jawab iuran dengan jelas.</p>
     </div>
@@ -15,7 +15,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('admin.rumah.update', $rumah) }}" class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+    <form method="POST" action="{{ route('admin.rumah.update', $rumah) }}" class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
         @csrf
         @method('PATCH')
 

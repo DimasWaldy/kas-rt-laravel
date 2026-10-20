@@ -17,8 +17,8 @@
         <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{{ session('error') }}</div>
     @endif
 
-    <section class="overflow-hidden rounded-3xl border border-indigo-100 bg-white shadow-sm">
-        <div class="bg-gradient-to-br from-indigo-700 to-blue-600 p-6 text-white">
+    <section class="overflow-hidden rounded-3xl border border-indigo-100 bg-white shadow-xs">
+        <div class="bg-linear-to-br/srgb from-indigo-700 to-blue-600 p-6 text-white">
             <p class="text-sm font-bold text-indigo-100">Simpan pinjam warga</p>
             <h2 class="mt-2 text-3xl font-black">Koperasi untuk kebutuhan kecil warga, dikelola transparan.</h2>
             <div class="mt-5 grid gap-3 text-sm sm:grid-cols-3">

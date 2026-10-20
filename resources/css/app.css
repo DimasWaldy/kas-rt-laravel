@@ -1,13 +1,39 @@
-@import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
-@import '@fortawesome/fontawesome-free/css/solid.min.css';
-@import '@fortawesome/fontawesome-free/css/regular.min.css';
-@import '@fortawesome/fontawesome-free/css/brands.min.css';
+@import 'tailwindcss' source(none);
+@import '@fortawesome/fontawesome-free/css/fontawesome.min.css' layer(components);
+@import '@fortawesome/fontawesome-free/css/solid.min.css' layer(components);
+@import '@fortawesome/fontawesome-free/css/regular.min.css' layer(components);
+@import '@fortawesome/fontawesome-free/css/brands.min.css' layer(components);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@source '../views';
+@source '../js';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views';
+@plugin '@tailwindcss/forms';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --default-ring-color: var(--color-blue-500);
+}
 
 @layer base {
+    /* Preserve the former defaults for legacy forms and uncoloured borders. */
+    *, ::after, ::before, ::backdrop, ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+
+    input::placeholder, textarea::placeholder {
+        color: var(--color-gray-400);
+    }
+
+    button:not(:disabled), [role='button']:not(:disabled) {
+        cursor: pointer;
+    }
+
+    dialog {
+        margin: auto;
+    }
+
     html {
         color-scheme: light;
     }
@@ -33,7 +59,8 @@
     }
 
     .dark .bg-emerald-50,
-    .dark .bg-green-50 {
+    .dark .bg-green-50,
+    .dark .bg-lime-50 {
         background-color: rgb(6 78 59 / 0.25) !important;
     }
 

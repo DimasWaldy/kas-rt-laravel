@@ -353,13 +353,13 @@
     </div>
 
     <aside
-        class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] -translate-x-full flex-col border-r border-emerald-100 bg-gradient-to-b from-emerald-50 via-green-50 to-white text-slate-700 shadow-2xl shadow-emerald-950/10 transition-transform duration-300 dark:border-slate-800 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-200 lg:translate-x-0"
+        class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] -translate-x-full flex-col border-r border-emerald-100 bg-linear-to-b/srgb from-emerald-50 via-green-50 to-white text-slate-700 shadow-2xl shadow-emerald-950/10 transition-transform duration-300 dark:border-slate-800 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-200 lg:translate-x-0"
         :class="{ 'translate-x-0': mobileMenuOpen, '-translate-x-full': !mobileMenuOpen }"
         aria-label="Navigasi utama"
     >
         <div class="flex items-center justify-between border-b border-emerald-100 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-950/70 lg:p-6">
             <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-3">
-                <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500 shadow-sm shadow-emerald-500/30">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500 shadow-xs shadow-emerald-500/30">
                     <i class="fa-solid fa-wallet text-lg text-white"></i>
                 </span>
                 <span class="truncate text-xl font-extrabold tracking-wider text-emerald-950">Smart RW</span>
@@ -386,7 +386,7 @@
                                     x-on:click="goToMenu($event)"
                                     class="sidebar-item flex min-h-12 touch-manipulation items-center gap-3 rounded-xl p-3 text-sm font-semibold hover:bg-emerald-100 hover:text-emerald-950 {{ $isActive ? 'active-menu' : '' }}"
                                 >
-                                    <i class="fa-solid {{ $item['icon'] }} w-5 flex-shrink-0 text-center {{ $isActive ? 'text-white' : $item['iconClass'] }}"></i>
+                                    <i class="fa-solid {{ $item['icon'] }} w-5 shrink-0 text-center {{ $isActive ? 'text-white' : $item['iconClass'] }}"></i>
                                     <span class="min-w-0 truncate font-medium">{{ $item['label'] }}</span>
                                 </a>
                             </li>
@@ -397,9 +397,9 @@
         </nav>
 
         <div class="border-t border-emerald-100 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-950/70">
-            <div class="mb-3 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+            <div class="mb-3 rounded-2xl border border-emerald-100 bg-white p-4 shadow-xs">
                 <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
                         {{ substr($user->name, 0, 1) }}
                     </div>
                     <div class="min-w-0">
@@ -420,9 +420,9 @@
     </aside>
 
     <div class="min-h-screen lg:pl-72">
-        <header class="sticky top-0 z-30 border-b bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
+        <header class="sticky top-0 z-30 border-b bg-white/95 px-4 py-3 shadow-xs backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
             <div class="flex items-center justify-between gap-3">
-                <button type="button" class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/30" x-on:click="mobileMenuOpen = true" aria-label="Buka menu">
+                <button type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-xs shadow-emerald-500/30" x-on:click="mobileMenuOpen = true" aria-label="Buka menu">
                     <i class="fa-solid fa-bars text-lg"></i>
                 </button>
 
@@ -434,12 +434,12 @@
                     </p>
                 </div>
 
-                <button type="button" x-on:click="toggleTheme()" class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-amber-300 dark:hover:bg-slate-700" aria-label="Ganti mode terang gelap">
+                <button type="button" x-on:click="toggleTheme()" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-amber-300 dark:hover:bg-slate-700" aria-label="Ganti mode terang gelap">
                     <i class="fa-solid" :class="theme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
                 </button>
 
                 <div class="relative" x-data="{ open: false }">
-                    <button type="button" x-on:click="open = !open" class="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700" aria-label="Notifikasi">
+                    <button type="button" x-on:click="open = !open" class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700" aria-label="Notifikasi">
                         <i class="fa-solid fa-bell"></i>
                         @if($visibleUnreadCount)
                             <span class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-bold text-white">
@@ -494,7 +494,7 @@
             </div>
         </header>
 
-        <header class="hidden h-20 items-center justify-between border-b bg-white px-8 shadow-sm dark:border-slate-800 dark:bg-slate-950 lg:flex">
+        <header class="hidden h-20 items-center justify-between border-b bg-white px-8 shadow-xs dark:border-slate-800 dark:bg-slate-950 lg:flex">
             <div class="flex min-w-0 items-center gap-2">
                 <h3 class="truncate text-lg font-bold capitalize text-slate-700">
                     @yield('title', 'Dashboard')
@@ -502,8 +502,8 @@
             </div>
 
             <div class="flex items-center gap-4">
-                <div class="hidden items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-emerald-900 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100 xl:flex">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-sm dark:bg-slate-900 dark:text-emerald-300">
+                <div class="hidden items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-emerald-900 shadow-xs dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100 xl:flex">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-xs dark:bg-slate-900 dark:text-emerald-300">
                         <i class="fa-solid fa-calendar-days"></i>
                     </span>
                     <span class="leading-tight">
@@ -611,7 +611,7 @@
                             </p>
                         </div>
                     </div>
-                    <a href="{{ route('profile.edit') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-amber-700">
+                    <a href="{{ route('profile.edit') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white shadow-xs hover:bg-amber-700">
                         <i class="fa-solid fa-user-pen"></i>
                         Lengkapi Profil
                     </a>

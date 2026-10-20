@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="space-y-6" x-data="{ showTagihanForm: {{ old('_form') === 'tagihan_manual' ? 'true' : 'false' }} }">
-    <div class="rounded-3xl bg-white p-6 shadow-sm">
+    <div class="rounded-3xl bg-white p-6 shadow-xs">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-2xl font-bold text-slate-900">Manajemen Tagihan</h2>
@@ -16,7 +16,7 @@
         </div>
     </div>
 
-    <div class="rounded-3xl bg-white p-6 shadow-sm">
+    <div class="rounded-3xl bg-white p-6 shadow-xs">
         <form method="GET" action="{{ route('tagihan.admin') }}" class="grid gap-4 md:grid-cols-[1fr_1fr_auto_auto] md:items-end">
             <div>
                 <label class="block text-sm font-bold text-slate-700">Filter Bulan</label>
@@ -67,7 +67,7 @@
                     rejectionReason: @js($tagihan->rejection_reason),
                     hasBukti: @js((bool) $tagihan->bukti)
                 })"
-                class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm"
+                class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs"
             >
                 <div class="grid gap-5 xl:grid-cols-[1fr_0.8fr_1.1fr]">
                     <div>
@@ -191,12 +191,12 @@
     </div>
 
     @if($tagihans->hasPages())
-        <div class="rounded-3xl bg-white p-4 shadow-sm">
+        <div class="rounded-3xl bg-white p-4 shadow-xs">
             {{ $tagihans->withQueryString()->links() }}
         </div>
     @endif
 
-    <div x-cloak x-show="showTagihanForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" x-on:click.self="showTagihanForm = false">
+    <div x-cloak x-show="showTagihanForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs" x-on:click.self="showTagihanForm = false">
         <section x-transition class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
             <div class="flex items-start justify-between bg-emerald-800 p-6 text-white">
                 <div>
@@ -314,7 +314,7 @@
     </div>
 </div>
 
-<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
+<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
     <div class="w-full max-w-sm space-y-4 rounded-3xl bg-white p-6 shadow-lg">
         <h2 class="text-xl font-bold text-slate-800">Hapus Tagihan?</h2>
         <p id="deleteMessage" class="text-slate-600"></p>

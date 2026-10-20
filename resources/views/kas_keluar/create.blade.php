@@ -5,7 +5,7 @@
 @section('content')
 
 <div class="mx-auto max-w-5xl">
-    <div class="mb-6 rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-800 to-green-700 p-6 text-white shadow-lg shadow-emerald-100">
+    <div class="mb-6 rounded-3xl border border-emerald-100 bg-linear-to-r/srgb from-emerald-800 to-green-700 p-6 text-white shadow-lg shadow-emerald-100">
         <p class="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">Kas Keluar</p>
         <h1 class="mt-2 text-2xl font-black md:text-3xl">Tambah Data Pengeluaran</h1>
         <p class="mt-2 max-w-2xl text-sm font-medium leading-6 text-emerald-50">
@@ -14,7 +14,7 @@
     </div>
 
     <div class="grid gap-6 lg:grid-cols-[0.9fr_1.4fr]">
-        <aside class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <aside class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
             <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800">
                 <i class="fa-solid fa-receipt text-xl"></i>
             </div>
@@ -39,7 +39,7 @@
             </a>
         </aside>
 
-        <section class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <section class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
             @if($errors->any())
                 <div class="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
                     Periksa kembali data pengeluaran yang diisi.

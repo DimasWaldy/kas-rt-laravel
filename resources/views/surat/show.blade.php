@@ -17,7 +17,7 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
-            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="text-xs font-bold uppercase tracking-wider text-emerald-700">{{ $surat->type_label }}</p>
@@ -40,7 +40,7 @@
             </section>
 
             @if($surat->attachments->isNotEmpty())
-                <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                     <h2 class="font-bold text-slate-900">Dokumen Pendukung</h2>
                     <div class="mt-4 space-y-2">
                         @foreach($surat->attachments as $attachment)
@@ -87,7 +87,7 @@
             @endif
         </div>
 
-        <aside class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:self-start">
+        <aside class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs lg:self-start">
             <h2 class="font-bold text-slate-900">Alur Persetujuan</h2>
             @php
                 $steps = [

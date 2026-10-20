@@ -21,7 +21,7 @@
      ============================================= --}}
 @if(auth()->user()->role_name === 'warga')
 <div class="mb-6">
-    <div class="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-6 text-white shadow-lg shadow-indigo-100">
+    <div class="bg-linear-to-br/srgb from-indigo-600 to-violet-700 rounded-2xl p-6 text-white shadow-lg shadow-indigo-100">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <p class="text-indigo-100 text-xs font-medium uppercase tracking-wider mb-1">Status Iuran Anda</p>
@@ -62,7 +62,7 @@
                 </p>
                 <p class="text-xs text-slate-400 mt-1">Sepanjang waktu</p>
             </div>
-            <div class="bg-green-50 p-2.5 rounded-xl flex-shrink-0">
+            <div class="bg-green-50 p-2.5 rounded-xl shrink-0">
                 <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg>
             </div>
         </div>
@@ -84,7 +84,7 @@
                 </p>
                 <p class="text-xs text-slate-400 mt-1">Sepanjang waktu</p>
             </div>
-            <div class="bg-red-50 p-2.5 rounded-xl flex-shrink-0">
+            <div class="bg-red-50 p-2.5 rounded-xl shrink-0">
                 <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6L9 12.75l4.306-4.307a11.95 11.95 0 015.814 5.519l2.74 1.22m0 0l-5.94 2.28m5.94-2.28l-2.28-5.941"/></svg>
             </div>
         </div>
@@ -110,7 +110,7 @@
                 </p>
                 <p class="text-xs text-slate-400 mt-1">Kas masuk − kas keluar</p>
             </div>
-            <div class="{{ $saldoPositif ? 'bg-blue-50' : 'bg-red-50' }} p-2.5 rounded-xl flex-shrink-0">
+            <div class="{{ $saldoPositif ? 'bg-blue-50' : 'bg-red-50' }} p-2.5 rounded-xl shrink-0">
                 <svg class="w-5 h-5 {{ $saldoPositif ? 'text-blue-500' : 'text-red-500' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z"/></svg>
             </div>
         </div>
@@ -240,7 +240,7 @@
             {{-- Alert bukti transfer pending --}}
             @if(auth()->user()->canManageFinance() && ($pendingTransferCount ?? 0) > 0)
                 <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                    <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div>
                         <p class="text-xs font-semibold text-amber-800">{{ $pendingTransferCount }} bukti transfer menunggu verifikasi</p>
                         <p class="text-xs text-amber-700 mt-0.5">Segera tindaklanjuti agar pembayaran warga tercatat.</p>
@@ -256,7 +256,7 @@
             @forelse($topKKIuran as $topKK)
                 <div class="flex items-center justify-between gap-3 py-2.5 {{ !$loop->last ? 'border-b border-slate-100' : '' }}">
                     <div class="flex items-center gap-3">
-                        <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0
+                        <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0
                             {{ $loop->first ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500' }}">
                             {{ $loop->iteration }}
                         </span>
@@ -265,7 +265,7 @@
                             <p class="text-xs text-slate-400">Rumah {{ $topKK['no_kk'] }}</p>
                         </div>
                     </div>
-                    <p class="text-sm font-semibold text-slate-900 flex-shrink-0">
+                    <p class="text-sm font-semibold text-slate-900 shrink-0">
                         Rp {{ number_format($topKK['total_iuran'], 0, ',', '.') }}
                     </p>
                 </div>
@@ -303,7 +303,7 @@
                     <div class="py-2.5 {{ !$loop->last ? 'border-b border-slate-100' : '' }}">
                         <div class="flex items-start justify-between gap-2">
                             <p class="text-sm font-medium text-slate-800 leading-snug">{{ $log['event'] }}</p>
-                            <span class="text-xs text-slate-400 flex-shrink-0 mt-0.5">{{ $log['created_at_human'] }}</span>
+                            <span class="text-xs text-slate-400 shrink-0 mt-0.5">{{ $log['created_at_human'] }}</span>
                         </div>
                         @if($log['notes'])
                             <p class="text-xs text-slate-500 mt-1">{{ $log['notes'] }}</p>
@@ -339,7 +339,7 @@
                         </p>
                     </div>
 
-                    <a href="{{ route('tagihan.index') }}" class="flex items-center justify-center gap-2 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-indigo-100">
+                    <a href="{{ route('tagihan.index') }}" class="flex items-center justify-center gap-2 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs shadow-indigo-100">
                         <span>Cek Tagihan Sekarang</span>
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                     </a>

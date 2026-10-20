@@ -30,7 +30,7 @@
         </div>
     </div>
 
-    <form method="GET" action="{{ route('fasilitas.index') }}" class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="GET" action="{{ route('fasilitas.index') }}" class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         <div>
             <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Kategori</p>
             <div class="flex flex-wrap gap-2">
@@ -65,7 +65,7 @@
     @else
         <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             @foreach($fasilitas as $item)
-                <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs transition hover:-translate-y-0.5 hover:shadow-lg">
                     <div class="relative h-44 bg-slate-100">
                         @if($item->foto)
                             <img src="{{ route('fasilitas.foto', $item) }}" alt="Foto {{ $item->nama }}" class="h-full w-full object-cover">

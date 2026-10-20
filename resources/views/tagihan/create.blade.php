@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="max-w-3xl mx-auto space-y-6">
-    <div class="rounded-3xl bg-white shadow-sm p-6">
+    <div class="rounded-3xl bg-white shadow-xs p-6">
         <h1 class="text-2xl font-bold text-slate-900">Buat Tagihan Baru</h1>
         <p class="mt-2 text-sm text-slate-600">Tambahkan tagihan iuran untuk kepala keluarga.</p>
     </div>
@@ -19,7 +19,7 @@
         </div>
     @endif
 
-    <div class="rounded-3xl bg-white shadow-sm p-6">
+    <div class="rounded-3xl bg-white shadow-xs p-6">
         <form action="{{ route('tagihan.store') }}" method="POST" class="space-y-6">
             @csrf
 

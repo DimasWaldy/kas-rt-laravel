@@ -2,14 +2,14 @@
 
 <div>
     <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Nama Fasilitas</label>
-    <input type="text" name="nama" value="{{ old('nama', $fasilitas->nama ?? '') }}" required class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+    <input type="text" name="nama" value="{{ old('nama', $fasilitas->nama ?? '') }}" required class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20">
     @error('nama')<p class="mt-1 text-xs font-semibold text-red-500">{{ $message }}</p>@enderror
 </div>
 
 <div class="grid gap-4 md:grid-cols-2">
     <div>
         <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Kategori</label>
-        <select name="kategori" required class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+        <select name="kategori" required class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20">
             <option value="">Pilih kategori</option>
             @foreach($categories as $category)
                 <option value="{{ $category }}" @selected(old('kategori', $fasilitas->kategori ?? '') === $category)>{{ (new \App\Models\Fasilitas(['kategori' => $category]))->kategori_label }}</option>
@@ -20,7 +20,7 @@
 
     <div>
         <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Kondisi</label>
-        <select name="kondisi" required class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+        <select name="kondisi" required class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20">
             @foreach($conditions as $condition)
                 <option value="{{ $condition }}" @selected(old('kondisi', $fasilitas->kondisi ?? 'baik') === $condition)>{{ (new \App\Models\Fasilitas(['kondisi' => $condition]))->kondisi_label }}</option>
             @endforeach
@@ -32,7 +32,7 @@
 @if($rts->isNotEmpty())
     <div>
         <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Scope RT</label>
-        <select name="rt_id" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+        <select name="rt_id" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20">
             <option value="">Fasilitas RW / bersama lintas RT</option>
             @foreach($rts as $rt)
                 <option value="{{ $rt->id }}" @selected((string) old('rt_id', $fasilitas->rt_id ?? '') === (string) $rt->id)>{{ $rt->name }}</option>
@@ -46,7 +46,7 @@
 <div class="grid gap-4 md:grid-cols-2">
     <div>
         <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Blok / Titik Lokasi</label>
-        <input type="text" name="lokasi_blok" value="{{ old('lokasi_blok', $fasilitas->lokasi_blok ?? '') }}" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="Contoh: Blok C, Gerbang Utama">
+        <input type="text" name="lokasi_blok" value="{{ old('lokasi_blok', $fasilitas->lokasi_blok ?? '') }}" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20" placeholder="Contoh: Blok C, Gerbang Utama">
         @error('lokasi_blok')<p class="mt-1 text-xs font-semibold text-red-500">{{ $message }}</p>@enderror
     </div>
 
@@ -59,18 +59,18 @@
 
 <div>
     <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Deskripsi Lokasi</label>
-    <textarea name="lokasi_deskripsi" rows="3" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">{{ old('lokasi_deskripsi', $fasilitas->lokasi_deskripsi ?? '') }}</textarea>
+    <textarea name="lokasi_deskripsi" rows="3" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20">{{ old('lokasi_deskripsi', $fasilitas->lokasi_deskripsi ?? '') }}</textarea>
     @error('lokasi_deskripsi')<p class="mt-1 text-xs font-semibold text-red-500">{{ $message }}</p>@enderror
 </div>
 
 <div>
     <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Catatan</label>
-    <textarea name="catatan" rows="3" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">{{ old('catatan', $fasilitas->catatan ?? '') }}</textarea>
+    <textarea name="catatan" rows="3" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20">{{ old('catatan', $fasilitas->catatan ?? '') }}</textarea>
     @error('catatan')<p class="mt-1 text-xs font-semibold text-red-500">{{ $message }}</p>@enderror
 </div>
 
 <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
-    <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-emerald-700" @checked(old('is_active', $fasilitas->is_active ?? true))>
+    <input type="checkbox" name="is_active" value="1" class="rounded-sm border-slate-300 text-emerald-700" @checked(old('is_active', $fasilitas->is_active ?? true))>
     Fasilitas aktif dan tampil untuk warga
 </label>
 

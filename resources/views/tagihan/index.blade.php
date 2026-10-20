@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="flex flex-col gap-6">
-    <div class="bg-white rounded-3xl shadow-sm p-6 border-l-8 border-yellow-500">
+    <div class="bg-white rounded-3xl shadow-xs p-6 border-l-8 border-yellow-500">
         <h2 class="text-xl font-bold text-slate-800">Tagihan Bulanan</h2>
         <p class="text-slate-500 mt-2">Berikut tagihan iuran rumah Anda untuk bulan ini dan riwayat tagihan sebelumnya.</p>
         @if($rumah)
@@ -17,21 +17,21 @@
     </div>
 
     @if($showHeadNotice)
-        <div class="bg-amber-50 rounded-3xl shadow-sm p-4 border border-amber-200 text-amber-900">
+        <div class="bg-amber-50 rounded-3xl shadow-xs p-4 border border-amber-200 text-amber-900">
             <p class="text-sm font-semibold">Tagihan rumah ini dikelola oleh penanggung jawab <strong>{{ $headUser?->name ?? 'yang belum ditentukan' }}</strong>.</p>
             <p class="text-sm text-slate-600 mt-1">Hanya penanggung jawab rumah yang dapat mengajukan pembayaran iuran.</p>
         </div>
     @endif
 
     @if($tagihan->isEmpty())
-        <div class="bg-white rounded-3xl shadow-sm p-6 text-center text-slate-600">
+        <div class="bg-white rounded-3xl shadow-xs p-6 text-center text-slate-600">
             <p class="font-semibold">Belum ada tagihan untuk akun Anda.</p>
             <p class="mt-2 text-sm text-slate-500">Tagihan akan muncul setelah admin menetapkan iuran bulanan.</p>
         </div>
     @else
         <div class="grid gap-6">
             @foreach($tagihan as $item)
-                <div class="bg-white rounded-3xl shadow-sm p-6 border border-slate-200">
+                <div class="bg-white rounded-3xl shadow-xs p-6 border border-slate-200">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
                             <h3 class="text-lg font-bold text-slate-900">{{ $item->display_title }}</h3>
@@ -144,7 +144,7 @@
                                         @endif
                                     </div>
 
-                                    <button type="submit" class="w-full rounded-2xl bg-green-600 px-5 py-3 text-sm font-bold text-white hover:bg-green-700 transition shadow-sm hover:shadow-md">Bayar / Ajukan Pembayaran</button>
+                                    <button type="submit" class="w-full rounded-2xl bg-green-600 px-5 py-3 text-sm font-bold text-white hover:bg-green-700 transition shadow-xs hover:shadow-md">Bayar / Ajukan Pembayaran</button>
                                 </form>
                                 @else
                                     <div class="rounded-3xl bg-amber-50 p-4">

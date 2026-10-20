@@ -41,20 +41,20 @@
         </section>
     @else
         <div class="grid gap-4 lg:grid-cols-3">
-            <section class="rounded-3xl bg-gradient-to-br from-indigo-700 to-blue-600 p-6 text-white shadow-lg shadow-indigo-700/20 lg:col-span-2">
+            <section class="rounded-3xl bg-linear-to-br/srgb from-indigo-700 to-blue-600 p-6 text-white shadow-lg shadow-indigo-700/20 lg:col-span-2">
                 <p class="text-sm font-bold text-indigo-100">Total Simpanan Terverifikasi</p>
                 <p class="mt-2 text-4xl font-black">Rp {{ number_format($simpananTotal, 0, ',', '.') }}</p>
                 <p class="mt-4 max-w-2xl text-sm text-indigo-50">Hanya simpanan yang sudah diverifikasi pengurus yang dihitung sebagai saldo koperasi aktif.</p>
             </section>
 
-            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                 <p class="text-sm font-bold text-slate-500">Status Anggota</p>
                 <p class="mt-2 text-2xl font-black text-emerald-700">Aktif</p>
                 <p class="mt-2 text-sm text-slate-500">Anda bisa menambah simpanan dan mengajukan pinjaman.</p>
             </section>
         </div>
 
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
             <div class="mb-4 flex items-center justify-between">
                 <h2 class="text-lg font-black text-slate-900">Pinjaman Aktif</h2>
                 @if($pinjamanAktif->count() === 0)
@@ -101,7 +101,7 @@
             </div>
         </section>
 
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
             <h2 class="mb-4 text-lg font-black text-slate-900">Riwayat Angsuran Terbaru</h2>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
@@ -133,7 +133,7 @@
             </div>
         </section>
 
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
             <h2 class="mb-4 text-lg font-black text-slate-900">Riwayat Simpanan Terbaru</h2>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">

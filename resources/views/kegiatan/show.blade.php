@@ -19,13 +19,13 @@
     @if($kegiatan->foto || ($kegiatan->foto_dokumentasi && $kegiatan->effective_status !== 'akan_datang'))
         <section class="grid gap-5 {{ $kegiatan->foto && $kegiatan->foto_dokumentasi && $kegiatan->effective_status !== 'akan_datang' ? 'lg:grid-cols-2' : '' }}">
             @if($kegiatan->foto)
-                <figure class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <figure class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs">
                     <img src="{{ route('kegiatan.foto', $kegiatan) }}" alt="Poster {{ $kegiatan->nama }}" class="h-72 w-full object-cover">
                     <figcaption class="p-4 text-sm font-bold text-slate-600"><i class="fa-solid fa-bullhorn mr-2 text-emerald-600"></i>Poster / Gambar Ajakan</figcaption>
                 </figure>
             @endif
             @if($kegiatan->foto_dokumentasi && $kegiatan->effective_status !== 'akan_datang')
-                <figure class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm">
+                <figure class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-xs">
                     <img src="{{ route('kegiatan.dokumentasi', $kegiatan) }}" alt="Dokumentasi {{ $kegiatan->nama }}" class="h-72 w-full object-cover">
                     <figcaption class="p-4 text-sm font-bold text-emerald-700"><i class="fa-solid fa-camera mr-2"></i>Dokumentasi Kegiatan</figcaption>
                 </figure>
@@ -35,7 +35,7 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
-            <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8">
                 <span class="inline-flex rounded-full border px-3 py-1.5 text-xs font-bold {{ $kegiatan->status_color }}">{{ $kegiatan->status_label }}</span>
                 @if($kegiatan->isRtKegiatan())
                     <span class="ml-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">Kegiatan {{ $kegiatan->rt->name }}</span>
@@ -64,7 +64,7 @@
                 @endif
             </article>
 
-            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                 <div class="flex items-center justify-between gap-3"><div><h2 class="font-bold text-slate-900">Daftar Hadir</h2><p class="text-xs text-slate-500">{{ $kegiatan->hadirs->count() }} warga telah mengonfirmasi</p></div><span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600"><i class="fa-solid fa-users"></i></span></div>
                 <div class="mt-5 divide-y divide-slate-100">
                     @forelse($kegiatan->hadirs->sortByDesc('konfirmasi_at') as $hadir)
@@ -77,7 +77,7 @@
         </div>
 
         <aside class="space-y-6">
-            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                 <h2 class="font-bold text-slate-900">Informasi Biaya</h2>
                 <dl class="mt-4 space-y-4 text-sm"><div class="rounded-xl bg-slate-50 p-4"><dt class="text-xs text-slate-400">Estimasi</dt><dd class="mt-1 text-lg font-black text-slate-800">Rp {{ number_format($kegiatan->estimasi_biaya, 0, ',', '.') }}</dd></div><div class="rounded-xl bg-emerald-50 p-4"><dt class="text-xs text-emerald-600">Realisasi</dt><dd class="mt-1 text-lg font-black text-emerald-800">Rp {{ number_format($kegiatan->realisasi_biaya, 0, ',', '.') }}</dd></div></dl>
                 <p class="mt-4 text-xs leading-relaxed text-slate-400">Nominal ini bersifat informatif dan tidak terhubung otomatis ke kas.</p>
@@ -95,7 +95,7 @@
             </section>
 
             @if(auth()->user()->hasPermission('manage-kegiatan'))
-                <section x-cloak x-show="showCancel" x-transition class="rounded-3xl border border-red-200 bg-white p-6 shadow-sm">
+                <section x-cloak x-show="showCancel" x-transition class="rounded-3xl border border-red-200 bg-white p-6 shadow-xs">
                     <h2 class="font-bold text-red-900">Batalkan Kegiatan</h2><p class="mt-1 text-xs text-red-600">Alasan pembatalan akan terlihat oleh warga.</p>
                     <form method="POST" action="{{ route('kegiatan.batalkan', $kegiatan) }}" class="mt-4 space-y-3">@csrf @method('PATCH')<textarea name="catatan_pembatalan" rows="4" required minlength="10" class="w-full rounded-xl border border-red-200 px-3 py-2 text-sm" placeholder="Tuliskan alasan pembatalan minimal 10 karakter">{{ old('catatan_pembatalan') }}</textarea>@error('catatan_pembatalan')<p class="text-xs font-semibold text-red-600">{{ $message }}</p>@enderror<button class="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white hover:bg-red-700">Konfirmasi Pembatalan</button></form>
                 </section>

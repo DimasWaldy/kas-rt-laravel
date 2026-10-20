@@ -10,7 +10,7 @@
         <p class="mt-1 text-sm text-slate-500">Upload bukti transfer. Saldo baru masuk setelah diverifikasi bendahara.</p>
     </div>
 
-    <form method="POST" action="{{ route('koperasi.store-simpanan') }}" enctype="multipart/form-data" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form method="POST" action="{{ route('koperasi.store-simpanan') }}" enctype="multipart/form-data" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         @csrf
         <div>
             <label for="type" class="text-sm font-bold text-slate-700">Jenis Simpanan</label>

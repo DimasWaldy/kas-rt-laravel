@@ -25,7 +25,7 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
-            <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8">
                 <p class="text-sm font-semibold text-emerald-700">Peminjaman Aset {{ $isRw ? 'RW' : 'RT' }}</p>
                 <h1 class="mt-2 text-2xl font-black text-slate-900">{{ $peminjamanAset->aset->nama }}</h1>
                 <p class="mt-2 text-sm text-slate-500">Diajukan oleh <strong>{{ $peminjamanAset->pemohon->name }}</strong></p>
@@ -53,7 +53,7 @@
                 @endif
             </article>
 
-            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                 <h2 class="font-bold text-slate-900">Timeline Status</h2>
                 <div class="mt-5 grid gap-3 sm:grid-cols-4">
                     @foreach($steps as $index => $step)
@@ -71,7 +71,7 @@
         </div>
 
         <aside class="space-y-6">
-            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                 <h2 class="font-bold text-slate-900">Info Aset</h2>
                 @if($peminjamanAset->aset->foto)
                     <img src="{{ route($asetFotoRoute, $peminjamanAset->aset) }}" alt="Foto {{ $peminjamanAset->aset->nama }}" class="mt-4 h-44 w-full rounded-2xl object-cover">

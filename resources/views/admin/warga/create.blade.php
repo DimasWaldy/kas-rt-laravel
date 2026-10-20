@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
-    <div class="rounded-3xl bg-white shadow-sm p-6">
+    <div class="rounded-3xl bg-white shadow-xs p-6">
         <div class="mb-6">
             <h1 class="text-2xl font-bold text-slate-800">Tambah Warga Baru</h1>
             <p class="mt-2 text-sm text-slate-500">Isi form di bawah untuk menambahkan warga baru ke sistem.</p>
@@ -93,14 +93,14 @@
 
                 <div class="flex items-center gap-3">
                     <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                        <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('is_kepala_keluarga') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('is_kepala_keluarga') ? 'checked' : '' }} class="h-4 w-4 rounded-sm border-slate-300 text-emerald-600 focus:ring-emerald-500">
                         Kepala Keluarga
                     </label>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                        <input type="checkbox" name="is_penanggung_jawab_rumah" value="1" {{ old('is_penanggung_jawab_rumah') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" name="is_penanggung_jawab_rumah" value="1" {{ old('is_penanggung_jawab_rumah') ? 'checked' : '' }} class="h-4 w-4 rounded-sm border-slate-300 text-emerald-600 focus:ring-emerald-500">
                         Penanggung Jawab Iuran Rumah
                     </label>
                 </div>

@@ -103,7 +103,7 @@
                 <form action="{{ route('register') }}" method="POST" class="flex h-full flex-col items-center justify-center bg-white px-8 py-10 text-center sm:px-12">
                     @csrf
 
-                    <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 text-3xl text-indigo-600 shadow-sm">
+                    <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 text-3xl text-indigo-600 shadow-xs">
                         <i class="fa-solid fa-user-plus"></i>
                     </div>
                     <h1 class="mb-1 text-3xl font-black tracking-tight text-slate-800">Buat Akun</h1>
@@ -112,19 +112,19 @@
                     <div class="w-full space-y-3">
                         <div class="relative">
                             <i class="fa-solid fa-user absolute left-4 top-4 text-xs text-slate-400"></i>
-                            <input type="text" name="name" placeholder="Nama Lengkap" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all focus:ring-2 focus:ring-indigo-500" value="{{ old('name') }}" required autocomplete="name">
+                            <input type="text" name="name" placeholder="Nama Lengkap" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" value="{{ old('name') }}" required autocomplete="name">
                         </div>
                         <div class="relative">
                             <i class="fa-solid fa-envelope absolute left-4 top-4 text-xs text-slate-400"></i>
-                            <input type="email" name="email" placeholder="Email Aktif" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all focus:ring-2 focus:ring-indigo-500" value="{{ old('email') }}" required autocomplete="email">
+                            <input type="email" name="email" placeholder="Email Aktif" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" value="{{ old('email') }}" required autocomplete="email">
                         </div>
                         <div class="relative">
                             <i class="fa-solid fa-phone absolute left-4 top-4 text-xs text-slate-400"></i>
-                            <input type="text" name="phone" placeholder="Nomor HP" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" class="numeric-only auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all focus:ring-2 focus:ring-indigo-500" value="{{ old('phone') }}" required>
+                            <input type="text" name="phone" placeholder="Nomor HP" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" class="numeric-only auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" value="{{ old('phone') }}" required>
                         </div>
                         <div class="relative">
                             <i class="fa-solid fa-house-user absolute left-4 top-4 text-xs text-slate-400"></i>
-                            <select name="rumah_id" class="auth-input w-full appearance-none rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-10 text-sm font-semibold text-slate-700 outline-none transition-all focus:ring-2 focus:ring-indigo-500" required>
+                            <select name="rumah_id" class="auth-input w-full appearance-none rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-10 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" required>
                                 <option value="">Pilih Domisili / Rumah</option>
                                 @foreach (($rumahs ?? collect())->groupBy('rt_id') as $rumahGroup)
                                     @php($rtLabel = $rumahGroup->first()->rt?->name ?? 'RT ' . $rumahGroup->first()->rt_id)
@@ -140,8 +140,8 @@
                             <i class="fa-solid fa-chevron-down pointer-events-none absolute right-4 top-4 text-xs text-slate-400"></i>
                         </div>
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <input type="password" name="password" placeholder="Password" class="auth-input rounded-2xl border-none bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-700 outline-none transition-all focus:ring-2 focus:ring-indigo-500" required autocomplete="new-password">
-                            <input type="password" name="password_confirmation" placeholder="Konfirmasi" class="auth-input rounded-2xl border-none bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-700 outline-none transition-all focus:ring-2 focus:ring-indigo-500" required autocomplete="new-password">
+                            <input type="password" name="password" placeholder="Password" class="auth-input rounded-2xl border-none bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" required autocomplete="new-password">
+                            <input type="password" name="password_confirmation" placeholder="Konfirmasi" class="auth-input rounded-2xl border-none bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" required autocomplete="new-password">
                         </div>
                     </div>
 
@@ -168,7 +168,7 @@
                 <form action="{{ route('login') }}" method="POST" class="flex h-full flex-col items-center justify-center bg-white px-8 py-10 text-center sm:px-12">
                     @csrf
 
-                    <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-3xl text-emerald-600 shadow-sm">
+                    <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-3xl text-emerald-600 shadow-xs">
                         <i class="fa-solid fa-fingerprint"></i>
                     </div>
                     <h1 class="mb-1 text-3xl font-black tracking-tight text-slate-800">Selamat Datang</h1>
@@ -177,11 +177,11 @@
                     <div class="w-full space-y-4">
                         <div class="relative">
                             <i class="fa-solid fa-at absolute left-4 top-4 text-xs text-slate-400"></i>
-                            <input type="email" name="email" placeholder="Email" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all focus:ring-2 focus:ring-emerald-500" value="{{ old('email') }}" required autocomplete="username">
+                            <input type="email" name="email" placeholder="Email" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-emerald-500" value="{{ old('email') }}" required autocomplete="username">
                         </div>
                         <div class="relative">
                             <i class="fa-solid fa-lock absolute left-4 top-4 text-xs text-slate-400"></i>
-                            <input type="password" name="password" placeholder="Password" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all focus:ring-2 focus:ring-emerald-500" required autocomplete="current-password">
+                            <input type="password" name="password" placeholder="Password" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-emerald-500" required autocomplete="current-password">
                         </div>
                     </div>
 
@@ -205,7 +205,7 @@
             </div>
 
             <div class="toggle-container absolute left-1/2 top-0 z-[100] h-full w-1/2 overflow-hidden rounded-l-[150px] transition-all duration-700 ease-in-out">
-                <div class="toggle relative -left-full h-full w-[200%] bg-gradient-to-br from-emerald-700 via-emerald-500 to-indigo-500 text-white transition-all duration-700 ease-in-out">
+                <div class="toggle relative -left-full h-full w-[200%] bg-linear-to-br/srgb from-emerald-700 via-emerald-500 to-indigo-500 text-white transition-all duration-700 ease-in-out">
                     <div class="toggle-panel toggle-left">
                         <h1 class="mb-4 text-3xl font-black uppercase tracking-tighter">Sudah Terdaftar?</h1>
                         <p class="mb-8 text-sm leading-relaxed opacity-85">Kembali masuk untuk mengelola layanan warga dan memantau aktivitas RW.</p>

@@ -32,7 +32,7 @@
     </div>
 
     <section class="grid gap-5 lg:grid-cols-[1.1fr_1.9fr]">
-        <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
             <div class="flex items-start justify-between gap-3">
                 <span class="flex h-14 w-14 items-center justify-center rounded-2xl {{ $balita->jenis_kelamin === 'laki_laki' ? 'bg-blue-50 text-blue-600' : 'bg-rose-50 text-rose-600' }}"><i class="fa-solid fa-child-reaching text-2xl"></i></span>
                 <span class="rounded-full border px-3 py-1.5 text-xs font-black {{ $lastStatusClass }}">{{ $lastStatus }}</span>
@@ -53,7 +53,7 @@
             </div>
         </article>
 
-        <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
             <div class="grid gap-4 sm:grid-cols-3">
                 <div><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Berat Terakhir</p><p class="mt-2 text-2xl font-black text-slate-900">{{ $last ? number_format($last->berat_kg, 2, ',', '.').' kg' : '-' }}</p></div>
                 <div><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Z-score BB/U</p><p class="mt-2 text-2xl font-black text-slate-900">{{ $last ? number_format($last->z_score_bb_u, 2, ',', '.') : '-' }}</p></div>
@@ -63,7 +63,7 @@
         </article>
     </section>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+    <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs sm:p-7">
         <div class="mb-5">
             <p class="text-sm font-semibold text-rose-600">Kartu Menuju Sehat digital</p>
             <h2 class="text-xl font-black text-slate-900">Kurva Berat Badan Menurut Umur</h2>
@@ -76,7 +76,7 @@
         @endif
     </section>
 
-    <section class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <section class="rounded-3xl border border-slate-200 bg-white shadow-xs">
         <div class="border-b border-slate-100 p-5 sm:p-6"><h2 class="text-xl font-black text-slate-900">Riwayat Pemeriksaan</h2><p class="mt-1 text-sm text-slate-500">Hasil Z-score dihitung server dari jenis kelamin, umur, dan berat badan.</p></div>
         @if($balita->pemeriksaans->isEmpty())
             <div class="px-6 py-12 text-center text-sm text-slate-500">Belum ada pemeriksaan yang tercatat.</div>
@@ -122,7 +122,7 @@
                     <div><label class="text-sm font-bold text-slate-700">Metode Ukur</label><select name="metode_ukur_tinggi" class="mt-2 w-full rounded-xl border-slate-200 text-sm"><option value="">Pilih jika tinggi diisi</option><option value="terlentang" @selected(old('metode_ukur_tinggi') === 'terlentang')>Terlentang</option><option value="berdiri" @selected(old('metode_ukur_tinggi') === 'berdiri')>Berdiri</option></select>@error('metode_ukur_tinggi')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror</div>
                     <div><label class="text-sm font-bold text-slate-700">Lingkar Kepala (cm)</label><input type="number" name="lingkar_kepala_cm" value="{{ old('lingkar_kepala_cm') }}" min="20" max="70" step="0.1" class="mt-2 w-full rounded-xl border-slate-200 text-sm"></div>
                     <div><label class="text-sm font-bold text-slate-700">Lingkar Lengan (cm)</label><input type="number" name="lingkar_lengan_cm" value="{{ old('lingkar_lengan_cm') }}" min="5" max="40" step="0.1" class="mt-2 w-full rounded-xl border-slate-200 text-sm"></div>
-                    <label class="sm:col-span-2 inline-flex items-center gap-3 rounded-xl bg-amber-50 p-4 text-sm font-bold text-amber-800"><input type="checkbox" name="vitamin_a" value="1" @checked(old('vitamin_a')) class="rounded border-amber-300 text-amber-600 focus:ring-amber-500"> Mendapat vitamin A pada pemeriksaan ini</label>
+                    <label class="sm:col-span-2 inline-flex items-center gap-3 rounded-xl bg-amber-50 p-4 text-sm font-bold text-amber-800"><input type="checkbox" name="vitamin_a" value="1" @checked(old('vitamin_a')) class="rounded-sm border-amber-300 text-amber-600 focus:ring-amber-500"> Mendapat vitamin A pada pemeriksaan ini</label>
                     <div class="sm:col-span-2"><label class="text-sm font-bold text-slate-700">Catatan Petugas</label><textarea name="catatan" rows="3" maxlength="1000" class="mt-2 w-full rounded-xl border-slate-200 text-sm">{{ old('catatan') }}</textarea></div>
                 </div>
                 <div class="mt-6 flex justify-end gap-2"><button type="button" x-on:click="recordOpen = false" class="rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600">Batal</button><button class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-bold text-white hover:bg-rose-700">Simpan & Hitung Z-score</button></div>

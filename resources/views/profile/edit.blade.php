@@ -6,7 +6,7 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="grid gap-6 lg:grid-cols-[1.9fr_1fr] xl:gap-8">
-                <div class="rounded-3xl bg-white border border-slate-200 shadow-sm p-6">
+                <div class="rounded-3xl bg-white border border-slate-200 shadow-xs p-6">
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h1 class="text-2xl font-bold text-slate-900">Edit Profil Saya</h1>
@@ -20,7 +20,7 @@
                 </div>
 
                 <div class="space-y-6">
-                    <div class="rounded-3xl bg-white border border-slate-200 shadow-sm p-6 min-h-[26rem]">
+                    <div class="rounded-3xl bg-white border border-slate-200 shadow-xs p-6 min-h-[26rem]">
                         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 class="text-xl font-semibold text-slate-900">Keamanan Akun</h2>
@@ -33,7 +33,7 @@
                         </div>
                     </div>
 
-                    <div class="rounded-3xl bg-white border border-slate-200 shadow-sm p-6 min-h-[18rem]">
+                    <div class="rounded-3xl bg-white border border-slate-200 shadow-xs p-6 min-h-[18rem]">
                         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 class="text-xl font-semibold text-slate-900">Hapus Akun</h2>

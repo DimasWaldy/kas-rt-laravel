@@ -10,7 +10,7 @@
          ============================================= --}}
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         {{-- Total --}}
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between shadow-sm">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between shadow-xs">
             <div>
                 <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Laporan</p>
                 <p class="text-2xl font-bold text-slate-800">{{ $stats['total'] }}</p>
@@ -21,7 +21,7 @@
         </div>
 
         {{-- Pending --}}
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between shadow-sm">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between shadow-xs">
             <div>
                 <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Menunggu</p>
                 <p class="text-2xl font-bold text-amber-600">{{ $stats['pending'] }}</p>
@@ -32,7 +32,7 @@
         </div>
 
         {{-- Proses --}}
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between shadow-sm">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between shadow-xs">
             <div>
                 <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Diproses</p>
                 <p class="text-2xl font-bold text-indigo-600">{{ $stats['proses'] }}</p>
@@ -43,7 +43,7 @@
         </div>
 
         {{-- Selesai --}}
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between shadow-sm">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between shadow-xs">
             <div>
                 <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Selesai</p>
                 <p class="text-2xl font-bold text-emerald-600">{{ $stats['selesai'] }}</p>
@@ -62,32 +62,32 @@
         <div class="flex flex-wrap items-center bg-slate-100 p-1.5 rounded-2xl border border-slate-200 self-start">
             @if(auth()->user()->isAdmin())
                 <a href="{{ route('pengaduan.index', ['filter' => 'semua']) }}" 
-                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'semua' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">
+                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'semua' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800' }}">
                     Semua
                 </a>
                 <a href="{{ route('pengaduan.index', ['filter' => 'pending']) }}" 
-                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'pending' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-amber-600' }}">
+                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'pending' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-500 hover:text-amber-600' }}">
                     Menunggu
                 </a>
                 <a href="{{ route('pengaduan.index', ['filter' => 'proses']) }}" 
-                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'proses' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-indigo-600' }}">
+                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'proses' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-indigo-600' }}">
                     Diproses
                 </a>
                 <a href="{{ route('pengaduan.index', ['filter' => 'selesai']) }}" 
-                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'selesai' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-emerald-600' }}">
+                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'selesai' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500 hover:text-emerald-600' }}">
                     Selesai
                 </a>
                 <a href="{{ route('pengaduan.index', ['filter' => 'ditolak']) }}" 
-                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'ditolak' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500 hover:text-rose-600' }}">
+                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'ditolak' ? 'bg-white text-rose-700 shadow-xs' : 'text-slate-500 hover:text-rose-600' }}">
                     Ditolak
                 </a>
             @else
                 <a href="{{ route('pengaduan.index', ['filter' => 'semua']) }}" 
-                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'semua' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">
+                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'semua' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800' }}">
                     Semua Aspirasi RT
                 </a>
                 <a href="{{ route('pengaduan.index', ['filter' => 'saya']) }}" 
-                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'saya' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-blue-600' }}">
+                   class="px-4 py-2 text-xs font-semibold rounded-xl transition-all {{ $filter === 'saya' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-blue-600' }}">
                     Aduan Saya
                 </a>
             @endif
@@ -96,7 +96,7 @@
         {{-- Action Button --}}
         <div>
             <button type="button" x-on:click="showPengaduanForm = true"
-               class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm px-5 py-3 rounded-2xl shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all transform hover:-translate-y-0.5">
+               class="inline-flex items-center gap-2 bg-linear-to-r/srgb from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm px-5 py-3 rounded-2xl shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all transform hover:-translate-y-0.5">
                 <i class="fa-solid fa-plus text-xs"></i>
                 Tulis Pengaduan Baru
             </button>
@@ -107,7 +107,7 @@
          SECTION 3: LIST PENGADUAN
          ============================================= --}}
     @if($pengaduans->isEmpty())
-        <div class="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
+        <div class="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
             <div class="bg-slate-50 text-slate-400 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                 <i class="fa-solid fa-folder-open text-2xl"></i>
             </div>
@@ -206,7 +206,7 @@
                                 </form>
                             @endif
                             <a href="{{ route('pengaduan.show', $pengaduan) }}" 
-                               class="inline-flex items-center gap-1 bg-white hover:bg-slate-100 text-blue-600 border border-slate-200 font-semibold text-xs px-3.5 py-2 rounded-xl shadow-sm transition">
+                               class="inline-flex items-center gap-1 bg-white hover:bg-slate-100 text-blue-600 border border-slate-200 font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs transition">
                                 Detail
                                 <i class="fa-solid fa-angle-right text-[10px]"></i>
                             </a>
@@ -222,7 +222,7 @@
         </div>
     @endif
 
-    <div x-cloak x-show="showPengaduanForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" x-on:click.self="showPengaduanForm = false">
+    <div x-cloak x-show="showPengaduanForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs" x-on:click.self="showPengaduanForm = false">
         <section x-transition class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
             <div class="flex items-start justify-between bg-emerald-800 p-6 text-white">
                 <div>
@@ -248,7 +248,7 @@
                 <div>
                     <label for="judul" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Judul Pengaduan</label>
                     <input type="text" name="judul" id="judul" value="{{ old('_form') === 'pengaduan' ? old('judul') : '' }}" required
-                        class="w-full rounded-2xl border px-4 py-3 text-sm transition-all focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 @if(old('_form') === 'pengaduan') @error('judul') border-red-400 @else border-slate-200 @enderror @else border-slate-200 @endif"
+                        class="w-full rounded-2xl border px-4 py-3 text-sm transition-all focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 @if(old('_form') === 'pengaduan') @error('judul') border-red-400 @else border-slate-200 @enderror @else border-slate-200 @endif"
                         placeholder="Contoh: Lampu Jalan Blok C Padam">
                     @if(old('_form') === 'pengaduan')
                         @error('judul')
@@ -260,7 +260,7 @@
                 <div>
                     <label for="kategori" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Kategori</label>
                     <select name="kategori" id="kategori" required
-                        class="w-full rounded-2xl border bg-white px-4 py-3 text-sm transition-all focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 @if(old('_form') === 'pengaduan') @error('kategori') border-red-400 @else border-slate-200 @enderror @else border-slate-200 @endif">
+                        class="w-full rounded-2xl border bg-white px-4 py-3 text-sm transition-all focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 @if(old('_form') === 'pengaduan') @error('kategori') border-red-400 @else border-slate-200 @enderror @else border-slate-200 @endif">
                         <option value="">Pilih Kategori</option>
                         <option value="Keamanan" {{ old('_form') === 'pengaduan' && old('kategori') === 'Keamanan' ? 'selected' : '' }}>Keamanan & Ketertiban</option>
                         <option value="Kebersihan" {{ old('_form') === 'pengaduan' && old('kategori') === 'Kebersihan' ? 'selected' : '' }}>Kebersihan Lingkungan / Sampah</option>
@@ -278,7 +278,7 @@
                 <div>
                     <label for="deskripsi" class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Isi Pengaduan / Kronologi</label>
                     <textarea name="deskripsi" id="deskripsi" rows="5" required
-                        class="w-full rounded-2xl border px-4 py-3 text-sm leading-relaxed transition-all focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 @if(old('_form') === 'pengaduan') @error('deskripsi') border-red-400 @else border-slate-200 @enderror @else border-slate-200 @endif"
+                        class="w-full rounded-2xl border px-4 py-3 text-sm leading-relaxed transition-all focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 @if(old('_form') === 'pengaduan') @error('deskripsi') border-red-400 @else border-slate-200 @enderror @else border-slate-200 @endif"
                         placeholder="Tuliskan lokasi, kronologi, dan detail penunjang agar pengurus RT dapat merespon.">{{ old('_form') === 'pengaduan' ? old('deskripsi') : '' }}</textarea>
                     @if(old('_form') === 'pengaduan')
                         @error('deskripsi')

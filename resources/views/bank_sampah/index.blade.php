@@ -37,7 +37,7 @@
                     </div>
                 </div>
             </div>
-            <div class="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-emerald-800 shadow-sm">
+            <div class="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-emerald-800 shadow-xs">
                 Sampah wajib dipilah, bersih, dan kering.
             </div>
         </div>
@@ -45,23 +45,23 @@
 
     @if($canManage)
         <div class="grid gap-4 md:grid-cols-5">
-            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Saldo Beredar</p>
                 <p class="mt-2 text-2xl font-black text-slate-900">Rp {{ number_format($statistik['total_saldo_beredar'], 0, ',', '.') }}</p>
             </div>
-            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Setoran Bulan Ini</p>
                 <p class="mt-2 text-2xl font-black text-emerald-700">Rp {{ number_format($statistik['total_setoran_bulan_ini'], 0, ',', '.') }}</p>
             </div>
-            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Warga Aktif</p>
                 <p class="mt-2 text-2xl font-black text-blue-700">{{ $statistik['total_warga_aktif'] }} orang</p>
             </div>
-            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Penarikan Menunggu</p>
                 <p class="mt-2 text-2xl font-black text-amber-700">{{ $statistik['penarikan_menunggu'] }}</p>
             </div>
-            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Kas Bank Sampah</p>
                 <p class="mt-2 text-2xl font-black text-green-700">Rp {{ number_format($statistik['kas_bank_sampah'], 0, ',', '.') }}</p>
             </div>
@@ -74,7 +74,7 @@
             <a href="{{ route('penjualan-sampah.index') }}" class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">Penjualan ke Pengepul</a>
         </div>
 
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
             <div class="mb-4 flex items-center justify-between">
                 <h2 class="text-lg font-black text-slate-900">Setoran Menunggu Verifikasi</h2>
                 <a href="{{ route('setoran-sampah.index', ['status' => 'menunggu']) }}" class="text-sm font-bold text-emerald-700 hover:text-emerald-900">Lihat semua</a>
@@ -112,7 +112,7 @@
             </div>
         </section>
     @else
-        <section class="rounded-3xl bg-gradient-to-br from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-700/20">
+        <section class="rounded-3xl bg-linear-to-br/srgb from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-700/20">
             <p class="text-sm font-bold text-emerald-100">Saldo Bank Sampah Saya</p>
             <p class="mt-2 text-4xl font-black">Rp {{ number_format($saldoSaya->saldo, 0, ',', '.') }}</p>
             <div class="mt-6 grid gap-3 sm:grid-cols-3">
@@ -132,12 +132,12 @@
         </section>
 
         <div class="grid gap-3 sm:grid-cols-3">
-            <a href="{{ route('setoran-sampah.create') }}" class="rounded-2xl border border-emerald-200 bg-white p-5 text-center font-bold text-emerald-800 shadow-sm hover:bg-emerald-50">Setor Sampah</a>
-            <a href="{{ route('penarikan-sampah.create') }}" class="rounded-2xl border border-emerald-200 bg-white p-5 text-center font-bold text-emerald-800 shadow-sm hover:bg-emerald-50">Tarik Saldo</a>
-            <a href="{{ route('hadiah-sampah.index') }}" class="rounded-2xl border border-emerald-200 bg-white p-5 text-center font-bold text-emerald-800 shadow-sm hover:bg-emerald-50">Tukar Hadiah</a>
+            <a href="{{ route('setoran-sampah.create') }}" class="rounded-2xl border border-emerald-200 bg-white p-5 text-center font-bold text-emerald-800 shadow-xs hover:bg-emerald-50">Setor Sampah</a>
+            <a href="{{ route('penarikan-sampah.create') }}" class="rounded-2xl border border-emerald-200 bg-white p-5 text-center font-bold text-emerald-800 shadow-xs hover:bg-emerald-50">Tarik Saldo</a>
+            <a href="{{ route('hadiah-sampah.index') }}" class="rounded-2xl border border-emerald-200 bg-white p-5 text-center font-bold text-emerald-800 shadow-xs hover:bg-emerald-50">Tukar Hadiah</a>
         </div>
 
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
             <h2 class="mb-4 text-lg font-black text-slate-900">Riwayat Transaksi Terbaru</h2>
             <div class="space-y-3">
                 @forelse($riwayatSaya as $transaksi)

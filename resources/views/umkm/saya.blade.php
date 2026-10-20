@@ -17,7 +17,7 @@
     </div>
 
     @forelse($umkms as $umkm)
-        <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" x-data="{ addProduct: {{ $errors->any() && old('_umkm_id') == $umkm->id && ! old('_produk_id') ? 'true' : 'false' }} }">
+        <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs" x-data="{ addProduct: {{ $errors->any() && old('_umkm_id') == $umkm->id && ! old('_produk_id') ? 'true' : 'false' }} }">
             <div class="flex flex-col gap-4 border-b border-slate-100 p-6 sm:flex-row sm:items-start sm:justify-between">
                 <div class="flex min-w-0 gap-4">
                     <div class="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-slate-100">

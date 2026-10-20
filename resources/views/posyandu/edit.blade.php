@@ -5,7 +5,7 @@
 @section('content')
 <div class="mx-auto max-w-4xl space-y-6">
     <a href="{{ route('posyandu.show', $balita) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-rose-600"><i class="fa-solid fa-arrow-left"></i> Kembali ke detail</a>
-    <form method="POST" action="{{ route('posyandu.update', $balita) }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <form method="POST" action="{{ route('posyandu.update', $balita) }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8">
         @csrf
         @method('PUT')
         <div class="mb-7">

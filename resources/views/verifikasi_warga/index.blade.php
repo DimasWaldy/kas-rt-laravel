@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="rounded-3xl bg-gradient-to-r from-emerald-700 to-emerald-500 p-6 text-white shadow-lg shadow-emerald-200/60">
+    <div class="rounded-3xl bg-linear-to-r/srgb from-emerald-700 to-emerald-500 p-6 text-white shadow-lg shadow-emerald-200/60">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-100">Administrasi RT</p>
@@ -18,7 +18,7 @@
         </div>
     </div>
 
-    <div class="overflow-hidden rounded-3xl bg-white shadow-sm">
+    <div class="overflow-hidden rounded-3xl bg-white shadow-xs">
         <div class="border-b border-slate-100 px-6 py-5">
             <h2 class="font-black text-slate-800">Daftar Calon Warga</h2>
         </div>

@@ -9,7 +9,7 @@
         <h1 class="text-2xl font-black text-slate-900">Detail Setoran Sampah</h1>
     </div>
 
-    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <div class="flex items-start justify-between gap-4">
             <div>
                 <h2 class="text-xl font-black text-slate-900">{{ $setoran->jenisSampah->nama }}</h2>

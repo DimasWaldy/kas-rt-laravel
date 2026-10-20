@@ -14,7 +14,7 @@
 </style>
 
 <div class="space-y-6">
-    <div class="no-print rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-100">
+    <div class="no-print rounded-3xl border border-emerald-100 bg-linear-to-r/srgb from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-100">
         <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">Laporan Kas</p>
@@ -24,14 +24,14 @@
                 </p>
             </div>
 
-            <button type="button" onclick="window.print()" class="rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-50">
+            <button type="button" onclick="window.print()" class="rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-xs transition hover:bg-emerald-50">
                 <i class="fa-solid fa-print mr-2"></i>
                 Cetak
             </button>
         </div>
     </div>
 
-    <div class="no-print rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+    <div class="no-print rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs">
         <form method="GET" class="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto_auto] lg:items-end">
             <div>
                 <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Tanggal Mulai</label>
@@ -59,7 +59,7 @@
         </form>
     </div>
 
-    <div class="print-sheet rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+    <div class="print-sheet rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
         <div class="mb-6 border-b border-slate-200 pb-5 text-center">
             <p class="text-xs font-black uppercase tracking-[0.3em] text-emerald-700">Kas RT</p>
             <h2 class="mt-2 text-2xl font-black text-slate-900">Laporan Kas RT</h2>

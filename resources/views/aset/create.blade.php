@@ -28,7 +28,7 @@
 <div class="mx-auto max-w-4xl space-y-6">
     <a href="{{ route($indexRoute) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke daftar aset</a>
 
-    <form method="POST" action="{{ route($storeRoute) }}" enctype="multipart/form-data" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" x-data="{ preview: null }">
+    <form method="POST" action="{{ route($storeRoute) }}" enctype="multipart/form-data" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8" x-data="{ preview: null }">
         @csrf
         <input type="hidden" name="scope" value="{{ $scope ?? 'rt' }}">
         <div>
