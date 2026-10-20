@@ -75,6 +75,30 @@ WantedBy=multi-user.target
 
 WhatsApp dilewati dengan log info bila URL, token, atau nomor pengirim belum diisi. Tidak ada HTTP request dalam kondisi tersebut.
 
+## Upload sensitif lama (wajib sebelum membuka akses publik)
+
+Upload baru disimpan di disk `local` (`storage/app/private`). Instalasi lama mungkin masih menyimpan bukti koperasi, tagihan, kas keluar, setoran sampah, lampiran surat, atau pengaduan di disk `public`. Symlink `public/storage` dapat melewati otorisasi controller.
+
+Hentikan upload sementara/aktifkan maintenance saat pemindahan. Backup storage di lokasi **nonpublik**, lalu jalankan:
+
+```bash
+php artisan storage:privatize-sensitive-uploads
+php artisan storage:privatize-sensitive-uploads --apply
+php artisan storage:privatize-sensitive-uploads
+```
+
+Tanpa `--apply`, command hanya menghitung file. Dengan `--apply`, path relatif dipertahankan sehingga database tidak perlu diubah. File publik baru dilepas setelah checksum SHA-256 sumber dan salinan privat cocok. File privat yang isinya berbeda tidak ditimpa; command gagal dan kedua file dipertahankan. Periksa konflik secara manual, ulangi sampai jumlah file sensitif publik nol. Jangan menjalankan dua instance bersamaan atau saat upload lama masih aktif. Folder publik lain tidak disentuh.
+
+Apache mendapat aturan penolakan path sensitif di `public/.htaccess` (pastikan `mod_rewrite` dan `AllowOverride` aktif). Untuk Nginx, tambahkan blok berikut **sebelum regex static assets**, lalu validasi konfigurasi dan reload sesuai server:
+
+```nginx
+location ~* ^/storage/(koperasi|pengaduan|tagihan-bukti|kaskeluar-bukti|bank-sampah/setoran-bukti|surat|pengaduan-fasilitas)(/|$) {
+    deny all;
+}
+```
+
+Sesudahnya, uji URL lama `/storage/...` tanpa login harus 403/404, sedangkan route dokumen resmi tetap bisa diakses pemilik/pengurus berwenang. Jangan mengekspos `storage/app/private` sebagai alias/symlink web. Bila pernah memakai CDN, bersihkan cache URL lama juga; pemindahan lokal tidak menghapus cache CDN.
+
 ## Email/SMTP production
 
 Smart RW memakai verifikasi email untuk akun yang sudah aktif. Di production, pastikan SMTP benar-benar berjalan agar warga bisa menerima link verifikasi.

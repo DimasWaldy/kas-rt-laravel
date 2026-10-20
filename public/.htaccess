@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # Legacy private documents must never be served through the public symlink.
+    RewriteRule ^storage/(koperasi|pengaduan|tagihan-bukti|kaskeluar-bukti|bank-sampah/setoran-bukti|surat|pengaduan-fasilitas)(/|$) - [F,L,NC]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
