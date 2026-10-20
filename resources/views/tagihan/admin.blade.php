@@ -142,7 +142,7 @@
                         <p class="text-sm font-black text-emerald-950">Aksi Verifikasi</p>
                         <div x-cloak x-show="status === 'lunas'" class="mt-4 rounded-2xl border border-emerald-100 bg-white p-4">
                             <p class="text-sm font-black text-emerald-800">Tagihan sudah lunas.</p>
-                            <p class="mt-1 text-xs font-semibold leading-5 text-slate-500">Pembayaran sudah tercatat ke kas masuk. Gunakan menu edit jika perlu koreksi data tagihan.</p>
+                            <p class="mt-1 text-xs font-semibold leading-5 text-slate-500">Pembayaran sudah tercatat ke kas masuk. Nominal tagihan dikunci untuk menjaga kesesuaian catatan kas.</p>
                         </div>
 
                         <div x-show="status !== 'lunas'">
@@ -177,7 +177,9 @@
                         </div>
 
                         <div class="mt-4 flex gap-2">
-                            <a href="{{ route('tagihan.edit', $tagihan) }}" class="flex-1 rounded-xl bg-amber-500 px-3 py-2 text-center text-xs font-bold text-white hover:bg-amber-600">Edit</a>
+                            @if ($tagihan->canEditDetails())
+                                <a x-show="status === 'belum_bayar' || status === 'failed'" href="{{ route('tagihan.edit', $tagihan) }}" class="flex-1 rounded-xl bg-amber-500 px-3 py-2 text-center text-xs font-bold text-white hover:bg-amber-600">Edit</a>
+                            @endif
                             <button type="button" onclick="confirmDelete('{{ $tagihan->id }}', '{{ addslashes($tagihan->user->name) }} {{ $tagihan->bulan }}/{{ $tagihan->tahun }}')" class="flex-1 rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700">Hapus</button>
                         </div>
                     </div>

@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Models\Warga;
 use App\Notifications\PaymentReceived;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 
 class TagihanController extends Controller
 {
@@ -183,6 +184,7 @@ class TagihanController extends Controller
         $filterTahun = $request->filled('tahun') ? (int) $request->query('tahun') : null;
 
         $tagihans = Tagihan::with(['user', 'rumah', 'verifier', 'rejecter'])
+            ->withExists('cashEntries')
             ->visibleTo($request->user())
             ->when($filterBulan, fn ($query) => $query->where('bulan', $filterBulan))
             ->when($filterTahun, fn ($query) => $query->where('tahun', $filterTahun))
@@ -217,11 +219,10 @@ class TagihanController extends Controller
             'rejection_reason.min' => 'Alasan penolakan minimal 5 karakter.',
         ]);
 
-        $tagihan = Tagihan::visibleTo($request->user())->findOrFail($request->tagihan_id);
-
-        $oldValues = $tagihan->getOriginal();
-
-        DB::transaction(function () use ($tagihan, $request, $oldValues) {
+        $tagihan = DB::transaction(function () use ($request) {
+            $tagihan = Tagihan::visibleTo($request->user())
+                ->lockForUpdate()->findOrFail($request->tagihan_id);
+            $oldValues = $tagihan->getOriginal();
             if ($request->status === 'lunas') {
                 $tagihan->status = 'lunas';
                 $tagihan->verification_status = 'valid';
@@ -282,6 +283,8 @@ class TagihanController extends Controller
             } else {
                 KasMasuk::where('tagihan_id', $tagihan->id)->delete();
             }
+
+            return $tagihan;
         });
 
         Cache::forget('admin.dashboard.stats');
@@ -374,6 +377,7 @@ class TagihanController extends Controller
     public function edit(Tagihan $tagihan): View
     {
         abort_unless($tagihan->isVisibleTo(Auth::user()), 404);
+        abort_unless($tagihan->canEditDetails(), 403, 'Tagihan yang sedang diproses atau sudah tercatat dalam kas tidak dapat diedit.');
 
         $users = User::whereRelation('role', 'name', 'warga')
             ->visibleTo(Auth::user())
@@ -398,19 +402,26 @@ class TagihanController extends Controller
             'note' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $oldValues = $tagihan->getOriginal();
+        DB::transaction(function () use ($request, $tagihan) {
+            $tagihan = Tagihan::visibleTo($request->user())->lockForUpdate()->findOrFail($tagihan->id);
+            if (! $tagihan->canEditDetails()) {
+                throw ValidationException::withMessages([
+                    'total' => 'Tagihan yang sedang diproses atau sudah tercatat dalam kas tidak dapat diedit.',
+                ]);
+            }
 
-        $tagihan->fill([
-            'total' => $request->total,
-            'note' => $request->note,
-        ]);
-
-        $tagihan->saveQuietly();
-        $tagihan->recordAuditWithNote(
-            'tagihan_updated',
-            $oldValues,
-            'Tagihan diperbarui oleh admin'
-        );
+            $oldValues = $tagihan->getOriginal();
+            $tagihan->fill([
+                'total' => $request->total,
+                'note' => $request->note,
+            ]);
+            $tagihan->saveQuietly();
+            $tagihan->recordAuditWithNote(
+                'tagihan_updated',
+                $oldValues,
+                'Tagihan diperbarui oleh admin'
+            );
+        });
 
         return redirect()->route('tagihan.admin')->with('success', 'Tagihan berhasil diperbarui.');
     }
