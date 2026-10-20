@@ -132,14 +132,17 @@ class UserController extends Controller
         return redirect()->route('admin.warga.index')->with('success', 'Warga baru berhasil ditambahkan.');
     }
 
-    public function destroy(User $user): RedirectResponse
+    public function destroy(Request $request, User $user): RedirectResponse
     {
-        if ($user->role_name !== 'warga' || ! User::visibleTo($request->user())->whereKey($user->id)->exists()) {
-            abort(404);
-        }
-
-        $userName = $user->name;
-        $user->delete();
+        $userName = DB::transaction(function () use ($request, $user) {
+            $resident = User::visibleTo($request->user())
+                ->whereRelation('role', 'name', 'warga')
+                ->lockForUpdate()->findOrFail($user->id);
+            $name = $resident->name;
+            // The User deletion event also guards retained financial history.
+            $resident->delete();
+            return $name;
+        });
 
         return redirect()->route('admin.warga.index')->with('success', "Warga '{$userName}' berhasil dihapus.");
     }

@@ -4,6 +4,7 @@
 
 @section('content')
 <div class="space-y-6" x-data="{ showWargaForm: {{ old('_form') === 'admin_warga' ? 'true' : 'false' }} }">
+    <x-input-error :messages="$errors->get('account')" />
     <div class="rounded-3xl bg-white shadow-sm p-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
