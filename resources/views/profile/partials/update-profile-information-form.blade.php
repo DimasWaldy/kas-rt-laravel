@@ -9,14 +9,11 @@
         </p>
     </header>
 
-    <form id="send-verification" method="post" action="{{ route('verification.send') }}">
-        @csrf
-    </form>
-
     <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
         @csrf
         @method('patch')
 
+        <x-billing-contact-warning :rumah="$user->rumah" />
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
                 <x-input-label for="name" value="Nama" />
@@ -60,40 +57,20 @@
                 <x-input-error class="mt-2" :messages="$errors->get('nik')" />
             </div>
 
-            <div>
-                <x-input-label for="no_kk" value="Nomor KK (16 Digit)" />
-                <x-text-input id="no_kk" name="no_kk" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" class="mt-1 block w-full focus:border-emerald-500 focus:ring-emerald-500" :value="old('no_kk', $user->warga?->kartuKeluarga?->no_kk)" placeholder="Isi nomor KK" />
-                <x-input-error class="mt-2" :messages="$errors->get('no_kk')" />
-            </div>
-
-            <div class="md:col-span-2">
-                <x-input-label for="status_dalam_kk" value="Status dalam Kartu Keluarga" />
-                <select id="status_dalam_kk" name="status_dalam_kk" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500">
-                    <option value="">Pilih Status dalam KK</option>
-                    <option value="kepala_keluarga" {{ old('status_dalam_kk', $user->warga?->status_dalam_kk) === 'kepala_keluarga' ? 'selected' : '' }}>Kepala Keluarga</option>
-                    <option value="anggota" {{ old('status_dalam_kk', $user->warga?->status_dalam_kk) === 'anggota' ? 'selected' : '' }}>Anggota Keluarga</option>
-                </select>
-                <x-input-error class="mt-2" :messages="$errors->get('status_dalam_kk')" />
-            </div>
         </div>
 
-        @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-            <div>
-                <p class="mt-2 text-sm text-slate-700">
-                    Email Anda belum diverifikasi.
-
-                    <button form="send-verification" class="rounded-md text-sm text-emerald-700 underline hover:text-emerald-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
-                        Kirim ulang email verifikasi.
-                    </button>
-                </p>
-
-                @if (session('status') === 'verification-link-sent')
-                    <p class="mt-2 text-sm font-medium text-emerald-600">
-                        Link verifikasi baru telah dikirim ke email Anda.
-                    </p>
-                @endif
-            </div>
-        @endif
+        <section class="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5">
+            <h3 class="text-sm font-bold text-emerald-900">Data Kartu Keluarga</h3>
+            <dl class="mt-3 space-y-2 text-sm text-emerald-900">
+                <div><dt class="font-semibold">Nomor KK</dt><dd>{{ $user->warga?->kartuKeluarga?->no_kk ?? 'Belum ditetapkan' }}</dd></div>
+                <div><dt class="font-semibold">Kepala keluarga</dt><dd>{{ $user->warga?->kartuKeluarga?->nama_kepala_keluarga ?? 'Belum ditetapkan' }}</dd></div>
+                <div><dt class="font-semibold">Status dalam KK</dt><dd>{{ match($user->warga?->status_dalam_kk) { 'kepala_keluarga' => 'Kepala Keluarga', 'anggota' => 'Anggota Keluarga', default => 'Belum ditetapkan' } }}</dd></div>
+            </dl>
+            <p class="mt-3 text-xs leading-5 text-emerald-700">Hubungi pengurus untuk menetapkan atau mengubah KK dan kepala keluarga. Pengurus memeriksa dan menyimpan perubahan melalui menu Data Warga.</p>
+            @foreach(['no_kk', 'status_dalam_kk', 'kartu_keluarga_id', 'nama_kepala_keluarga', 'is_kepala_keluarga', 'ganti_kepala_keluarga'] as $field)
+                <x-input-error class="mt-2" :messages="$errors->get($field)" />
+            @endforeach
+        </section>
 
         <div class="flex items-center gap-4">
             <button type="submit" class="inline-flex items-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">

@@ -122,23 +122,6 @@
                             <i class="fa-solid fa-phone absolute left-4 top-4 text-xs text-slate-400"></i>
                             <input type="text" name="phone" placeholder="Nomor HP" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" class="numeric-only auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" value="{{ old('phone') }}" required>
                         </div>
-                        <div class="relative">
-                            <i class="fa-solid fa-house-user absolute left-4 top-4 text-xs text-slate-400"></i>
-                            <select name="rumah_id" class="auth-input w-full appearance-none rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-10 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" required>
-                                <option value="">Pilih Domisili / Rumah</option>
-                                @foreach (($rumahs ?? collect())->groupBy('rt_id') as $rumahGroup)
-                                    @php($rtLabel = $rumahGroup->first()->rt?->name ?? 'RT ' . $rumahGroup->first()->rt_id)
-                                    <optgroup label="{{ $rtLabel }}">
-                                        @foreach ($rumahGroup as $rumah)
-                                            <option value="{{ $rumah->id }}" {{ old('rumah_id') == $rumah->id ? 'selected' : '' }}>
-                                                {{ $rtLabel }} - {{ $rumah->kode_rumah }}
-                                            </option>
-                                        @endforeach
-                                    </optgroup>
-                                @endforeach
-                            </select>
-                            <i class="fa-solid fa-chevron-down pointer-events-none absolute right-4 top-4 text-xs text-slate-400"></i>
-                        </div>
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <input type="password" name="password" placeholder="Password" class="auth-input rounded-2xl border-none bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" required autocomplete="new-password">
                             <input type="password" name="password_confirmation" placeholder="Konfirmasi" class="auth-input rounded-2xl border-none bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" required autocomplete="new-password">
@@ -151,7 +134,7 @@
 
                     <p class="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-left text-xs font-semibold leading-5 text-blue-800">
                         <i class="fa-solid fa-circle-info mr-1"></i>
-                        Akun perlu diverifikasi pengurus sebelum aktif.
+                        Daftar tanpa memilih rumah. Masuk untuk memantau verifikasi pengurus, lalu ajukan domisili setelah disetujui. Tidak perlu verifikasi email.
                     </p>
 
                     <button type="submit" class="mt-6 rounded-2xl bg-indigo-600 px-12 py-4 text-xs font-black uppercase tracking-[0.15em] text-white transition-all hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-200 active:scale-95">
@@ -172,7 +155,7 @@
                         <i class="fa-solid fa-fingerprint"></i>
                     </div>
                     <h1 class="mb-1 text-3xl font-black tracking-tight text-slate-800">Selamat Datang</h1>
-                    <p class="mb-8 text-xs font-medium text-slate-400">Masuk untuk mengakses layanan Smart RW</p>
+                    <p class="mb-4 text-xs font-medium text-slate-500">Masuk untuk layanan Smart RW atau cek status pendaftaran. Jika ditolak, perbaiki lewat akun yang sama.</p>
 
                     <div class="w-full space-y-4">
                         <div class="relative">

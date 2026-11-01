@@ -12,6 +12,7 @@
             </div>
 
             <form method="GET" action="{{ route('admin.rumah.index') }}" class="flex flex-col gap-3 sm:flex-row">
+                @if(request()->boolean('perlu_pj'))<input type="hidden" name="perlu_pj" value="1">@endif
                 <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari kode, alamat, PJ" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-emerald-500 focus:ring-emerald-200">
                 <button class="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-700">Cari</button>
                 <a href="{{ route('admin.rumah.index') }}" class="rounded-2xl border border-slate-200 px-5 py-3 text-center text-sm font-bold text-slate-700 hover:bg-slate-50">Reset</a>
@@ -28,16 +29,20 @@
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Rumah Aktif</p>
             <p class="mt-2 text-3xl font-black text-emerald-700">{{ $stats['aktif'] }}</p>
         </div>
-        <div class="rounded-2xl border border-amber-100 bg-amber-50 p-5 shadow-xs">
-            <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Tanpa PJ</p>
+        <a href="{{ route('admin.rumah.index', ['perlu_pj' => 1]) }}" class="rounded-2xl border border-amber-100 bg-amber-50 p-5 shadow-xs">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Perlu PJ Iuran</p>
             <p class="mt-2 text-3xl font-black text-amber-800">{{ $stats['tanpa_pj'] }}</p>
-        </div>
+            <p class="mt-2 text-xs text-amber-900">Lihat rumah aktif yang belum siap ditagih.</p>
+        </a>
         <div class="rounded-2xl border border-lime-100 bg-lime-50 p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-lime-700">Belum Lunas</p>
             <p class="mt-2 text-3xl font-black text-lime-800">{{ $stats['belum_lunas'] }}</p>
         </div>
     </div>
 
+    @if(request()->boolean('perlu_pj'))
+        <p role="status" class="rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-950">Menampilkan rumah aktif yang perlu penetapan atau perbaikan PJ iuran. Pilih Tetapkan PJ untuk menyelesaikannya.</p>
+    @endif
     <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-emerald-100 text-sm">
@@ -86,6 +91,9 @@
                             </td>
                             <td class="px-4 py-4">
                                 <div class="flex flex-wrap gap-2">
+                                    @if($rumah->status === 'aktif' && $rumah->billingIssue())
+                                        <a href="{{ route('admin.rumah.edit', $rumah) }}" class="rounded-xl bg-amber-800 px-3 py-2 text-xs font-bold text-white">Tetapkan PJ</a>
+                                    @endif
                                     <a href="{{ route('admin.rumah.show', $rumah) }}" class="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700">Detail</a>
                                     <a href="{{ route('admin.rumah.edit', $rumah) }}" class="rounded-xl border border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50">Edit</a>
                                 </div>

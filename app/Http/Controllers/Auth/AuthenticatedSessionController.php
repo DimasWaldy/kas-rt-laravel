@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\Rumah;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,15 +16,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
-        return view('auth.login', [
-            'rumahs' => Rumah::query()
-                ->with('rt:id,name')
-                ->where('status', 'aktif')
-                ->whereNotNull('rt_id')
-                ->orderBy('rt_id')
-                ->orderBy('kode_rumah')
-                ->get(['id', 'kode_rumah', 'rt_id']),
-        ]);
+        return view('auth.login');
     }
 
     /**
@@ -36,6 +27,16 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        if (in_array($request->user()->status_akun, ['pending_verifikasi', 'ditolak'], true)) {
+            $request->session()->forget('url.intended');
+
+            return redirect()->route('pendaftaran.show');
+        }
+
+        if ($request->user()->onboarding_domisili) {
+            return redirect()->route('domisili.create');
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

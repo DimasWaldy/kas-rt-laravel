@@ -37,6 +37,11 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('pendaftaran', [\App\Http\Controllers\Auth\RegistrationStatusController::class, 'show'])
+        ->name('pendaftaran.show');
+    Route::post('pendaftaran/perbaikan', [\App\Http\Controllers\Auth\RegistrationStatusController::class, 'resubmit'])
+        ->middleware('throttle:5,1')->name('pendaftaran.resubmit');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

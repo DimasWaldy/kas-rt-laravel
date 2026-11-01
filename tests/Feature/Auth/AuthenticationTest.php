@@ -11,7 +11,7 @@ test('login screen can be rendered', function () {
     $response->assertStatus(200);
 });
 
-test('login screen lists active rumah without exposing full address', function () {
+test('login screen registration panel does not expose houses or addresses', function () {
     $rw = Rw::create(['name' => 'RW Login', 'is_active' => true]);
     $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT 01', 'is_active' => true]);
 
@@ -25,8 +25,8 @@ test('login screen lists active rumah without exposing full address', function (
     $response = $this->get('/login');
 
     $response->assertOk()
-        ->assertSee('RT 01')
-        ->assertSee('RT 01 - LOGIN-001')
+        ->assertDontSee('RT 01 - LOGIN-001')
+        ->assertDontSee('name="rumah_id"', false)
         ->assertDontSee('Jl. Rahasia Login No. 99');
 });
 

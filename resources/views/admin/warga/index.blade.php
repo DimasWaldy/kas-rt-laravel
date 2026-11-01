@@ -121,7 +121,7 @@
 
                 @if(old('_form') === 'admin_warga' && $errors->any())
                     <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-                        Periksa kembali data warga yang diisi.
+                        <ul class="list-inside list-disc">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
                     </div>
                 @endif
 
@@ -144,17 +144,19 @@
                         @if(old('_form') === 'admin_warga') @error('password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
                     </div>
 
-                    <div class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
+                    <div x-data="{ rtId: @js((string) old('rt_id', auth()->user()->canAccessAllRts() ? '' : auth()->user()->rt_id)) }" class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
                         <h3 class="text-sm font-black text-emerald-900">Data Rumah / Unit Hunian</h3>
                         <p class="mt-1 text-xs text-emerald-700">Tagihan iuran dibuat per rumah. Satu rumah bisa punya lebih dari satu KK.</p>
+
+                        @include('admin.warga.partials.rt-field', ['user' => null])
 
                         <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-bold text-slate-700">Pilih Rumah yang Sudah Ada</label>
-                                <select name="rumah_id" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                                <select name="rumah_id" x-ref="residentHouse" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                                     <option value="">Buat rumah baru / belum ditentukan</option>
                                     @foreach($rumahs as $rumah)
-                                        <option value="{{ $rumah->id }}" {{ old('_form') === 'admin_warga' && old('rumah_id') == $rumah->id ? 'selected' : '' }}>{{ $rumah->label }}</option>
+                                        <option value="{{ $rumah->id }}" x-show="rtId === '{{ $rumah->rt_id }}'" :disabled="rtId !== '{{ $rumah->rt_id }}'" {{ old('_form') === 'admin_warga' && old('rumah_id') == $rumah->id ? 'selected' : '' }}>{{ $rumah->label }}</option>
                                     @endforeach
                                 </select>
                             </div>

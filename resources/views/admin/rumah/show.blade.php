@@ -18,6 +18,14 @@
         </div>
     </div>
 
+    <x-billing-contact-warning :rumah="$rumah" :show-action="true" />
+    @if(! $rumah->billingIssue())
+        <p class="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-950">PJ iuran rumah sudah siap.
+            @if(auth()->user()->canManageFinance())<a class="font-bold underline" href="{{ route('iuran-bulanan.index') }}">Generate ulang tagihan periode yang belum dibuat</a>.
+            @else Minta bendahara generate ulang tagihan periode yang belum dibuat.
+            @endif
+        </p>
+    @endif
     <div class="grid gap-4 md:grid-cols-4">
         <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Status Rumah</p>

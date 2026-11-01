@@ -1,8 +1,10 @@
 import './bootstrap';
 
 import Alpine from 'alpinejs';
+import { rfidMonitor } from './rfid-monitor';
 
 window.Alpine = Alpine;
+Alpine.data('rfidMonitor', rfidMonitor);
 
 Alpine.data('appShell', () => ({
     mobileMenuOpen: false,

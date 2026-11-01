@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
-use App\Models\KartuKeluarga;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -90,37 +89,9 @@ class ProfileController extends Controller
         $data = [
             'nama_lengkap' => $user->name,
             'nik' => $validated['nik'] ?? $warga->nik,
-            'status_dalam_kk' => $validated['status_dalam_kk'] ?? $warga->status_dalam_kk,
         ];
 
-        if (filled($validated['no_kk'] ?? null)) {
-            $kartuKeluarga = KartuKeluarga::firstOrCreate(
-                ['no_kk' => $validated['no_kk']],
-                [
-                    'rumah_id' => $user->rumah_id,
-                    'nama_kepala_keluarga' => ($validated['status_dalam_kk'] ?? $warga->status_dalam_kk) === 'kepala_keluarga'
-                        ? $user->name
-                        : $user->name,
-                ]
-            );
-
-            if ($kartuKeluarga->rumah_id && $user->rumah_id && $kartuKeluarga->rumah_id !== $user->rumah_id) {
-                throw ValidationException::withMessages([
-                    'no_kk' => 'Nomor KK tersebut sudah terdaftar di rumah lain.',
-                ]);
-            }
-
-            if (! $kartuKeluarga->rumah_id && $user->rumah_id) {
-                $kartuKeluarga->update(['rumah_id' => $user->rumah_id]);
-            }
-
-            if (($validated['status_dalam_kk'] ?? $warga->status_dalam_kk) === 'kepala_keluarga') {
-                $kartuKeluarga->update(['nama_kepala_keluarga' => $user->name]);
-            }
-
-            $data['kartu_keluarga_id'] = $kartuKeluarga->id;
-        }
-
+        // Family membership and the official family head are managed by officers.
         $warga->update($data);
     }
 

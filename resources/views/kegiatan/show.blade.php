@@ -6,6 +6,9 @@
 <div class="mx-auto max-w-6xl space-y-6" x-data="{ showCancel: {{ $errors->has('catatan_pembatalan') ? 'true' : 'false' }} }">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <a href="{{ route('kegiatan.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke daftar</a>
+        @if(\App\Support\RfidAccess::canManage(auth()->user(), $kegiatan))
+            <a href="{{ route('kegiatan.rfid.show', $kegiatan) }}" class="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white">Absensi RFID</a>
+        @endif
         @if(auth()->user()->hasPermission('manage-kegiatan'))
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('kegiatan.edit', $kegiatan) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-pen mr-1"></i> Edit</a>
@@ -65,10 +68,22 @@
             </article>
 
             <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
-                <div class="flex items-center justify-between gap-3"><div><h2 class="font-bold text-slate-900">Daftar Hadir</h2><p class="text-xs text-slate-500">{{ $kegiatan->hadirs->count() }} warga telah mengonfirmasi</p></div><span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600"><i class="fa-solid fa-users"></i></span></div>
+                <div class="flex items-center justify-between gap-3"><div><h2 class="font-bold text-slate-900">Daftar Konfirmasi &amp; Kehadiran</h2><p class="text-xs text-slate-500">{{ $kegiatan->hadirs->whereNotNull('konfirmasi_at')->count() }} konfirmasi rencana hadir · {{ $kegiatan->hadirs->whereNotNull('rfid_hadir_at')->count() }} hadir melalui RFID</p></div><span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600"><i class="fa-solid fa-users"></i></span></div>
                 <div class="mt-5 divide-y divide-slate-100">
                     @forelse($kegiatan->hadirs->sortByDesc('konfirmasi_at') as $hadir)
-                        <div class="flex items-center gap-3 py-3"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">{{ substr($hadir->user->name, 0, 1) }}</span><div class="min-w-0"><p class="truncate text-sm font-bold text-slate-800">{{ $hadir->user->name }}</p><p class="text-xs text-slate-400">{{ $hadir->konfirmasi_at?->translatedFormat('d M Y, H:i') }}</p>@if($hadir->catatan)<p class="mt-1 text-xs text-slate-500">{{ $hadir->catatan }}</p>@endif</div></div>
+                        <div class="flex items-center gap-3 py-3">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">{{ substr($hadir->user->name, 0, 1) }}</span>
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-bold text-slate-800">{{ $hadir->user->name }}</p>
+                                @if($hadir->konfirmasi_at)
+                                    <p class="text-xs text-slate-400">Konfirmasi rencana: {{ $hadir->konfirmasi_at->translatedFormat('d M Y, H:i') }}</p>
+                                @endif
+                                @if($hadir->rfid_hadir_at)
+                                    <p class="text-xs font-semibold text-emerald-700">Hadir RFID: {{ $hadir->rfid_hadir_at->format('d/m/Y H:i:s') }} WIB</p>
+                                @endif
+                                @if($hadir->catatan)<p class="mt-1 text-xs text-slate-500">{{ $hadir->catatan }}</p>@endif
+                            </div>
+                        </div>
                     @empty
                         <p class="py-8 text-center text-sm text-slate-500">Belum ada warga yang konfirmasi hadir.</p>
                     @endforelse
@@ -84,7 +99,9 @@
             </section>
 
             <section class="rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
-                @if($sudahHadir)
+                @if($kegiatan->hadirs->firstWhere('user_id', auth()->id())?->rfid_hadir_at)
+                    <div class="text-center text-emerald-800"><i class="fa-solid fa-circle-check text-3xl"></i><p class="mt-3 font-bold">Kehadiran Anda tercatat melalui RFID</p></div>
+                @elseif($sudahHadir)
                     <div class="text-center text-emerald-800"><i class="fa-solid fa-circle-check text-3xl"></i><p class="mt-3 font-bold">Anda sudah konfirmasi hadir</p></div>
                 @elseif(! in_array($kegiatan->effective_status, ['dibatalkan', 'selesai'], true))
                     <h2 class="font-bold text-emerald-950">Akan hadir?</h2><p class="mt-1 text-sm text-emerald-800">Konfirmasi membantu pengurus menyiapkan kegiatan.</p>

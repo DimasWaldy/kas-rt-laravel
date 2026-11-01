@@ -4,16 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Role;
-use App\Models\Rumah;
 use App\Models\User;
 use App\Models\Warga;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -25,9 +22,7 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        return view('auth.register', [
-            'rumahs' => $this->activeRumahs(),
-        ]);
+        return view('auth.register');
     }
 
     /**
@@ -39,20 +34,16 @@ class RegisteredUserController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'phone' => ['required', 'regex:/^[0-9]{10,13}$/'],
-            'rumah_id' => [
-                'required',
-                'integer',
-                Rule::exists('rumahs', 'id')->where(fn ($query) => $query
-                    ->where('status', 'aktif')
-                    ->whereNotNull('rt_id')),
-            ],
+            'rumah_id' => ['prohibited'],
+            'rt_id' => ['prohibited'],
         ], [
+            'email.unique' => 'Email sudah terdaftar. Masuk dengan akun yang sama untuk melihat status atau memperbaiki pendaftaran. Jika lupa password, gunakan Lupa Password.',
             'phone.regex' => 'Nomor HP harus berisi angka saja, minimal 10 digit dan maksimal 13 digit.',
-            'rumah_id.required' => 'Domisili/rumah wajib dipilih.',
-            'rumah_id.exists' => 'Rumah/domisili yang dipilih tidak tersedia atau belum terhubung ke RT.',
+            'rumah_id.prohibited' => 'Domisili diisi di dalam aplikasi setelah akun diverifikasi.',
+            'rt_id.prohibited' => 'RT ditetapkan oleh pengurus saat verifikasi akun.',
         ]);
 
         $user = DB::transaction(function () use ($validated) {
@@ -61,23 +52,20 @@ class RegisteredUserController extends Controller
                 ['description' => 'Warga']
             );
 
-            $rumah = Rumah::query()->findOrFail($validated['rumah_id']);
-
-            $user = User::create([
+            $user = new User([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'phone' => $validated['phone'],
                 'role_id' => $role->id,
-                'rumah_id' => $rumah->id,
-                'rt_id' => $rumah->rt_id,
                 'status_akun' => 'pending_verifikasi',
             ]);
+            $user->onboarding_domisili = true;
+            $user->save();
 
             Warga::create([
                 'user_id' => $user->id,
                 'nama_lengkap' => $validated['name'],
-                'rumah_diajukan_id' => $rumah->id,
                 'status_verifikasi' => 'pending',
             ]);
 
@@ -90,19 +78,8 @@ class RegisteredUserController extends Controller
             report($e);
         }
 
-        session()->flash('status', 'Pendaftaran berhasil! Akun Anda sedang menunggu aktivasi dari pengurus RT. Anda akan mendapat kabar setelah akun diaktifkan.');
+        session()->flash('status', 'Pendaftaran berhasil! Masuk untuk memantau status verifikasi pengurus. Setelah disetujui, lanjutkan pengajuan domisili. Tidak perlu verifikasi email.');
 
         return redirect()->route('login');
-    }
-
-    private function activeRumahs()
-    {
-        return Rumah::query()
-            ->with('rt:id,name')
-            ->where('status', 'aktif')
-            ->whereNotNull('rt_id')
-            ->orderBy('rt_id')
-            ->orderBy('kode_rumah')
-            ->get(['id', 'kode_rumah', 'rt_id']);
     }
 }

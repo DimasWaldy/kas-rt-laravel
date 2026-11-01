@@ -3,29 +3,34 @@
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
-test('email verification screen can be rendered', function () {
+test('old email verification page redirects to dashboard without a verification prompt', function () {
     $user = User::factory()->unverified()->create();
 
     $response = $this->actingAs($user)->get('/verify-email');
 
-    $response->assertStatus(200)
-        ->assertSee('Link verifikasi bisa kedaluwarsa')
-        ->assertSee('Kirim ulang email verifikasi');
+    $response->assertRedirect(route('dashboard'));
+    expect($user->fresh()->email_verified_at)->toBeNull();
 });
 
-test('unverified active user is redirected away from verified routes', function () {
+test('active account can access dashboard and profile without verified email', function () {
     $user = User::factory()->unverified()->create([
         'status_akun' => 'aktif',
     ]);
 
     $response = $this->actingAs($user)->get(route('dashboard'));
 
-    $response->assertRedirect(route('verification.notice'));
+    $response->assertOk();
+    $this->get(route('profile.edit'))->assertOk()
+        ->assertDontSee('Email Anda belum diverifikasi')
+        ->assertDontSee('Kirim ulang email verifikasi')
+        ->assertDontSee('send-verification');
+    expect($user->fresh()->email_verified_at)->toBeNull();
 });
 
-test('email can be verified', function () {
+test('old signed verification link no longer marks the email as verified', function () {
     $user = User::factory()->unverified()->create();
 
     Event::fake();
@@ -38,9 +43,9 @@ test('email can be verified', function () {
 
     $response = $this->actingAs($user)->get($verificationUrl);
 
-    Event::assertDispatched(Verified::class);
-    expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
-    $response->assertRedirect(route('dashboard', absolute: false).'?verified=1');
+    Event::assertNotDispatched(Verified::class);
+    expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
+    $response->assertRedirect(route('dashboard'));
 });
 
 test('email is not verified with invalid hash', function () {
@@ -52,7 +57,15 @@ test('email is not verified with invalid hash', function () {
         ['id' => $user->id, 'hash' => sha1('wrong-email')]
     );
 
-    $this->actingAs($user)->get($verificationUrl);
+    $this->actingAs($user)->get($verificationUrl)->assertForbidden();
 
     expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
+});
+
+test('old resend endpoint does not send email verification', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create();
+    $this->actingAs($user)->post(route('verification.send'))->assertRedirect(route('dashboard'));
+    Notification::assertNothingSent();
+    expect($user->fresh()->email_verified_at)->toBeNull();
 });

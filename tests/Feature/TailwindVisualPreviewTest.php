@@ -10,8 +10,13 @@ use App\Models\User;
 use App\Models\Warga;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Vite;
+use Illuminate\Support\Str;
 
 test('representative pages render after Tailwind migration', function (?string $role, string $path, string $preview) {
+    // Exercise the real build even while a developer's Vite server is running.
+    // No hot file is written/deleted, and the live application's HMR is untouched.
+    Vite::useHotFile(storage_path('framework/testing/no-dev-server-'.Str::uuid().'.hot'));
     $this->seed(RoleAndPermissionSeeder::class);
     $rw = Rw::create(['name' => 'RW Preview']);
     $rt = Rt::create(['name' => 'RT Preview', 'rw_id' => $rw->id]);

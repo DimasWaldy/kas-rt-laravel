@@ -17,6 +17,9 @@ class TagihanService
             'created' => 0,
             'skipped' => 0,
             'updated' => 0,
+            'active_houses' => 0,
+            'has_iuran' => false,
+            'unbilled_houses' => [],
         ];
 
         $groups = IuranBulanan::forMonth($bulan, $tahun)
@@ -24,18 +27,22 @@ class TagihanService
             ->groupBy(fn (IuranBulanan $iuran) => Tagihan::billingGroupForIuran($iuran))
             ->filter(fn ($items) => $items->sum('jumlah') > 0);
 
-        if ($groups->isEmpty()) {
-            return $result;
-        }
+        $result['has_iuran'] = $groups->isNotEmpty();
 
         Rumah::with('penanggungJawab')
-            ->when($actor, fn ($query) => $query->visibleTo($actor))
+            ->billingVisibleTo($actor)
             ->where('status', 'aktif')
-            ->whereNotNull('penanggung_jawab_id')
+            ->orderBy('id')
             ->get()
             ->each(function (Rumah $rumah) use ($bulan, $tahun, $groups, &$result) {
+                $result['active_houses']++;
+                if ($reason = $rumah->billingIssue()) {
+                    $result['unbilled_houses'][] = ['id' => $rumah->id, 'kode_rumah' => $rumah->kode_rumah, 'reason' => $reason];
+
+                    return;
+                }
                 $user = $rumah->penanggungJawab;
-                if (! $user) {
+                if ($groups->isEmpty()) {
                     return;
                 }
 

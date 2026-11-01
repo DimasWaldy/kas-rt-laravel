@@ -17,8 +17,10 @@ class WargaTerverifikasi extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'pesan' => 'Akun Anda telah diverifikasi RT dan sekarang sudah aktif.',
-            'url' => '/dashboard',
+            'pesan' => $notifiable->onboarding_domisili
+                ? 'Akun Anda telah diverifikasi pengurus. Silakan lengkapi domisili setelah masuk.'
+                : 'Akun Anda telah diverifikasi RT dan sekarang sudah aktif.',
+            'url' => $notifiable->onboarding_domisili ? '/domisili' : '/dashboard',
         ];
     }
 }

@@ -10,7 +10,7 @@
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h1 class="text-2xl font-bold text-slate-900">Edit Profil Saya</h1>
-                            <p class="mt-2 text-sm text-slate-500">Perbarui data keluarga dan kontak Anda agar seluruh informasi profil tetap terkini.</p>
+                            <p class="mt-2 text-sm text-slate-500">Perbarui data pribadi dan kontak Anda. Penetapan data KK dilakukan melalui pengurus.</p>
                         </div>
                     </div>
 

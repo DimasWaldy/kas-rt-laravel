@@ -8,6 +8,7 @@ use App\Models\Warga;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Notification;
 
 test('registration screen can be rendered', function () {
     $response = $this->get('/register');
@@ -15,7 +16,7 @@ test('registration screen can be rendered', function () {
     $response->assertStatus(200);
 });
 
-test('registration screen lists active rumah without exposing full address', function () {
+test('registration screen no longer exposes houses or asks for domicile', function () {
     $rw = Rw::create(['name' => 'RW Register', 'is_active' => true]);
     $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT 02', 'is_active' => true]);
 
@@ -36,8 +37,8 @@ test('registration screen lists active rumah without exposing full address', fun
     $response = $this->get('/register');
 
     $response->assertOk()
-        ->assertSee('RT 02')
-        ->assertSee('RT 02 - REGISTER-001')
+        ->assertDontSee('RT 02 - REGISTER-001')
+        ->assertDontSee('name="rumah_id"', false)
         ->assertDontSee('Jl. Rahasia Register No. 88')
         ->assertDontSee('REGISTER-NONAKTIF')
         ->assertDontSee('Jl. Nonaktif Tidak Muncul');
@@ -70,7 +71,6 @@ test('new users can register and wait for rt verification', function () {
         'password' => 'password',
         'password_confirmation' => 'password',
         'phone' => '081234567890',
-        'rumah_id' => $rumah->id,
     ]);
 
     $this->assertGuest();
@@ -80,14 +80,15 @@ test('new users can register and wait for rt verification', function () {
     $warga = Warga::where('user_id', $user->id)->firstOrFail();
 
     expect($user->status_akun)->toBe('pending_verifikasi')
-        ->and($user->rumah_id)->toBe($rumah->id)
-        ->and($user->rt_id)->toBe($rt->id)
+        ->and($user->rumah_id)->toBeNull()
+        ->and($user->rt_id)->toBeNull()
+        ->and($user->onboarding_domisili)->toBeTrue()
         ->and($warga->status_verifikasi)->toBe('pending')
         ->and($warga->kartu_keluarga_id)->toBeNull()
-        ->and($warga->rumah_diajukan_id)->toBe($rumah->id);
+        ->and($warga->rumah_diajukan_id)->toBeNull();
 });
 
-test('registration rejects active rumah that is not linked to rt', function () {
+test('registration rejects domicile fields even if submitted manually', function () {
     $rumah = Rumah::create([
         'kode_rumah' => 'REG-NO-RT',
         'alamat' => 'Jl. Belum Terhubung RT',
@@ -107,7 +108,7 @@ test('registration rejects active rumah that is not linked to rt', function () {
     ]);
 
     $response->assertSessionHasErrors([
-        'rumah_id' => 'Rumah/domisili yang dipilih tidak tersedia atau belum terhubung ke RT.',
+        'rumah_id' => 'Domisili diisi di dalam aplikasi setelah akun diverifikasi.',
     ]);
 
     expect(User::where('email', 'test@example.com')->exists())->toBeFalse();
@@ -127,9 +128,9 @@ test('registration validates phone and name', function () {
     $this->assertGuest();
 });
 
-test('registration tetap sukses dan melaporkan kegagalan email setelah akun disimpan', function () {
+test('registration tetap sukses dan melaporkan kegagalan listener setelah akun disimpan', function () {
     Exceptions::fake();
-    $failure = new RuntimeException('SMTP tidak tersedia');
+    $failure = new RuntimeException('Listener registrasi gagal');
     Event::listen(Registered::class, function () use ($failure) {
         throw $failure;
     });
@@ -144,19 +145,32 @@ test('registration tetap sukses dan melaporkan kegagalan email setelah akun disi
         'password' => 'password',
         'password_confirmation' => 'password',
         'phone' => '081234567890',
-        'rumah_id' => $rumah->id,
     ])->assertRedirect(route('login'))
-        ->assertSessionHas('status', 'Pendaftaran berhasil! Akun Anda sedang menunggu aktivasi dari pengurus RT. Anda akan mendapat kabar setelah akun diaktifkan.');
+        ->assertSessionHas('status', 'Pendaftaran berhasil! Masuk untuk memantau status verifikasi pengurus. Setelah disetujui, lanjutkan pengajuan domisili. Tidak perlu verifikasi email.');
 
     $user = User::where('email', 'smtp-failure@example.test')->sole();
     expect($user->status_akun)->toBe('pending_verifikasi')
         ->and($user->email_verified_at)->toBeNull()
-        ->and($user->rt_id)->toBe($rt->id);
+        ->and($user->rt_id)->toBeNull();
     $this->assertDatabaseHas('wargas', [
         'user_id' => $user->id,
-        'rumah_diajukan_id' => $rumah->id,
+        'rumah_diajukan_id' => null,
         'status_verifikasi' => 'pending',
     ]);
     Exceptions::assertReported(fn (RuntimeException $e) => $e === $failure);
     $this->assertGuest();
+});
+
+test('registration does not send email verification or activate account automatically', function () {
+    Notification::fake();
+    $this->post('/register', [
+        'name' => 'Tanpa Email Verifikasi', 'email' => 'no-verification@example.test',
+        'password' => 'password', 'password_confirmation' => 'password', 'phone' => '081234567890',
+    ])->assertRedirect(route('login'))->assertSessionHasNoErrors();
+    $user = User::where('email', 'no-verification@example.test')->sole();
+    expect($user->email_verified_at)->toBeNull()->and($user->status_akun)->toBe('pending_verifikasi');
+    Notification::assertNothingSent();
+    $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect(route('pendaftaran.show'));
+    $this->assertAuthenticatedAs($user);
+    $this->get(route('dashboard'))->assertRedirect(route('pendaftaran.show'));
 });

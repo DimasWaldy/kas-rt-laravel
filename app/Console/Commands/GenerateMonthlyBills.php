@@ -5,17 +5,29 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Tagihan;
 use App\Models\IuranBulanan;
+use Illuminate\Support\Facades\Validator;
 
 class GenerateMonthlyBills extends Command
 {
-    protected $signature = 'bills:generate';
+    protected $signature = 'bills:generate {--bulan= : Bulan tagihan (1-12)} {--tahun= : Tahun tagihan}';
     protected $description = 'Otomatis menyalin iuran dari bulan sebelumnya dan membangkitkan tagihan warga';
 
     public function handle(): int
     {
-        $now = now();
-        $bulan = $now->month;
-        $tahun = $now->year;
+        $period = Validator::make([
+            'bulan' => $this->option('bulan') ?? now()->month,
+            'tahun' => $this->option('tahun') ?? now()->year,
+        ], ['bulan' => ['required', 'integer', 'between:1,12'], 'tahun' => ['required', 'integer', 'min:2024', 'max:' . (now()->year + 5)]]);
+        if ($period->fails()) {
+            foreach ($period->errors()->all() as $error) {
+                $this->error($error);
+            }
+
+            return self::INVALID;
+        }
+        $bulan = (int) $period->validated()['bulan'];
+        $tahun = (int) $period->validated()['tahun'];
+        $now = \Carbon\Carbon::create($tahun, $bulan, 1);
 
         $this->info("Mengecek iuran untuk periode {$bulan}/{$tahun}...");
 
@@ -68,6 +80,16 @@ class GenerateMonthlyBills extends Command
         $this->line('Tagihan baru dibuat: ' . $result['created']);
         $this->line('Tagihan dilewati karena sudah ada: ' . $result['skipped']);
         $this->line('Tagihan yang diperbarui nominal/detailnya: ' . $result['updated']);
+        $this->line('Rumah aktif diperiksa: ' . $result['active_houses']);
+        $this->line('Rumah belum dapat ditagih: ' . count($result['unbilled_houses']));
+        if ($result['unbilled_houses']) {
+            $this->warn('Penetapan PJ iuran diperlukan. Buka Data Rumah > Perlu PJ Iuran, tetapkan PJ, lalu jalankan generate ulang untuk periode yang sama.');
+            $this->table(['Kode rumah', 'Alasan belum dapat ditagih'], array_map(
+                fn (array $house) => [$house['kode_rumah'], $house['reason']], $result['unbilled_houses']
+            ));
+
+            return self::FAILURE;
+        }
 
         return self::SUCCESS;
     }

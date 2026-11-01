@@ -66,7 +66,7 @@ test('warga dengan profil lengkap tidak melihat notifikasi lengkapi profil', fun
         ->assertDontSee('Profil warga belum lengkap');
 });
 
-test('warga dapat melengkapi profil dari halaman edit sehingga notifikasi hilang', function () {
+test('personal data is completed through profile and family assignment through officer', function () {
     $role = Role::firstOrCreate(['name' => 'warga']);
     $rw = Rw::create(['name' => 'RW Update Profil']);
     $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT 02']);
@@ -97,21 +97,28 @@ test('warga dapat melengkapi profil dari halaman edit sehingga notifikasi hilang
             'phone' => '081234567891',
             'rumah_id' => $rumah->id,
             'nik' => '3273000000000003',
-            'no_kk' => '3273000000000004',
-            'status_dalam_kk' => 'kepala_keluarga',
         ])
         ->assertRedirect(route('profile.edit'));
 
     $user->refresh();
     $user->load('warga.kartuKeluarga');
 
-    expect($user->profile_status)->toBe('Lengkap')
+    expect($user->profile_status)->toBe('Belum Lengkap')
         ->and($user->rt_id)->toBe($rt->id)
         ->and($user->rumah_id)->toBe($rumah->id)
         ->and($user->warga->nik)->toBe('3273000000000003')
-        ->and($user->warga->kartuKeluarga->no_kk)->toBe('3273000000000004');
+        ->and($user->warga->kartu_keluarga_id)->toBeNull();
 
-    $this->actingAs($user)
+    $this->seed(\Database\Seeders\RoleAndPermissionSeeder::class);
+    $officer = User::factory()->create(['role_id' => Role::where('name', 'sekretaris_rt')->value('id'), 'rt_id' => $rt->id]);
+    $this->actingAs($officer)->patch(route('admin.warga.update', $user), [
+        'name' => $user->name, 'email' => $user->email, 'phone' => $user->phone,
+        'rumah_id' => $rumah->id, 'no_kk' => '3273000000000004', 'is_kepala_keluarga' => 1,
+    ])->assertSessionHasNoErrors()->assertRedirect(route('admin.warga.index'));
+    expect($user->fresh()->profile_status)->toBe('Lengkap')
+        ->and($user->fresh()->warga->kartuKeluarga->no_kk)->toBe('3273000000000004');
+
+    $this->actingAs($user->fresh())
         ->get(route('profile.edit'))
         ->assertOk()
         ->assertDontSee('Profil warga belum lengkap');

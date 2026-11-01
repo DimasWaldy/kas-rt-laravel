@@ -32,7 +32,9 @@ use App\Http\Controllers\SuratController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware('auth')->group(function () {
+    Route::get('/domisili', [\App\Http\Controllers\DomisiliController::class, 'create'])->name('domisili.create');
+    Route::post('/domisili', [\App\Http\Controllers\DomisiliController::class, 'store'])->middleware('throttle:10,1')->name('domisili.store');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::middleware('permission:view-direktori-rw')->group(function () {
@@ -64,6 +66,12 @@ Route::middleware(['auth', 'permission:manage-warga'])->group(function () {
         ->name('verifikasi-warga.index');
     Route::get('/verifikasi-warga/{warga}', [VerifikasiWargaController::class, 'show'])
         ->name('verifikasi-warga.show');
+    Route::get('/verifikasi-warga/{warga}/domisili', [VerifikasiWargaController::class, 'showDomisili'])
+        ->name('verifikasi-warga.domisili.show');
+    Route::patch('/verifikasi-warga/{warga}/domisili/setujui', [VerifikasiWargaController::class, 'verifikasiDomisili'])
+        ->name('verifikasi-warga.domisili.setujui');
+    Route::patch('/verifikasi-warga/{warga}/domisili/perbaiki', [VerifikasiWargaController::class, 'perbaikiDomisili'])
+        ->name('verifikasi-warga.domisili.perbaiki');
     Route::get('/verifikasi-warga/{warga}/dokumen/{jenis}', [VerifikasiWargaController::class, 'dokumen'])
         ->name('verifikasi-warga.dokumen');
     Route::patch('/verifikasi-warga/{warga}/verifikasi', [VerifikasiWargaController::class, 'verifikasi'])
@@ -74,7 +82,7 @@ Route::middleware(['auth', 'permission:manage-warga'])->group(function () {
         ->name('api.rumah.kk');
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware('auth')->group(function () {
     Route::get('/kas-masuk', [KasMasukController::class, 'index'])->name('kas-masuk.index');
 
     Route::middleware(['permission:manage-finance'])->group(function () {
@@ -83,7 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware('auth')->group(function () {
     Route::get('/kas-keluar', [KasKeluarController::class, 'index'])->name('kas-keluar.index');
 
     Route::middleware(['permission:manage-finance'])->group(function () {
@@ -198,6 +206,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::middleware('permission:manage-kegiatan')->group(function () {
+        Route::prefix('/kegiatan/{kegiatan}/rfid')->name('kegiatan.rfid.')->controller(\App\Http\Controllers\KegiatanRfidController::class)->group(function () {
+            Route::get('/', 'show')->name('show');
+            Route::get('/status', 'status')->name('status');
+            Route::post('/open', 'open')->middleware('throttle:10,1')->name('open');
+            Route::post('/close', 'close')->name('close');
+            Route::post('/enroll', 'enroll')->name('enroll');
+            Route::post('/cancel-enrollment', 'cancelEnrollment')->name('cancel-enrollment');
+            Route::post('/revoke', 'revoke')->name('revoke');
+        });
         Route::get('/kegiatan/create', [KegiatanController::class, 'create'])->name('kegiatan.create');
         Route::post('/kegiatan', [KegiatanController::class, 'store'])->name('kegiatan.store');
         Route::get('/kegiatan/{kegiatan}/edit', [KegiatanController::class, 'edit'])->name('kegiatan.edit');

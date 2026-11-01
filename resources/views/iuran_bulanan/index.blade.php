@@ -4,8 +4,8 @@
 
 @section('content')
 @php
-    $bulanAktif = now()->month;
-    $tahunAktif = now()->year;
+    $bulanAktif = $bulan;
+    $tahunAktif = $tahun;
     $iuranBulanIni = $items->where('bulan', $bulanAktif)->where('tahun', $tahunAktif);
     $totalBulanIni = $iuranBulanIni->sum('jumlah');
     $wajibBulanIni = $iuranBulanIni->where('is_wajib', true)->count();
@@ -14,7 +14,7 @@
 
 <div class="space-y-6" x-data="{ showIuranForm: {{ old('_form') === 'iuran_bulanan' ? 'true' : 'false' }} }">
     <div class="rounded-3xl border border-emerald-100 bg-linear-to-r/srgb from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-100">
-        <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div class="flex flex-col gap-5">
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">Iuran Bulanan</p>
                 <h2 class="mt-2 text-2xl font-black md:text-3xl">Pusat Generate Tagihan Rumah</h2>
@@ -23,12 +23,18 @@
                 </p>
             </div>
 
-            <div class="flex flex-col gap-3 sm:flex-row">
-                <form action="{{ route('iuran-bulanan.generate') }}" method="POST"
-                    onsubmit="return confirm('Sistem akan memproses tagihan rumah untuk periode {{ $namaBulanAktif }} {{ $tahunAktif }}. Lanjutkan?')">
+            <div class="flex flex-col gap-3 xl:flex-row xl:items-end">
+                <form action="{{ route('iuran-bulanan.generate') }}" method="POST" class="flex flex-col gap-3 sm:flex-row sm:items-end"
+                    onsubmit="return confirm('Sistem akan memproses tagihan rumah untuk bulan dan tahun yang dipilih. Lanjutkan?')">
                     @csrf
-                    <input type="hidden" name="bulan" value="{{ $bulanAktif }}">
-                    <input type="hidden" name="tahun" value="{{ $tahunAktif }}">
+                    <label class="text-sm font-semibold">Bulan
+                        <select name="bulan" required class="mt-1 block w-full rounded-xl border-0 bg-white text-sm text-slate-900">
+                            @foreach(range(1, 12) as $month)<option value="{{ $month }}" @selected($bulanAktif === $month)>{{ \Carbon\Carbon::create(null, $month)->translatedFormat('F') }}</option>@endforeach
+                        </select>
+                    </label>
+                    <label class="text-sm font-semibold">Tahun
+                        <input type="number" name="tahun" min="2024" max="{{ now()->year + 5 }}" value="{{ $tahunAktif }}" required class="mt-1 block w-full rounded-xl border-0 bg-white text-sm text-slate-900 sm:w-28">
+                    </label>
                     <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-xs transition hover:bg-emerald-50 sm:w-auto">
                         <i class="fa-solid fa-bolt mr-2"></i>
                         Generate Tagihan
@@ -43,9 +49,41 @@
         </div>
     </div>
 
+    @if($summary = session('billing_result'))
+        <section role="status" class="rounded-3xl border border-emerald-200 bg-white p-5 shadow-xs">
+            <h3 class="font-black text-slate-900">Hasil generate {{ $summary['bulan'] }}/{{ $summary['tahun'] }}</h3>
+            <p class="mt-2 text-sm text-slate-700">{{ $summary['created'] }} tagihan baru, {{ $summary['updated'] }} diperbarui, {{ $summary['skipped'] }} tagihan sudah ada. {{ $summary['active_houses'] }} rumah aktif diperiksa.</p>
+            @if($summary['unbilled_count'])
+                <p class="mt-3 rounded-xl bg-amber-50 p-3 font-bold text-amber-950">{{ $summary['unbilled_count'] }} rumah belum dapat ditagih karena PJ iuran belum siap. Periksa daftar di bawah, tetapkan PJ, lalu generate ulang periode yang sama.</p>
+            @endif
+            @if(! $summary['has_iuran'])<p class="mt-2 text-sm text-amber-900">Belum ada komponen iuran bernilai positif untuk periode tersebut.</p>@endif
+            @if(! $summary['active_houses'])<p class="mt-2 text-sm text-slate-600">Belum ada rumah aktif dalam wilayah Anda.</p>@endif
+        </section>
+    @endif
+
+    @if($needsPjCount)
+        <section class="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+            <h3 class="font-black text-amber-950">Perlu PJ Iuran: {{ $needsPjCount }} rumah aktif</h3>
+            <p class="mt-2 text-sm text-amber-900">Rumah berikut belum siap menerima tagihan. Penanggung jawab ditetapkan melalui Data Rumah; jumlah ini berbeda dari tagihan yang sudah ada.</p>
+            <ul class="mt-4 space-y-3 text-sm text-amber-950">
+                @foreach($needsPjHouses as $house)
+                    <li class="rounded-xl bg-white/70 p-3"><strong>{{ $house->label }}</strong><p class="mt-1">{{ $house->billingIssue() }}</p>
+                        @if(auth()->user()->canManageWarga())<a href="{{ route('admin.rumah.edit', $house) }}" class="mt-2 inline-block font-bold underline">Tetapkan PJ iuran</a>@endif
+                    </li>
+                @endforeach
+            </ul>
+            @if($needsPjCount > 10)<p class="mt-3 text-sm text-amber-900">Menampilkan 10 dari {{ $needsPjCount }} rumah.</p>@endif
+            @if(auth()->user()->canManageWarga())
+                <a href="{{ route('admin.rumah.index', ['perlu_pj' => 1]) }}" class="mt-4 inline-block rounded-xl bg-amber-800 px-4 py-2 text-sm font-bold text-white">Lihat semua rumah perlu PJ</a>
+            @else
+                <p class="mt-4 text-sm font-semibold text-amber-950">Minta pengurus yang mengelola Data Rumah untuk menetapkan PJ. Setelah selesai, jalankan generate ulang untuk periode yang sama.</p>
+            @endif
+        </section>
+    @endif
+
     <div class="grid gap-4 md:grid-cols-3">
         <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs">
-            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Periode Aktif</p>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Periode Terpilih</p>
             <p class="mt-3 text-2xl font-black text-slate-900">{{ $namaBulanAktif }} {{ $tahunAktif }}</p>
             <p class="mt-1 text-sm text-slate-500">Bulan yang akan diproses tombol generate.</p>
         </div>
@@ -72,11 +110,11 @@
             <div class="mt-4 space-y-3 text-sm text-slate-600">
                 <div class="flex gap-3 rounded-2xl bg-emerald-50 p-3">
                     <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-black text-white">1</span>
-                    <p>Tambah komponen iuran untuk periode bulan berjalan.</p>
+                    <p>Pilih periode tagihan; tambah komponen iuran jika diperlukan.</p>
                 </div>
                 <div class="flex gap-3 rounded-2xl bg-emerald-50 p-3">
                     <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-black text-white">2</span>
-                    <p>Klik generate agar sistem membuat tagihan untuk setiap rumah aktif.</p>
+                    <p>Tetapkan PJ untuk rumah yang belum siap, lalu generate tagihan rumah aktif.</p>
                 </div>
                 <div class="flex gap-3 rounded-2xl bg-emerald-50 p-3">
                     <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-black text-white">3</span>
@@ -198,7 +236,7 @@
                         <select name="bulan" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-600 focus:ring-emerald-200 @if(old('_form') === 'iuran_bulanan') @error('bulan') border-red-500 @enderror @endif" required>
                             @foreach(range(1, 12) as $month)
                                 @php $monthName = \Carbon\Carbon::create(null, $month)->translatedFormat('F'); @endphp
-                                <option value="{{ $month }}" {{ (old('_form') === 'iuran_bulanan' ? old('bulan', now()->month) : now()->month) == $month ? 'selected' : '' }}>
+                                <option value="{{ $month }}" {{ (old('_form') === 'iuran_bulanan' ? old('bulan', $bulanAktif) : $bulanAktif) == $month ? 'selected' : '' }}>
                                     {{ $monthName }}
                                 </option>
                             @endforeach
@@ -212,7 +250,7 @@
 
                     <div>
                         <label class="block text-sm font-bold text-slate-700">Tahun</label>
-                        <input type="number" name="tahun" value="{{ old('_form') === 'iuran_bulanan' ? old('tahun', now()->year) : now()->year }}"
+                        <input type="number" name="tahun" value="{{ old('_form') === 'iuran_bulanan' ? old('tahun', $tahunAktif) : $tahunAktif }}" max="{{ now()->year + 5 }}"
                             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-600 focus:ring-emerald-200 @if(old('_form') === 'iuran_bulanan') @error('tahun') border-red-500 @enderror @endif" required>
                         @if(old('_form') === 'iuran_bulanan')
                             @error('tahun')

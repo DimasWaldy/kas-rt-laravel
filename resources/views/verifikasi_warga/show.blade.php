@@ -28,6 +28,17 @@
         </div>
     @endif
 
+    @if($perbaikan)
+        <section class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+            <h2 class="font-bold">Pengajuan ulang setelah perbaikan</h2>
+            <p class="mt-1">Dikirim {{ $perbaikan->created_at->translatedFormat('d F Y, H:i') }}. Periksa kembali data calon warga sebelum menyetujui.</p>
+            <p class="mt-3 font-semibold">Alasan penolakan sebelumnya</p>
+            <p class="whitespace-pre-line">{{ $perbaikan->old_values['catatan_verifikasi'] ?? 'Tidak tercatat' }}</p>
+            <p class="mt-3 font-semibold">Klarifikasi warga</p>
+            <p class="whitespace-pre-line">{{ $perbaikan->notes }}</p>
+        </section>
+    @endif
+
     <div class="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <div class="space-y-6">
             <section class="rounded-3xl bg-white p-6 shadow-xs">
@@ -45,18 +56,18 @@
             <section class="rounded-3xl bg-white p-6 shadow-xs">
                 <h2 class="font-black text-slate-800">Dokumen Pendukung</h2>
                 <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                    @if ($warga->dokumen_kk)
+                    @if (isset($dokumenTersedia['kk']))
                         <a href="{{ route('verifikasi-warga.dokumen', [$warga, 'kk']) }}" target="_blank" rel="noopener" class="flex items-center justify-between rounded-2xl border border-blue-200 bg-blue-50 p-4 font-bold text-blue-700 hover:bg-blue-100">
                             <span><i class="fa-solid fa-file-lines mr-2"></i>Lihat Dokumen KK</span><i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
                         </a>
                     @endif
-                    @if ($warga->dokumen_ktp)
+                    @if (isset($dokumenTersedia['ktp']))
                         <a href="{{ route('verifikasi-warga.dokumen', [$warga, 'ktp']) }}" target="_blank" rel="noopener" class="flex items-center justify-between rounded-2xl border border-blue-200 bg-blue-50 p-4 font-bold text-blue-700 hover:bg-blue-100">
                             <span><i class="fa-solid fa-id-card mr-2"></i>Lihat Dokumen KTP</span><i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
                         </a>
                     @endif
-                    @if (! $warga->dokumen_kk && ! $warga->dokumen_ktp)
-                        <p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Tidak ada dokumen yang diunggah. Lakukan verifikasi tatap muka.</p>
+                    @if (! $dokumenTersedia)
+                        <p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Tidak ada unggahan KTP/KK yang tersedia. Lakukan verifikasi tatap muka; pemeriksaan dokumen fisik termasuk metode tatap muka.</p>
                     @endif
                 </div>
             </section>
@@ -64,18 +75,33 @@
 
         <section class="rounded-3xl bg-white p-6 shadow-xs sm:p-8">
             <h2 class="text-lg font-black text-slate-800">Konfirmasi Data Final</h2>
-            <p class="mt-1 text-sm text-slate-500">Pastikan Rumah, KK, dan NIK sesuai dokumen atau hasil pertemuan.</p>
+            <p class="mt-1 text-sm text-slate-500">Cocokkan identitas calon warga melalui pertemuan atau dokumen yang tersedia. Untuk pendaftaran baru, tetapkan RT saat verifikasi; warga mengisi alamat rumah setelah akun aktif.</p>
 
             <form method="POST" action="{{ route('verifikasi-warga.verifikasi', $warga) }}" class="mt-6 space-y-5">
                 @csrf
                 @method('PATCH')
 
+                @if($warga->user?->onboarding_domisili)
+                    @if(auth()->user()->isGlobalOperator())
+                        <div>
+                            <label for="rt-verifikasi" class="text-sm font-bold text-slate-700">RT warga setelah verifikasi</label>
+                            <select id="rt-verifikasi" name="rt_id" required class="mt-2 w-full rounded-2xl border-slate-200 px-4 py-3">
+                                <option value="">Pilih RT sesuai hasil pemeriksaan</option>
+                                @foreach($rts as $rt)<option value="{{ $rt->id }}" @selected(old('rt_id', $warga->user->rt_id) == $rt->id)>{{ $rt->rw->name }} — {{ $rt->name }}</option>@endforeach
+                            </select>
+                        </div>
+                    @else
+                        <p class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900">Warga akan ditetapkan ke {{ $warga->user->rt?->name ?? auth()->user()->rt?->name }}. Pastikan calon warga benar berada di wilayah Anda. Rumah dipilih warga setelah login.</p>
+                    @endif
+                @endif
+
                 <div>
                     <label for="metode_verifikasi" class="text-sm font-bold text-slate-700">Metode verifikasi</label>
                     <select id="metode_verifikasi" name="metode_verifikasi" required class="mt-2 w-full rounded-2xl border-slate-200 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="tatap_muka" @selected(old('metode_verifikasi', $warga->metode_verifikasi ?? 'tatap_muka') === 'tatap_muka')>Tatap muka</option>
-                        <option value="dokumen" @selected(old('metode_verifikasi', $warga->metode_verifikasi) === 'dokumen')>Review dokumen</option>
+                        <option value="tatap_muka" @selected(! $dokumenTersedia || old('metode_verifikasi', $warga->metode_verifikasi ?? 'tatap_muka') === 'tatap_muka')>Tatap muka / periksa dokumen fisik</option>
+                        <option value="dokumen" @disabled(! $dokumenTersedia) @selected($dokumenTersedia && old('metode_verifikasi', $warga->metode_verifikasi) === 'dokumen')>Review dokumen unggahan</option>
                     </select>
+                    <p class="mt-2 text-xs text-slate-500">Review dokumen hanya tersedia jika minimal satu berkas KTP atau KK dapat dibuka. Buka dan periksa berkas sebelum menyetujui.</p>
                 </div>
 
                 <div class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
@@ -89,12 +115,12 @@
     <div x-show="showTolak" x-cloak x-transition.opacity class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4" x-on:keydown.escape.window="showTolak = false">
         <div x-on:click.outside="showTolak = false" class="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
             <h2 class="text-xl font-black text-slate-800">Tolak Pendaftaran</h2>
-            <p class="mt-2 text-sm text-slate-500">Tuliskan alasan yang jelas agar warga dapat melakukan klarifikasi.</p>
+            <p class="mt-2 text-sm text-slate-500">Alasan ini akan dibaca warga saat login. Jelaskan apa yang perlu diperbaiki agar warga bisa mengajukan ulang memakai akun yang sama.</p>
             <form method="POST" action="{{ route('verifikasi-warga.tolak', $warga) }}" class="mt-5">
                 @csrf
                 @method('PATCH')
                 <label for="catatan_verifikasi" class="text-sm font-bold text-slate-700">Alasan penolakan</label>
-                <textarea id="catatan_verifikasi" name="catatan_verifikasi" rows="5" minlength="10" required class="mt-2 w-full rounded-2xl border-slate-200 px-4 py-3 focus:border-rose-500 focus:ring-rose-500" placeholder="Minimal 10 karakter">{{ old('catatan_verifikasi') }}</textarea>
+                <textarea id="catatan_verifikasi" name="catatan_verifikasi" rows="5" minlength="10" maxlength="1000" required class="mt-2 w-full rounded-2xl border-slate-200 px-4 py-3 focus:border-rose-500 focus:ring-rose-500" placeholder="Minimal 10 karakter">{{ old('catatan_verifikasi') }}</textarea>
                 <div class="mt-5 flex justify-end gap-3">
                     <button type="button" x-on:click="showTolak = false" class="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700">Batal</button>
                     <button type="submit" class="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700">Tolak Pendaftaran</button>

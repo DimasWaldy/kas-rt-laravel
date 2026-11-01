@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\KartuKeluarga;
+use App\Models\AuditLog;
 use App\Models\Rumah;
 use App\Models\Role;
+use App\Models\Rt;
 use App\Models\User;
 use App\Models\Warga;
 use Illuminate\Http\RedirectResponse;
@@ -19,8 +21,7 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
-        $usersQuery = User::with(['rumah', 'warga.kartuKeluarga', 'rt:id,name'])
-            ->visibleTo($request->user())
+        $usersQuery = $this->residentsVisibleTo($request->user())->with(['rumah', 'warga.kartuKeluarga', 'rt:id,name'])
             ->whereRelation('role', 'name', 'warga');
 
         if ($search = trim($request->input('search'))) {
@@ -51,25 +52,28 @@ class UserController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $rumahs = Rumah::visibleTo($request->user())->orderBy('kode_rumah')->get();
+        $rts = $this->availableRts($request->user())->with('rw')->orderBy('rw_id')->orderBy('name')->get();
+        $rumahs = Rumah::whereIn('rt_id', $rts->modelKeys())->where('status', 'aktif')->orderBy('kode_rumah')->get();
 
-        return view('admin.warga.index', compact('users', 'rumahs'));
+        return view('admin.warga.index', compact('users', 'rumahs', 'rts'));
     }
 
     public function edit(Request $request, User $user): View
     {
-        if ($user->role_name !== 'warga' || ! User::visibleTo($request->user())->whereKey($user->id)->exists()) {
+        if ($user->role_name !== 'warga' || ! $this->residentsVisibleTo($request->user())->whereKey($user->id)->exists()) {
             abort(404);
         }
 
-        $rumahs = Rumah::visibleTo($request->user())->orderBy('kode_rumah')->get();
+        $rts = $this->availableRts($request->user())->with('rw')->orderBy('rw_id')->orderBy('name')->get();
+        $rumahs = Rumah::whereIn('rt_id', $rts->modelKeys())->where('status', 'aktif')->orderBy('kode_rumah')->get();
 
-        return view('admin.warga.edit', compact('user', 'rumahs'));
+        return view('admin.warga.edit', compact('user', 'rumahs', 'rts'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
-        if ($user->role_name !== 'warga' || ! User::visibleTo($request->user())->whereKey($user->id)->exists()) {
+        abort_unless($request->user()->isAktif(), 403);
+        if ($user->role_name !== 'warga' || ! $this->residentsVisibleTo($request->user())->whereKey($user->id)->exists()) {
             abort(404);
         }
 
@@ -77,11 +81,11 @@ class UserController extends Controller
 
         $statusDalamKk = $request->boolean('is_kepala_keluarga') ? 'kepala_keluarga' : 'anggota';
         $validated['is_penanggung_jawab_rumah'] = $request->boolean('is_penanggung_jawab_rumah');
-        $validated['rumah_id'] = $this->resolveRumahId($validated, $request->user());
-        $validated['rt_id'] = $this->resolveRtId($validated['rumah_id'], $request->user(), $user->rt_id);
-        unset($validated['rumah_kode'], $validated['rumah_alamat']);
 
-        DB::transaction(function () use ($user, $validated, $statusDalamKk) {
+        DB::transaction(function () use ($request, $user, $validated, $statusDalamKk) {
+            $user = $this->residentsVisibleTo($request->user())->whereRelation('role', 'name', 'warga')->lockForUpdate()->findOrFail($user->id);
+            [$validated['rumah_id'], $validated['rt_id']] = $this->resolvePlacement($validated, $request->user(), $user->rt_id);
+            unset($validated['rumah_kode'], $validated['rumah_alamat']);
             $user->fill(collect($validated)->only([
                 'name', 'email', 'password', 'phone', 'rumah_id', 'rt_id', 'is_penanggung_jawab_rumah',
             ])->all());
@@ -94,20 +98,22 @@ class UserController extends Controller
 
             $this->syncDataWarga($user, $validated, $statusDalamKk);
             $this->syncPenanggungJawabRumah($user);
-        });
+        }, 3);
 
         return redirect()->route('admin.warga.index')->with('success', 'Data warga berhasil diperbarui.');
     }
 
     public function create(Request $request): View
     {
-        $rumahs = Rumah::visibleTo($request->user())->orderBy('kode_rumah')->get();
+        $rts = $this->availableRts($request->user())->with('rw')->orderBy('rw_id')->orderBy('name')->get();
+        $rumahs = Rumah::whereIn('rt_id', $rts->modelKeys())->where('status', 'aktif')->orderBy('kode_rumah')->get();
 
-        return view('admin.warga.create', compact('rumahs'));
+        return view('admin.warga.create', compact('rumahs', 'rts'));
     }
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->isAktif(), 403);
         $validated = $request->validate($this->wargaRules(), $this->wargaMessages());
 
         $validated['password'] = Hash::make($validated['password']);
@@ -117,17 +123,16 @@ class UserController extends Controller
         )->id;
         $statusDalamKk = $request->boolean('is_kepala_keluarga') ? 'kepala_keluarga' : 'anggota';
         $validated['is_penanggung_jawab_rumah'] = $request->boolean('is_penanggung_jawab_rumah');
-        $validated['rumah_id'] = $this->resolveRumahId($validated, $request->user());
-        $validated['rt_id'] = $this->resolveRtId($validated['rumah_id'], $request->user());
-        unset($validated['rumah_kode'], $validated['rumah_alamat']);
 
-        DB::transaction(function () use ($validated, $statusDalamKk) {
+        DB::transaction(function () use ($request, $validated, $statusDalamKk) {
+            [$validated['rumah_id'], $validated['rt_id']] = $this->resolvePlacement($validated, $request->user());
+            unset($validated['rumah_kode'], $validated['rumah_alamat']);
             $user = User::create(collect($validated)->only([
                 'name', 'email', 'password', 'phone', 'role_id', 'rumah_id', 'rt_id', 'is_penanggung_jawab_rumah',
             ])->all() + ['status_akun' => 'aktif']);
             $this->syncDataWarga($user, $validated, $statusDalamKk);
             $this->syncPenanggungJawabRumah($user);
-        });
+        }, 3);
 
         return redirect()->route('admin.warga.index')->with('success', 'Warga baru berhasil ditambahkan.');
     }
@@ -135,7 +140,7 @@ class UserController extends Controller
     public function destroy(Request $request, User $user): RedirectResponse
     {
         $userName = DB::transaction(function () use ($request, $user) {
-            $resident = User::visibleTo($request->user())
+            $resident = $this->residentsVisibleTo($request->user())
                 ->whereRelation('role', 'name', 'warga')
                 ->lockForUpdate()->findOrFail($user->id);
             $name = $resident->name;
@@ -147,47 +152,70 @@ class UserController extends Controller
         return redirect()->route('admin.warga.index')->with('success', "Warga '{$userName}' berhasil dihapus.");
     }
 
-    private function resolveRumahId(array $data, User $actor): ?int
+    private function residentsVisibleTo(User $actor): \Illuminate\Database\Eloquent\Builder
     {
+        if ($actor->isGlobalOperator()) {
+            return User::query();
+        }
+        if ($actor->isRwOfficial()) {
+            $rwId = $actor->rt()->value('rw_id');
+
+            return $rwId ? User::whereHas('rt', fn ($rt) => $rt->where('rw_id', $rwId)) : User::whereRaw('1 = 0');
+        }
+
+        return $actor->rt_id ? User::where('rt_id', $actor->rt_id) : User::whereRaw('1 = 0');
+    }
+
+    private function availableRts(User $actor): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = Rt::where('is_active', true)->whereHas('rw', fn ($rw) => $rw->where('is_active', true));
+        if ($actor->isGlobalOperator()) {
+            return $query;
+        }
+        if ($actor->isRwOfficial()) {
+            $rwId = $actor->rt()->value('rw_id');
+
+            return $rwId ? $query->where('rw_id', $rwId) : $query->whereRaw('1 = 0');
+        }
+
+        return $actor->rt_id ? $query->whereKey($actor->rt_id) : $query->whereRaw('1 = 0');
+    }
+
+    private function resolvePlacement(array $data, User $actor, ?int $currentRtId = null): array
+    {
+        $kodeRumah = filled($data['rumah_kode'] ?? null) ? strtoupper(trim($data['rumah_kode'])) : null;
+        $rumah = null;
         if (! empty($data['rumah_id'])) {
-            return Rumah::visibleTo($actor)->findOrFail($data['rumah_id'])->id;
+            $rumah = Rumah::billingVisibleTo($actor)->lockForUpdate()->findOrFail($data['rumah_id']);
+        } elseif ($kodeRumah) {
+            $rumah = Rumah::billingVisibleTo($actor)->where('kode_rumah', $kodeRumah)->lockForUpdate()->first();
+            if (! $rumah && Rumah::where('kode_rumah', $kodeRumah)->exists()) {
+                throw ValidationException::withMessages(['rumah_kode' => 'Kode rumah tersebut sudah digunakan di wilayah lain.']);
+            }
         }
 
-        if (blank($data['rumah_kode'] ?? null)) {
-            return null;
+        // A pre-existing house is never silently moved into the selected territory.
+        if ($rumah && (! $rumah->rt_id || $rumah->status !== 'aktif')) {
+            throw ValidationException::withMessages(['rumah_id' => 'Pilih rumah aktif yang sudah terhubung ke RT. Rumah ini belum dapat digunakan untuk penempatan warga.']);
+        }
+        if ($rumah && isset($data['rt_id']) && (int) $data['rt_id'] !== (int) $rumah->rt_id) {
+            throw ValidationException::withMessages(['rt_id' => 'RT warga harus sama dengan RT rumah yang dipilih.']);
         }
 
-        $kodeRumah = strtoupper(trim($data['rumah_kode']));
-        $rumah = Rumah::visibleTo($actor)->where('kode_rumah', $kodeRumah)->first();
-
-        if (! $rumah && Rumah::where('kode_rumah', $kodeRumah)->exists()) {
-            throw ValidationException::withMessages([
-                'rumah_kode' => 'Kode rumah tersebut sudah digunakan di RT lain.',
-            ]);
+        $rtId = $rumah?->rt_id ?? $data['rt_id'] ?? ($actor->canAccessAllRts() ? $currentRtId : $actor->rt_id);
+        $rt = $this->availableRts($actor)->whereKey($rtId)->lockForUpdate()->first();
+        if (! $rt) {
+            throw ValidationException::withMessages(['rt_id' => 'Pilih RT aktif dalam wilayah kewenangan Anda. Warga aktif wajib terhubung ke RT dengan RW aktif.']);
         }
 
-        $rumah ??= Rumah::create([
-                'kode_rumah' => $kodeRumah,
-                'alamat' => $data['rumah_alamat'] ?? null,
-                'rt' => $data['rt'] ?? null,
-                'rw' => $data['rw'] ?? null,
-                'rt_id' => $actor->canAccessAllRts() ? null : $actor->rt_id,
-            ]);
-
-        if (filled($data['rumah_alamat'] ?? null) && blank($rumah->alamat)) {
+        if (! $rumah && $kodeRumah) {
+            $rumah = Rumah::create(['kode_rumah' => $kodeRumah, 'alamat' => $data['rumah_alamat'] ?? null, 'rt_id' => $rt->id]);
+        }
+        if ($rumah && filled($data['rumah_alamat'] ?? null) && blank($rumah->alamat)) {
             $rumah->update(['alamat' => $data['rumah_alamat']]);
         }
 
-        return $rumah->id;
-    }
-
-    private function resolveRtId(?int $rumahId, User $actor, ?int $currentRtId = null): ?int
-    {
-        if ($rumahId) {
-            return Rumah::findOrFail($rumahId)->rt_id;
-        }
-
-        return $actor->canAccessAllRts() ? $currentRtId : $actor->rt_id;
+        return [$rumah?->id, $rt->id];
     }
 
     private function wargaRules(?User $user = null): array
@@ -199,6 +227,7 @@ class UserController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email' . ($userId ? ',' . $userId : '')],
             'password' => [$user ? 'sometimes' : 'required', 'string', 'min:8'],
             'rumah_id' => ['nullable', 'integer', 'exists:rumahs,id'],
+            'rt_id' => ['nullable', 'integer'],
             'rumah_kode' => ['nullable', 'string', 'max:50'],
             'rumah_alamat' => ['nullable', 'string', 'max:500'],
             'no_kk' => ['nullable', 'digits:16'],
@@ -206,6 +235,12 @@ class UserController extends Controller
             'nama_lengkap' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'regex:/^[0-9]{10,13}$/'],
             'is_kepala_keluarga' => ['nullable', 'boolean'],
+            'ganti_kepala_keluarga' => ['nullable', 'boolean', function ($attribute, $value, $fail) {
+                if (in_array($value, [true, 1, '1'], true) && ! request()->boolean('is_kepala_keluarga')) {
+                    $fail('Konfirmasi penggantian hanya berlaku jika warga ditetapkan sebagai kepala keluarga.');
+                }
+            }],
+            'nama_kepala_keluarga' => ['nullable', 'string', 'max:255'],
             'is_penanggung_jawab_rumah' => ['nullable', 'boolean'],
         ];
     }
@@ -241,23 +276,68 @@ class UserController extends Controller
 
     private function syncDataWarga(User $user, array $data, string $statusDalamKk): void
     {
-        $kartuKeluargaId = $user->warga?->kartu_keluarga_id;
+        $actor = auth()->user();
+        abort_unless($actor?->isAktif() && $actor->canManageWarga(), 403);
+        if ($actor->isRwOfficial()) {
+            $rwId = $actor->rt()->value('rw_id');
+            abort_unless($rwId && (int) $user->rt()->value('rw_id') === (int) $rwId, 404);
+        }
+        $warga = $user->warga()->first();
+        $kartuKeluarga = null;
+        $oldValues = [
+            'kartu_keluarga_id' => $warga?->kartu_keluarga_id,
+            'status_dalam_kk' => $warga?->status_dalam_kk,
+        ];
+        $noKk = $data['no_kk'] ?? $warga?->kartuKeluarga?->no_kk;
 
-        if (filled($data['no_kk'] ?? null)) {
+        if (filled($noKk)) {
             $kartuKeluarga = KartuKeluarga::firstOrCreate(
-                ['no_kk' => $data['no_kk']],
+                ['no_kk' => $noKk],
                 [
                     'rumah_id' => $user->rumah_id,
                     'nama_kepala_keluarga' => $statusDalamKk === 'kepala_keluarga'
                         ? $user->name
-                        : $data['nama_kepala_keluarga'] ?? $user->name,
+                        : ($data['nama_kepala_keluarga'] ?? ''),
                 ]
             );
+            // Serialize all membership/head changes for this KK, including creation.
+            $kartuKeluarga = KartuKeluarga::whereKey($kartuKeluarga->id)->lockForUpdate()->firstOrFail();
+            if (blank($kartuKeluarga->nama_kepala_keluarga) && $statusDalamKk !== 'kepala_keluarga') {
+                throw ValidationException::withMessages(['nama_kepala_keluarga' => 'Isi nama kepala keluarga yang sebenarnya untuk KK baru. Nama anggota tidak digunakan sebagai kepala keluarga.']);
+            }
 
-            if ($kartuKeluarga->rumah_id && $user->rumah_id && $kartuKeluarga->rumah_id !== $user->rumah_id) {
+            if ($kartuKeluarga->rumah_id && (int) $kartuKeluarga->rumah_id !== (int) $user->rumah_id) {
                 throw ValidationException::withMessages([
                     'no_kk' => 'Nomor KK tersebut sudah terdaftar di rumah lain.',
                 ]);
+            }
+
+            if (! $kartuKeluarga->rumah_id && $kartuKeluarga->wargas()->where('user_id', '!=', $user->id)
+                ->whereHas('user', function ($query) use ($user) {
+                    $query->where(function ($scope) use ($user) {
+                        $scope->whereNotNull('rumah_id');
+                        if ($user->rumah_id) {
+                            $scope->where('rumah_id', '!=', $user->rumah_id);
+                        }
+                    })->orWhere(function ($scope) use ($user) {
+                        $scope->whereNotNull('rt_id');
+                        if ($user->rt_id) {
+                            $scope->where('rt_id', '!=', $user->rt_id);
+                        }
+                    });
+                })->exists()) {
+                throw ValidationException::withMessages(['no_kk' => 'KK tersebut memiliki anggota di rumah atau wilayah lain. Periksa penempatan keluarga terlebih dahulu.']);
+            }
+
+            $oldValues['nama_kepala_keluarga'] = $kartuKeluarga->nama_kepala_keluarga;
+            $kepalaLain = $kartuKeluarga->wargas()->where('user_id', '!=', $user->id)
+                ->where('status_dalam_kk', 'kepala_keluarga')->lockForUpdate()->get();
+            $oldValues['kepala_lain_ids'] = $kepalaLain->modelKeys();
+            if ($statusDalamKk === 'kepala_keluarga' && $kepalaLain->isNotEmpty()) {
+                if (! ($data['ganti_kepala_keluarga'] ?? false)) {
+                    throw ValidationException::withMessages(['is_kepala_keluarga' => 'KK ini sudah memiliki kepala keluarga. Centang konfirmasi penggantian jika hasil pemeriksaan pengurus menetapkan kepala yang baru.']);
+                }
+                Warga::whereKey($kepalaLain->modelKeys())->update(['status_dalam_kk' => 'anggota']);
             }
 
             $kartuKeluarga->update([
@@ -267,13 +347,12 @@ class UserController extends Controller
                     : $kartuKeluarga->nama_kepala_keluarga,
             ]);
 
-            $kartuKeluargaId = $kartuKeluarga->id;
         }
 
-        Warga::updateOrCreate(
+        $warga = Warga::updateOrCreate(
             ['user_id' => $user->id],
             [
-                'kartu_keluarga_id' => $kartuKeluargaId,
+                'kartu_keluarga_id' => $kartuKeluarga?->id ?? $warga?->kartu_keluarga_id,
                 'nik' => $data['nik'] ?? $user->warga?->nik,
                 'nama_lengkap' => $data['nama_lengkap'] ?? $user->name,
                 'status_dalam_kk' => $statusDalamKk,
@@ -283,5 +362,18 @@ class UserController extends Controller
                 'diverifikasi_at' => now(),
             ]
         );
+
+        $newValues = [
+            'kartu_keluarga_id' => $warga->kartu_keluarga_id, 'status_dalam_kk' => $warga->status_dalam_kk,
+            'nama_kepala_keluarga' => $kartuKeluarga?->nama_kepala_keluarga,
+        ];
+        if ($oldValues !== $newValues) {
+            AuditLog::create([
+                'user_id' => auth()->id(), 'auditable_type' => Warga::class, 'auditable_id' => $warga->id,
+                'event' => 'keluarga_diperbarui', 'old_values' => $oldValues, 'new_values' => $newValues,
+                'notes' => ($data['ganti_kepala_keluarga'] ?? false) ? 'Pengurus mengonfirmasi penggantian kepala keluarga.' : 'Penetapan data keluarga oleh pengurus.',
+                'ip_address' => request()->ip(), 'user_agent' => request()->userAgent(),
+            ]);
+        }
     }
 }

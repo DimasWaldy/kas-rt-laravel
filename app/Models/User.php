@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Database\Factories\UserFactory;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,13 +16,18 @@ use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'rt_id', 'is_penanggung_jawab_rumah', 'phone', 'status_akun'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     protected static function booted(): void
     {
+        static::saving(function (User $user) {
+            if ($user->onboarding_domisili && $user->rumah_id) {
+                $user->onboarding_domisili = false;
+            }
+        });
         static::deleting(function (User $user) {
             if (\App\Support\FinancialHistory::existsForUser($user->id)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
@@ -60,6 +64,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'role_id' => 'integer',
             'rumah_id' => 'integer',
             'rt_id' => 'integer',
+            'onboarding_domisili' => 'boolean',
         ];
     }
 

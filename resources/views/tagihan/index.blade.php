@@ -16,7 +16,8 @@
         </div>
     </div>
 
-    @if($showHeadNotice)
+    <x-billing-contact-warning :rumah="$rumah" />
+    @if($showHeadNotice && (! $rumah || ! $rumah->billingIssue()))
         <div class="bg-amber-50 rounded-3xl shadow-xs p-4 border border-amber-200 text-amber-900">
             <p class="text-sm font-semibold">Tagihan rumah ini dikelola oleh penanggung jawab <strong>{{ $headUser?->name ?? 'yang belum ditentukan' }}</strong>.</p>
             <p class="text-sm text-slate-600 mt-1">Hanya penanggung jawab rumah yang dapat mengajukan pembayaran iuran.</p>
@@ -26,7 +27,11 @@
     @if($tagihan->isEmpty())
         <div class="bg-white rounded-3xl shadow-xs p-6 text-center text-slate-600">
             <p class="font-semibold">Belum ada tagihan untuk akun Anda.</p>
-            <p class="mt-2 text-sm text-slate-500">Tagihan akan muncul setelah admin menetapkan iuran bulanan.</p>
+            @if($rumah && $rumah->billingIssue())
+                <p class="mt-2 text-sm text-slate-500">Selesaikan penetapan PJ iuran melalui pengurus, lalu minta bendahara membuat tagihan periode yang diperlukan.</p>
+            @else
+                <p class="mt-2 text-sm text-slate-500">Tagihan akan muncul setelah admin menetapkan iuran bulanan.</p>
+            @endif
         </div>
     @else
         <div class="grid gap-6">

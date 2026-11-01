@@ -89,6 +89,7 @@ test('new resident created by rt secretary inherits their rt', function () {
             'email' => 'warga-baru-rt1@example.com',
             'password' => 'password',
             'no_kk' => '3174000000000001',
+            'nama_kepala_keluarga' => 'Kepala KK Warga Baru',
             'phone' => '081234567890',
         ])
         ->assertRedirect(route('admin.warga.index'));

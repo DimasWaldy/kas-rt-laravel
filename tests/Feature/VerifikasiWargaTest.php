@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 function buatCalonWarga(
     array $userAttributes = [],
@@ -49,7 +50,7 @@ beforeEach(function () {
     ]);
 });
 
-test('warga pending tidak bisa login', function () {
+test('warga pending login hanya menuju status pendaftaran', function () {
     $warga = buatCalonWarga(['email' => 'pending@example.com']);
 
     $response = $this->post(route('login'), [
@@ -57,14 +58,17 @@ test('warga pending tidak bisa login', function () {
         'password' => 'password',
     ]);
 
-    $response->assertSessionHasErrors('email');
-    $this->assertGuest();
+    $response->assertRedirect(route('pendaftaran.show'))->assertSessionHasNoErrors();
+    $this->assertAuthenticatedAs($warga->user);
+    $this->get(route('dashboard'))->assertRedirect(route('pendaftaran.show'));
 });
 
 test('rt dapat memverifikasi warga dan mengaktifkan akun', function () {
     Notification::fake();
+    Storage::fake('local');
 
-    $warga = buatCalonWarga(['rt_id' => $this->rt->id]);
+    Storage::disk('local')->put('verifikasi/ktp.pdf', 'dokumen identitas sintetis');
+    $warga = buatCalonWarga(['rt_id' => $this->rt->id], ['dokumen_ktp' => 'verifikasi/ktp.pdf']);
 
     $response = $this->actingAs($this->petugas)
         ->patch(route('verifikasi-warga.verifikasi', $warga), [
