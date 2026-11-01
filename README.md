@@ -6,6 +6,9 @@
 
 Aplikasi manajemen kas RT berbasis web menggunakan Laravel + MySQL.
 
+> **Dokumentasi AI & blueprint** pindah ke [`docs/`](docs/). Mulai dari
+> [`AGENTS.md`](AGENTS.md) dan [`.github/copilot-instructions.md`](.github/copilot-instructions.md).
+
 ---
 
 ## 🚀 Fitur Utama
@@ -101,7 +104,7 @@ Sesudahnya, uji URL lama `/storage/...` tanpa login harus 403/404, sedangkan rou
 
 ## Email/SMTP production
 
-Smart RW memakai verifikasi email untuk akun yang sudah aktif. Di production, pastikan SMTP benar-benar berjalan agar warga bisa menerima link verifikasi.
+Smart RW tidak mewajibkan verifikasi email. Aktivasi akun tetap melalui superadmin/pengurus RT; setelah disetujui, warga langsung login dan mengisi domisili. Email tetap wajib sebagai identitas login dan tujuan pemulihan password. Pastikan alamat email benar karena kepemilikannya tidak diperiksa lewat tautan verifikasi.
 
 Variabel email yang perlu dicek di `.env` production:
 
@@ -126,7 +129,7 @@ php artisan tinker
 Mail::raw('Tes email Smart RW production', fn ($message) => $message->to('email-tujuan@example.com')->subject('Tes SMTP Smart RW'));
 ```
 
-Peringatan: kalau SMTP belum aktif atau salah konfigurasi, warga yang sudah disetujui RT tetap tidak bisa masuk ke area aplikasi yang dilindungi verifikasi email karena link verifikasi tidak terkirim.
+Peringatan: tanpa SMTP yang berjalan, email reset password tidak terkirim. Hal ini tidak menghalangi warga yang sudah disetujui RT untuk login menggunakan password yang benar. Kolom `email_verified_at` lama tetap disimpan sebagai riwayat, bukan syarat akses; tidak diisi otomatis untuk berpura-pura email telah diverifikasi.
 
 ---
 

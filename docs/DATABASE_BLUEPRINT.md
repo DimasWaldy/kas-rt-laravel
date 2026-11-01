@@ -1,6 +1,6 @@
 # Database Blueprint RT/RW
 
-Dokumen ini adalah rancangan database untuk pengembangan modul aplikasi RT/RW. Semua migration baru wajib mengikuti `ROADMAP.md`, `ROLE_BLUEPRINT.md`, dan dokumen ini.
+Dokumen ini adalah rancangan database untuk pengembangan modul aplikasi RT/RW. Semua migration baru wajib mengikuti `docs/ROADMAP.md`, `docs/ROLE_BLUEPRINT.md`, dan dokumen ini.
 
 ## 1. Prinsip Database
 

@@ -1,6 +1,6 @@
 # Feature Specification RT/RW
 
-Dokumen ini adalah spesifikasi fitur untuk aplikasi RT/RW. Semua AI dan developer wajib membaca `ROADMAP.md`, `ROLE_BLUEPRINT.md`, lalu dokumen ini sebelum membuat modul baru.
+Dokumen ini adalah spesifikasi fitur untuk aplikasi RT/RW. Semua AI dan developer wajib membaca `docs/ROADMAP.md`, `docs/ROLE_BLUEPRINT.md`, lalu dokumen ini sebelum membuat modul baru.
 
 ## 1. Aturan Umum Spesifikasi Fitur
 

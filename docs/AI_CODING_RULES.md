@@ -1,16 +1,16 @@
 # AI Coding Rules RT/RW
 
-Dokumen ini adalah aturan teknis wajib untuk semua AI saat ngoding di repo aplikasi RT/RW ini. Baca bersama `ROADMAP.md`, `ROLE_BLUEPRINT.md`, `FEATURE_SPEC.md`, `DATABASE_BLUEPRINT.md`, dan `UI_FLOW.md`.
+Dokumen ini adalah aturan teknis wajib untuk semua AI saat ngoding di repo aplikasi RT/RW ini. Baca bersama `docs/ROADMAP.md`, `docs/ROLE_BLUEPRINT.md`, `docs/FEATURE_SPEC.md`, `docs/DATABASE_BLUEPRINT.md`, dan `docs/UI_FLOW.md`. Satu direktori dengan file ini.
 
 ## 1. Urutan Baca Sebelum Ngoding
 
 AI wajib membaca dokumen ini sesuai urutan:
 
-1. `ROADMAP.md`
-2. `ROLE_BLUEPRINT.md`
-3. `FEATURE_SPEC.md`
-4. `DATABASE_BLUEPRINT.md`
-5. `UI_FLOW.md`
+1. `docs/ROADMAP.md`
+2. `docs/ROLE_BLUEPRINT.md`
+3. `docs/FEATURE_SPEC.md`
+4. `docs/DATABASE_BLUEPRINT.md`
+5. `docs/UI_FLOW.md`
 6. File kode yang relevan.
 
 Jangan langsung membuat kode tanpa memahami modul, role, permission, dan data scope.

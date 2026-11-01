@@ -1,13 +1,13 @@
 # Roadmap Pengembangan Aplikasi RT/RW
 
-Dokumen ini menjadi acuan utama semua AI dan developer saat ngoding aplikasi RT/RW ini. Setiap pekerjaan fitur harus mengikuti urutan roadmap, standar role di `ROLE_BLUEPRINT.md`, dan pola implementasi Laravel yang sudah ada di repo.
+Dokumen ini menjadi acuan utama semua AI dan developer saat ngoding aplikasi RT/RW ini. Setiap pekerjaan fitur harus mengikuti urutan roadmap, standar role di `docs/ROLE_BLUEPRINT.md`, dan pola implementasi Laravel yang sudah ada di repo.
 
 ## 1. Prinsip Kerja AI Saat Ngoding
 
 AI wajib mengikuti aturan ini sebelum membuat atau mengubah kode:
 
 1. Baca konteks fitur yang sudah ada.
-2. Baca `ROLE_BLUEPRINT.md` untuk menentukan role, permission, dan data scope.
+2. Baca `docs/ROLE_BLUEPRINT.md` untuk menentukan role, permission, dan data scope.
 3. Cek route, controller, model, migration, seeder, view, dan test yang relevan.
 4. Jangan mengubah pola besar aplikasi tanpa alasan kuat.
 5. Jangan menghapus perubahan user yang tidak terkait.
@@ -53,7 +53,7 @@ Tujuan:
 
 Pekerjaan:
 
-- Gunakan `ROLE_BLUEPRINT.md` sebagai aturan role.
+- Gunakan `docs/ROLE_BLUEPRINT.md` sebagai aturan role.
 - Pertahankan role aktif: `admin`, `bendahara`, `sekretaris`, `warga`.
 - Tambahkan permission baru hanya lewat seeder role/permission.
 - Buat test akses setiap kali modul baru ditambahkan.
@@ -522,4 +522,4 @@ Sebuah fitur dianggap selesai jika:
 - Fitur bisa didemokan dari awal sampai akhir.
 - Dokumen roadmap/blueprint diperbarui jika ada standar baru.
 
-Roadmap ini harus dibaca bersama `ROLE_BLUEPRINT.md`. Jika AI berikutnya diminta ngoding fitur apapun, mulai dari roadmap ini, lalu cek blueprint role, baru implementasi.
+Roadmap ini harus dibaca bersama `docs/ROLE_BLUEPRINT.md`. Jika AI berikutnya diminta ngoding fitur apapun, mulai dari roadmap ini, lalu cek blueprint role, baru implementasi.
