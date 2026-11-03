@@ -48,9 +48,9 @@ test('register works with no houses and keeps pending state and ordinary role', 
         ->and($user->onboarding_domisili)->toBeTrue()
         ->and($user->role_name)->toBe('warga')->and($user->status_akun)->toBe('pending_verifikasi')
         ->and($user->email_verified_at)->toBeNull()->and($user->warga->status_verifikasi)->toBe('pending');
-    $this->post(route('login'), ['email' => $user->email, 'password' => 'password'])->assertRedirect(route('pendaftaran.show'));
+    $this->post(route('login'), ['email' => $user->email, 'password' => 'password'])->assertRedirect(route('dashboard'));
     $this->assertAuthenticatedAs($user);
-    $this->actingAs($user)->get(route('domisili.create'))->assertRedirect(route('pendaftaran.show'));
+    $this->actingAs($user)->get(route('domisili.create'))->assertRedirect(route('dashboard'));
     $this->post(route('domisili.store'), ['mode' => 'new', 'alamat' => 'Jalan Belum Disetujui 1'])->assertForbidden();
     expect(Rumah::count())->toBe(0);
 });
@@ -86,19 +86,20 @@ test('superadmin must explicitly choose an active rt before approving new regist
 test('approved resident enters onboarding without email verification while regular pages remain gated', function () {
     $user = ($this->approveResident)();
     expect($user->email_verified_at)->toBeNull();
-    $this->actingAs($user)->get(route('domisili.create'))->assertOk();
-    $this->get(route('verification.notice'))->assertRedirect(route('domisili.create'));
-    foreach (['dashboard', 'profile.edit', 'kegiatan.index', 'direktori-rw.index', 'verifikasi-warga.index'] as $route) {
-        $this->get(route($route))->assertRedirect(route('domisili.create'));
+    $this->actingAs($user)->get(route('dashboard'))->assertOk();
+    $this->get(route('verification.notice'))->assertRedirect(route('dashboard'));
+    foreach (['kegiatan.index', 'direktori-rw.index', 'verifikasi-warga.index'] as $route) {
+        $this->get(route($route))->assertRedirect(route('dashboard'));
     }
-    $this->get(route('domisili.create'))->assertOk()->assertSee('Belum ada rumah di RT ini');
+    $this->get(route('profile.edit'))->assertOk()->assertSee('Belum ada rumah di RT ini');
+    $this->get(route('domisili.create'))->assertRedirect(route('dashboard'));
     $this->post(route('logout'))->assertRedirect('/');
-    $this->post(route('login'), ['email' => $user->email, 'password' => 'password'])->assertRedirect(route('domisili.create'));
+    $this->post(route('login'), ['email' => $user->email, 'password' => 'password'])->assertRedirect(route('dashboard'));
 });
 
 test('first address is created and onboarding completed only after officer approval', function () {
     $user = ($this->approveResident)();
-    $this->actingAs($user)->post(route('domisili.store'), ['mode' => 'new', 'alamat' => 'Jl. Onboarding No. 7'])->assertRedirect(route('domisili.create'))->assertSessionHasNoErrors();
+    $this->actingAs($user)->post(route('domisili.store'), ['mode' => 'new', 'alamat' => 'Jl. Onboarding No. 7'])->assertRedirect(route('profile.edit'))->assertSessionHasNoErrors();
     expect($user->fresh()->rumah_id)->toBeNull()->and($user->fresh()->onboarding_domisili)->toBeTrue()
         ->and($user->fresh()->warga->status_domisili)->toBe('pending')->and(Rumah::count())->toBe(0);
     $this->actingAs($this->officer)->get(route('verifikasi-warga.index'))->assertOk()->assertSee('Jl. Onboarding No. 7');
@@ -114,7 +115,7 @@ test('first address is created and onboarding completed only after officer appro
         ->and($user->warga->status_domisili)->toBe('disetujui')->and($user->warga->domisili_diproses_oleh)->toBe($this->officer->id);
     $this->patch(route('verifikasi-warga.domisili.setujui', $user->warga))->assertNotFound();
     $this->actingAs($user)->get(route('profile.edit'))->assertOk();
-    $this->get(route('domisili.create'))->assertRedirect(route('profile.edit'));
+    $this->get(route('domisili.create'))->assertRedirect(route('dashboard'));
     $this->post(route('domisili.store'), ['mode' => 'new', 'alamat' => 'Alamat Duplikat 2'])->assertForbidden();
     expect(Rumah::count())->toBe(1);
 });
@@ -124,10 +125,10 @@ test('own rt house selection waits for approval and preserves its billing owner'
     $owner = User::factory()->create();
     $house = Rumah::create(['kode_rumah' => 'OWN-RT', 'alamat' => 'Jl. Terdaftar', 'rt_id' => $this->rtOnboard->id, 'penanggung_jawab_id' => $owner->id]);
     $other = Rumah::create(['kode_rumah' => 'OTHER-RT', 'alamat' => 'Alamat Privat RT B', 'rt_id' => $this->rtOther->id]);
-    $this->actingAs($user)->get(route('domisili.create'))->assertOk()->assertSee('OWN-RT')->assertDontSee('Alamat Privat RT B');
+    $this->actingAs($user)->get(route('profile.edit'))->assertOk()->assertSee('OWN-RT')->assertDontSee('Alamat Privat RT B');
     $this->post(route('domisili.store'), ['mode' => 'existing', 'rumah_id' => $other->id])->assertNotFound();
     $this->post(route('domisili.store'), ['mode' => 'existing', 'rumah_id' => $house->id, 'alamat' => 'Alamat Tambahan'])->assertSessionHasErrors('alamat');
-    $this->post(route('domisili.store'), ['mode' => 'existing', 'rumah_id' => $house->id])->assertSessionHasNoErrors()->assertRedirect(route('domisili.create'));
+    $this->post(route('domisili.store'), ['mode' => 'existing', 'rumah_id' => $house->id])->assertSessionHasNoErrors()->assertRedirect(route('profile.edit'));
     expect($user->fresh()->rumah_id)->toBeNull()->and($user->fresh()->warga->rumah_diajukan_id)->toBe($house->id);
     $this->actingAs($this->officer)->patch(route('verifikasi-warga.domisili.setujui', $user->warga))->assertSessionHasNoErrors();
     expect($user->fresh()->rumah_id)->toBe($house->id)->and($user->fresh()->is_penanggung_jawab_rumah)->toBeFalse()
@@ -145,7 +146,7 @@ test('initial domicile rejects rt manipulation billing responsibility and inacti
 test('initial domicile reuses identical active address without duplicate house', function () {
     $user = ($this->approveResident)();
     $house = Rumah::create(['kode_rumah' => 'EXISTING', 'alamat' => 'Jalan Sama 10', 'rt_id' => $this->rtOnboard->id]);
-    $this->actingAs($user)->post(route('domisili.store'), ['mode' => 'new', 'alamat' => ' jalan sama 10 '])->assertRedirect(route('domisili.create'));
+    $this->actingAs($user)->post(route('domisili.store'), ['mode' => 'new', 'alamat' => ' jalan sama 10 '])->assertRedirect(route('profile.edit'));
     expect($user->fresh()->rumah_id)->toBeNull();
     $this->actingAs($this->officer)->patch(route('verifikasi-warga.domisili.setujui', $user->warga))->assertSessionHasNoErrors();
     expect(Rumah::count())->toBe(1)->and($user->fresh()->rumah_id)->toBe($house->id);
@@ -154,7 +155,7 @@ test('initial domicile reuses identical active address without duplicate house',
 test('legacy accounts cannot use new onboarding to bypass domicile restrictions', function () {
     $legacy = User::factory()->create(['role_id' => Role::where('name', 'warga')->value('id'), 'rt_id' => $this->rtOnboard->id]);
     Warga::create(['user_id' => $legacy->id, 'nama_lengkap' => $legacy->name, 'status_verifikasi' => 'terverifikasi']);
-    $this->actingAs($legacy)->get(route('domisili.create'))->assertForbidden();
+    $this->actingAs($legacy)->get(route('domisili.create'))->assertRedirect(route('dashboard'));
     $this->post(route('domisili.store'), ['mode' => 'new', 'alamat' => 'Jalan Bypass 1'])->assertForbidden();
 });
 
@@ -163,14 +164,14 @@ test('manual domicile assignment by officer closes initial setup entitlement', f
     $house = Rumah::create(['kode_rumah' => 'ASSIGNED', 'rt_id' => $this->rtOnboard->id]);
     $user->update(['rumah_id' => $house->id]);
     expect($user->fresh()->onboarding_domisili)->toBeFalse();
-    $this->actingAs($user->fresh())->get(route('domisili.create'))->assertForbidden();
+    $this->actingAs($user->fresh())->get(route('domisili.create'))->assertRedirect(route('dashboard'));
 });
 
 test('new unassigned registration can be rejected without granting initial domicile access', function () {
     $user = ($this->registerResident)();
     $this->actingAs($this->officer)->patch(route('verifikasi-warga.tolak', $user->warga), ['catatan_verifikasi' => 'Identitas belum dapat dikonfirmasi.'])->assertRedirect(route('verifikasi-warga.index'));
     expect($user->fresh()->status_akun)->toBe('ditolak')->and($user->fresh()->rt_id)->toBeNull();
-    $this->actingAs($user->fresh())->get(route('domisili.create'))->assertRedirect(route('pendaftaran.show'));
+    $this->actingAs($user->fresh())->get(route('domisili.create'))->assertRedirect(route('dashboard'));
 });
 
 test('inactive rt cannot review unassigned registrations or receive a new domicile', function () {
@@ -198,15 +199,15 @@ test('proposed house never grants payment proof access before approval', functio
     $this->actingAs($user)->post(route('domisili.store'), $payload + [
         'onboarding_domisili' => false, 'status_domisili' => 'disetujui',
         'domisili_diproses_oleh' => $this->officer->id,
-    ])->assertRedirect(route('domisili.create'))->assertSessionHasNoErrors();
+    ])->assertRedirect(route('profile.edit'))->assertSessionHasNoErrors();
     $user->refresh();
     expect($user->rumah_id)->toBeNull()->and($user->onboarding_domisili)->toBeTrue()
         ->and($user->warga->rumah_diajukan_id)->toBe($house->id)
         ->and($user->warga->rumah_aktual)->toBeNull()
         ->and($user->warga->status_domisili)->toBe('pending')->and($user->warga->domisili_diproses_oleh)->toBeNull();
-    $this->actingAs($user)->get(route('domisili.create'))->assertOk()->assertSee('Menunggu persetujuan domisili')
+    $this->actingAs($user)->get(route('profile.edit'))->assertOk()->assertSee('Menunggu persetujuan domisili')
         ->assertDontSee('name="rumah_id"', false);
-    $this->get(route('tagihan.bukti', $bill))->assertRedirect(route('domisili.create'));
+    $this->get(route('tagihan.bukti', $bill))->assertRedirect(route('dashboard'));
     // Check the data authorization too, independently of the onboarding redirect.
     $this->withoutMiddleware(EnsureInitialDomicile::class)->get(route('tagihan.bukti', $bill))->assertForbidden();
     $this->get(route('tagihan.index'))->assertOk()->assertDontSee('PRIVATE HOUSEHOLD BILL');
@@ -220,7 +221,7 @@ test('pending domicile cannot be replaced or self approved', function () {
     $user = ($this->approveResident)();
     $this->actingAs($user)->post(route('domisili.store'), ['mode' => 'new', 'alamat' => 'Alamat Pertama Nomor 1'])->assertSessionHasNoErrors();
     $this->post(route('domisili.store'), ['mode' => 'new', 'alamat' => 'Alamat Pengganti Nomor 2'])->assertSessionHasErrors('domisili');
-    $this->patch(route('verifikasi-warga.domisili.setujui', $user->warga))->assertRedirect(route('domisili.create'));
+    $this->patch(route('verifikasi-warga.domisili.setujui', $user->warga))->assertForbidden();
     expect($user->fresh()->warga->alamat_domisili)->toBe('Alamat Pertama Nomor 1')
         ->and($user->fresh()->warga->status_domisili)->toBe('pending')->and($user->fresh()->rumah_id)->toBeNull();
     $this->withoutMiddleware(EnsureInitialDomicile::class)->patch(route('verifikasi-warga.domisili.setujui', $user->warga))->assertForbidden();
@@ -234,7 +235,7 @@ test('officer can return only domicile for correction and resident can resubmit'
     $user->refresh();
     expect($user->status_akun)->toBe('aktif')->and($user->warga->status_verifikasi)->toBe('terverifikasi')
         ->and($user->warga->status_domisili)->toBe('perlu_perbaikan')->and($user->rumah_id)->toBeNull();
-    $this->actingAs($user)->get(route('domisili.create'))->assertOk()->assertSee('Mohon lengkapi nomor rumah yang benar.');
+    $this->actingAs($user)->get(route('profile.edit'))->assertOk()->assertSee('Mohon lengkapi nomor rumah yang benar.');
     $this->post(route('domisili.store'), ['mode' => 'new', 'alamat' => 'Jalan Benar Nomor 23'])->assertSessionHasNoErrors();
     expect($user->fresh()->warga->status_domisili)->toBe('pending')->and($user->fresh()->warga->catatan_domisili)->toBeNull();
     $this->actingAs($this->officer)->patch(route('verifikasi-warga.domisili.setujui', $user->warga))->assertSessionHasNoErrors();

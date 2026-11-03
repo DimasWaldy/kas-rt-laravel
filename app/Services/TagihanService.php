@@ -114,7 +114,7 @@ class TagihanService
                         );
                     }
 
-                    if ($wasNew && filled($user->phone)) {
+                    if ($wasNew && $user) {
                         Notification::send($user, new TagihanCreated($tagihan));
                     }
                 });

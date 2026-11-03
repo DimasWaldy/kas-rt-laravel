@@ -45,6 +45,17 @@
                     <i class="fa-solid fa-plus mr-2"></i>
                     Tambah Iuran
                 </button>
+
+                <form action="{{ route('iuran-bulanan.sync') }}" method="POST"
+                    onsubmit="return confirm('Sinkronkan tagihan belum bayar untuk periode {{ $namaBulanAktif }} {{ $tahunAktif }}?')">
+                    @csrf
+                    <input type="hidden" name="bulan" value="{{ $bulanAktif }}">
+                    <input type="hidden" name="tahun" value="{{ $tahunAktif }}">
+                    <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-amber-500 hover:bg-amber-600 px-5 py-3 text-sm font-black text-white shadow-xs transition sm:w-auto">
+                        <i class="fa-solid fa-rotate mr-2"></i>
+                        Sync Tagihan
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -155,6 +166,28 @@
                                 </td>
                                 <td class="px-4 py-4 font-bold text-slate-900">Rp {{ number_format($item->jumlah, 0, ',', '.') }}</td>
                                 <td class="px-4 py-4 text-slate-600">{{ $namaBulan }} {{ $item->tahun }}</td>
+                                @if(in_array(auth()->user()->role_name, ['ketua_rt','rt','ketua-rt']) || auth()->user()->canManageFinance())
+                                <td class="px-4 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ route('iuran-bulanan.edit', $item) }}"
+                                           class="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100 transition">
+                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"/></svg>
+                                            Edit
+                                        </a>
+
+                                        <form action="{{ route('iuran-bulanan.destroy', $item) }}" method="POST"
+                                              onsubmit="return confirm('Hapus komponen iuran &quot;{{ $item->nama }}&quot;?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                    class="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700 hover:bg-red-100 transition">
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                                @endif
                             </tr>
                         @empty
                             <tr>

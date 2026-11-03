@@ -130,6 +130,7 @@ test('assigning pj clears the task and regeneration creates the missing bill onc
     expect($result['created'])->toBe(1)->and($result['unbilled_houses'])->toBe([])
         ->and($repeat['created'])->toBe(0)->and($repeat['skipped'])->toBe(1)->and(Tagihan::count())->toBe(1);
     $this->assertDatabaseHas('audit_logs', ['event' => 'pj_iuran_ditetapkan', 'user_id' => $this->billingManager->id]);
+    Notification::assertSentTo($this->billingResident, \App\Notifications\TagihanCreated::class);
 });
 
 test('pj assignment rejects an inactive account another house or another rt', function (string $change) {

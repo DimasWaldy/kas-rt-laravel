@@ -78,7 +78,7 @@ class DomisiliController extends Controller
             ]);
         }, 3);
 
-        return redirect()->route('domisili.create')->with('success', 'Pengajuan domisili terkirim. Tunggu persetujuan pengurus sebelum mengakses layanan dan data rumah.');
+        return redirect()->route('profile.edit')->with('success', 'Pengajuan domisili terkirim. Tunggu persetujuan pengurus sebelum mengakses layanan dan data rumah.');
     }
 
     private function authorizeInitialSetup(User $user): void

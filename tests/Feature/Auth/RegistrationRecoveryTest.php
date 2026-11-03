@@ -40,7 +40,7 @@ test('rejected account signs in to private status instead of intended services a
     Warga::create(['user_id' => $other->id, 'nama_lengkap' => $other->name, 'catatan_verifikasi' => 'Catatan rahasia orang lain']);
     $this->withSession(['url.intended' => route('tagihan.index')])->post(route('login'), [
         'email' => $this->applicant->email, 'password' => 'password', 'remember' => true,
-    ])->assertRedirect(route('pendaftaran.show'))->assertSessionHasNoErrors()->assertSessionMissing('url.intended');
+    ])->assertRedirect(route('dashboard'))->assertSessionHasNoErrors()->assertSessionMissing('url.intended');
     $this->assertAuthenticatedAs($this->applicant);
     $this->get(route('pendaftaran.show', ['user_id' => $other->id]))->assertOk()
         ->assertSee('Nama tidak sesuai identitas. Mohon diperbaiki.')->assertSee('Kirim perbaikan')
@@ -69,14 +69,23 @@ test('pending and rejected sessions cannot read or mutate resident services even
     $this->applicant->update(['status_akun' => $status, 'onboarding_domisili' => $onboarding]);
     $this->applicant->warga->update(['status_verifikasi' => $status === 'ditolak' ? 'ditolak' : 'pending']);
     $this->actingAs($this->applicant->fresh());
-    foreach (['dashboard', 'profile.edit', 'tagihan.index', 'domisili.create', 'verifikasi-warga.index', 'direktori-rw.index'] as $name) {
-        $this->get(route($name))->assertRedirect(route('pendaftaran.show'));
+    foreach (['tagihan.index', 'domisili.create', 'verifikasi-warga.index', 'direktori-rw.index'] as $name) {
+        $this->get(route($name))->assertRedirect(route('dashboard'));
         $this->getJson(route($name))->assertForbidden();
     }
-    $this->patch(route('profile.update'), ['name' => 'Bypass', 'email' => $this->applicant->email])->assertForbidden();
+    $this->get(route('dashboard'))->assertOk();
+    if ($status === 'pending_verifikasi') {
+        $this->get(route('profile.edit'))->assertOk()->assertSee('Data Domisili');
+        $this->patch(route('profile.update'), ['name' => 'Profil Lengkap', 'email' => $this->applicant->email])
+            ->assertRedirect(route('profile.edit'));
+    } else {
+        $this->get(route('profile.edit'))->assertRedirect(route('dashboard'));
+        $this->getJson(route('profile.edit'))->assertForbidden();
+        $this->patch(route('profile.update'), ['name' => 'Bypass', 'email' => $this->applicant->email])->assertForbidden();
+    }
     $this->delete(route('profile.destroy'), ['password' => 'password'])->assertForbidden();
     $this->post(route('domisili.store'), ['mode' => 'new', 'alamat' => 'Alamat bypass'])->assertForbidden();
-    $this->get(route('tagihan.bukti', $bill))->assertRedirect(route('pendaftaran.show'));
+    $this->get(route('tagihan.bukti', $bill))->assertRedirect(route('dashboard'));
     $this->get(route('pendaftaran.show'))->assertOk();
     expect($this->applicant->fresh()->name)->not->toBe('Bypass')->and(Rumah::count())->toBe(0);
 })->with([['ditolak', true], ['pending_verifikasi', true], ['ditolak', false], ['pending_verifikasi', false]]);
@@ -99,15 +108,16 @@ test('rejected applicant resubmits same account and returns to officer queue wit
         ->and($audit->notes)->toBe($this->correction['klarifikasi'])->and($audit->user_id)->toBe($user->id);
     $this->actingAs($fresh)->get(route('pendaftaran.show'))->assertOk()->assertSee('Menunggu verifikasi pengurus')
         ->assertDontSee('name="klarifikasi"', false);
-    $this->get(route('dashboard'))->assertRedirect(route('pendaftaran.show'));
+    $this->get(route('dashboard'))->assertOk()
+        ->assertSee('Pendaftaran Anda sedang diperiksa');
     $this->actingAs($this->reviewer)->get(route('verifikasi-warga.index'))->assertOk()->assertSee($fresh->name);
     $this->get(route('verifikasi-warga.show', $fresh->warga))->assertOk()->assertSee('Pengajuan ulang setelah perbaikan')
         ->assertSee($this->correction['klarifikasi'])->assertSee('Nama tidak sesuai identitas. Mohon diperbaiki.');
     $this->patch(route('verifikasi-warga.verifikasi', $fresh->warga), ['metode_verifikasi' => 'tatap_muka'])
         ->assertSessionHasNoErrors();
-    $this->actingAs($fresh->fresh())->get(route('pendaftaran.show'))->assertRedirect(route('domisili.create'));
-    $this->get(route('domisili.create'))->assertOk();
-    $this->get(route('dashboard'))->assertRedirect(route('domisili.create'));
+    $this->actingAs($fresh->fresh())->get(route('pendaftaran.show'))->assertRedirect(route('dashboard'));
+    $this->get(route('dashboard'))->assertOk();
+    $this->get(route('profile.edit'))->assertOk()->assertSee('Data Domisili');
     expect($fresh->fresh()->rt_id)->toBe($this->rtRecovery->id)->and($fresh->fresh()->rumah_id)->toBeNull();
 });
 
@@ -177,7 +187,7 @@ test('rejected account can recover a forgotten password without gaining approved
         return true;
     });
     $this->post(route('login'), ['email' => $this->applicant->email, 'password' => 'new-password'])
-        ->assertRedirect(route('pendaftaran.show'));
+        ->assertRedirect(route('dashboard'));
     expect($this->applicant->fresh()->status_akun)->toBe('ditolak');
 });
 

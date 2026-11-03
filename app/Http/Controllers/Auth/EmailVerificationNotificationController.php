@@ -13,6 +13,6 @@ class EmailVerificationNotificationController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        return redirect()->route($request->user()->onboarding_domisili ? 'domisili.create' : 'dashboard');
+        return redirect()->route('dashboard');
     }
 }

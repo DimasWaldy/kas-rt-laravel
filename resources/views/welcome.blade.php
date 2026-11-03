@@ -17,7 +17,12 @@
                 <span class="text-lg font-black tracking-tight text-slate-900 sm:text-xl">Smart <span class="text-emerald-600">RW</span></span>
             </a>
 
-            @auth
+            <div class="flex items-center gap-2 sm:gap-3">
+                <a href="{{ route('docs.index') }}" class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2.5 text-sm font-bold text-emerald-700 transition hover:border-emerald-600 hover:bg-emerald-50 sm:px-4">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>Panduan</span>
+                </a>
+                @auth
                 <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-200 transition hover:bg-emerald-700 sm:px-5">
                     <i class="fa-solid fa-gauge-high"></i>
                     <span>Dashboard</span>
@@ -37,7 +42,7 @@
             <div class="pointer-events-none absolute -right-40 bottom-0 h-96 w-96 rounded-full bg-teal-100/50 blur-3xl"></div>
 
             <div class="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:py-28">
-                <div>
+                <div data-reveal>
                     <span class="inline-flex items-center rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-extrabold tracking-wide text-emerald-700 shadow-xs sm:text-sm">
                         🏘️ Sistem Informasi RW Modern
                     </span>
@@ -77,7 +82,7 @@
                     </dl>
                 </div>
 
-                <div class="relative mx-auto w-full max-w-lg lg:max-w-none">
+                <div data-reveal style="--reveal-delay:120ms" class="relative mx-auto w-full max-w-lg lg:max-w-none">
                     <div class="absolute inset-8 rounded-full bg-emerald-200/50 blur-3xl"></div>
                     <div class="relative overflow-hidden rounded-3xl border border-emerald-100 bg-emerald-50 p-4 shadow-2xl shadow-emerald-100/80 sm:p-6">
                         <img src="{{ asset('images/landing/hero.png') }}" alt="Ilustrasi layanan digital Smart RW" class="mx-auto w-full max-w-md object-contain" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
@@ -91,14 +96,14 @@
 
         <section id="fitur" class="scroll-mt-20 bg-slate-50/70 py-20 sm:py-24">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div class="mx-auto max-w-2xl text-center">
+                <div data-reveal class="mx-auto max-w-2xl text-center">
                     <p class="text-sm font-black uppercase tracking-[0.22em] text-emerald-600">Layanan Terintegrasi</p>
                     <h2 class="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Semua yang Dibutuhkan Warga RW</h2>
                     <p class="mt-4 text-base leading-7 text-slate-600 sm:text-lg">Dari administrasi surat hingga bank sampah, semua terintegrasi dalam satu sistem.</p>
                 </div>
 
                 <div class="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-6">
-                    <article class="group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 lg:col-span-2">
+                    <article data-reveal="left" style="--reveal-delay:0ms" class="reveal reveal-left group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 lg:col-span-2">
                         <div class="overflow-hidden rounded-2xl bg-emerald-50">
                             <img src="{{ asset('images/landing/surat.png') }}" alt="Ilustrasi surat menyurat digital" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
                             <div hidden class="flex h-40 items-center justify-center text-4xl text-emerald-300"><i class="fa-solid fa-image"></i></div>
@@ -108,7 +113,7 @@
                         <p class="mt-3 text-sm leading-7 text-slate-600">Ajukan surat keterangan domisili, pengantar nikah, SKCK, dan lainnya secara online. Disetujui RT dan RW, langsung bisa dicetak.</p>
                     </article>
 
-                    <article class="group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 lg:col-span-2">
+                    <article data-reveal="scale" style="--reveal-delay:80ms" class="reveal reveal-scale group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 lg:col-span-2">
                         <div class="overflow-hidden rounded-2xl bg-emerald-50">
                             <img src="{{ asset('images/landing/iuran.png') }}" alt="Ilustrasi iuran dan tagihan warga" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
                             <div hidden class="flex h-40 items-center justify-center text-4xl text-emerald-300"><i class="fa-solid fa-image"></i></div>
@@ -118,7 +123,7 @@
                         <p class="mt-3 text-sm leading-7 text-slate-600">Bayar iuran bulanan, iuran insidental, dan pantau tagihan secara real-time. Upload bukti bayar, bendahara verifikasi otomatis.</p>
                     </article>
 
-                    <article class="group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 lg:col-span-2">
+                    <article data-reveal="right" style="--reveal-delay:160ms" class="reveal reveal-right group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 lg:col-span-2">
                         <div class="overflow-hidden rounded-2xl bg-emerald-50">
                             <img src="{{ asset('images/landing/bank-sampah.png') }}" alt="Ilustrasi layanan bank sampah digital" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
                             <div hidden class="flex h-40 items-center justify-center text-4xl text-emerald-300"><i class="fa-solid fa-image"></i></div>
@@ -128,7 +133,7 @@
                         <p class="mt-3 text-sm leading-7 text-slate-600">Setor sampah, kumpulkan saldo, tukar dengan hadiah atau uang tunai. Jadwal setor Rabu sore dan Sabtu pagi.</p>
                     </article>
 
-                    <article class="group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 md:col-span-1 lg:col-span-2 lg:col-start-2">
+                    <article data-reveal="left" style="--reveal-delay:200ms" class="reveal reveal-left group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 md:col-span-1 lg:col-span-2 lg:col-start-2">
                         <div class="overflow-hidden rounded-2xl bg-emerald-50">
                             <img src="{{ asset('images/landing/umkm.png') }}" alt="Ilustrasi direktori UMKM warga" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
                             <div hidden class="flex h-40 items-center justify-center text-4xl text-emerald-300"><i class="fa-solid fa-image"></i></div>
@@ -138,7 +143,7 @@
                         <p class="mt-3 text-sm leading-7 text-slate-600">Daftarkan usaha Anda dan temukan produk dari tetangga sekitar. Belanja lokal, dukung ekonomi warga RW sendiri.</p>
                     </article>
 
-                    <article class="group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 md:col-span-1 lg:col-span-2">
+                    <article data-reveal="right" style="--reveal-delay:280ms" class="reveal reveal-right group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 md:col-span-1 lg:col-span-2">
                         <div class="overflow-hidden rounded-2xl bg-emerald-50">
                             <img src="{{ asset('images/landing/kegiatan.png') }}" alt="Ilustrasi kegiatan RT dan RW" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
                             <div hidden class="flex h-40 items-center justify-center text-4xl text-emerald-300"><i class="fa-solid fa-image"></i></div>
@@ -161,7 +166,7 @@
                 <div class="relative mt-14 grid gap-10 md:grid-cols-3 md:gap-8">
                     <div class="absolute left-[16.67%] right-[16.67%] top-10 hidden h-px bg-emerald-200 md:block"></div>
 
-                    <article class="relative text-center">
+                    <article data-reveal="scale" style="--reveal-delay:0ms" class="reveal reveal-scale relative text-center">
                         <div class="relative mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border-8 border-white bg-emerald-100 text-2xl text-emerald-600 shadow-xs">
                             <i class="fa-solid fa-user-plus"></i>
                             <span class="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white">1</span>
@@ -170,7 +175,7 @@
                         <p class="mx-auto mt-3 max-w-xs text-sm leading-7 text-slate-600">Isi data dasar dan pilih domisili rumah Anda di wilayah RT.</p>
                     </article>
 
-                    <article class="relative text-center">
+                    <article data-reveal="scale" style="--reveal-delay:120ms" class="reveal reveal-scale relative text-center">
                         <div class="relative mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border-8 border-white bg-emerald-100 text-2xl text-emerald-600 shadow-xs">
                             <i class="fa-solid fa-shield-check"></i>
                             <span class="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white">2</span>
@@ -179,7 +184,7 @@
                         <p class="mx-auto mt-3 max-w-xs text-sm leading-7 text-slate-600">Pengurus RT memverifikasi identitas Anda — bisa tatap muka atau upload dokumen KTP/KK.</p>
                     </article>
 
-                    <article class="relative text-center">
+                    <article data-reveal="scale" style="--reveal-delay:240ms" class="reveal reveal-scale relative text-center">
                         <div class="relative mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border-8 border-white bg-emerald-100 text-2xl text-emerald-600 shadow-xs">
                             <i class="fa-solid fa-rocket"></i>
                             <span class="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white">3</span>
@@ -195,7 +200,7 @@
             <div class="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-emerald-700 px-6 py-14 text-center text-white shadow-2xl shadow-emerald-200 sm:px-12 sm:py-16">
                 <div class="absolute -left-16 -top-20 h-56 w-56 rounded-full border-[32px] border-white/5"></div>
                 <div class="absolute -bottom-24 -right-12 h-64 w-64 rounded-full bg-emerald-500/50"></div>
-                <div class="relative mx-auto max-w-2xl">
+                <div data-reveal class="relative mx-auto max-w-2xl">
                     <h2 class="text-3xl font-black tracking-tight sm:text-4xl">Siap Bergabung dengan Smart RW?</h2>
                     <p class="mt-4 text-base leading-7 text-emerald-50 sm:text-lg">Warga baru dapat mendaftar dan langsung memilih domisili di wilayah RT Anda.</p>
                     <a href="{{ route('register') }}" class="mt-8 inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-7 py-3.5 text-sm font-black text-emerald-700 shadow-lg transition hover:-translate-y-0.5 hover:bg-emerald-50">

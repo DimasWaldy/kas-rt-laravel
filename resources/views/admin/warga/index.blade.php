@@ -144,9 +144,9 @@
                         @if(old('_form') === 'admin_warga') @error('password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
                     </div>
 
-                    <div x-data="{ rtId: @js((string) old('rt_id', auth()->user()->canAccessAllRts() ? '' : auth()->user()->rt_id)) }" class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
-                        <h3 class="text-sm font-black text-emerald-900">Data Rumah / Unit Hunian</h3>
-                        <p class="mt-1 text-xs text-emerald-700">Tagihan iuran dibuat per rumah. Satu rumah bisa punya lebih dari satu KK.</p>
+                    <div x-data="{ rtId: @js((string) old('rt_id', auth()->user()->canAccessAllRts() ? '' : auth()->user()->rt_id)) }" class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5 dark:border-slate-800 dark:bg-slate-800/40">
+                        <h3 class="text-sm font-black text-emerald-900 dark:text-emerald-400">Data Rumah / Unit Hunian</h3>
+                        <p class="mt-1 text-xs text-emerald-700 dark:text-slate-400">Tagihan iuran dibuat per rumah. Satu rumah bisa punya lebih dari satu KK.</p>
 
                         @include('admin.warga.partials.rt-field', ['user' => null])
 

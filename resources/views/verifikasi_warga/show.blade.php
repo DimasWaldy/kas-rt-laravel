@@ -48,8 +48,9 @@
                     <div><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Email</dt><dd class="mt-1 font-semibold text-slate-800">{{ $warga->user?->email }}</dd></div>
                     <div><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Nomor HP</dt><dd class="mt-1 font-semibold text-slate-800">{{ $warga->user?->phone }}</dd></div>
                     <div><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Status keluarga</dt><dd class="mt-1 font-semibold text-slate-800">{{ $warga->status_dalam_kk === 'kepala_keluarga' ? 'Kepala Keluarga' : 'Anggota Keluarga' }}</dd></div>
-                    <div><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">NIK awal</dt><dd class="mt-1 font-semibold text-slate-800">{{ $warga->nik ?: 'Belum diisi' }}</dd></div>
-                    <div><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Domisili diajukan</dt><dd class="mt-1 font-semibold leading-6 text-slate-800">{{ $warga->rumahDiajukan?->label ?? $warga->rumah_diajukan ?? 'Belum ada' }}</dd></div>
+                    <div><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">NIK</dt><dd class="mt-1 font-semibold text-slate-800">{{ $warga->nik ?: 'Belum diisi' }}</dd></div>
+                    <div><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Nomor Kartu Keluarga (KK)</dt><dd class="mt-1 font-semibold text-slate-800">{{ $warga->kartuKeluarga?->no_kk ?: 'Belum diisi' }}</dd></div>
+                    <div><dt class="text-xs font-bold uppercase tracking-wider text-slate-400">Domisili diajukan</dt><dd class="mt-1 font-semibold leading-6 text-slate-800">{{ $warga->rumahDiajukan?->label ?? $warga->rumah_diajukan ?? $warga->alamat_domisili ?? 'Belum ada' }}</dd></div>
                 </dl>
             </section>
 
@@ -97,11 +98,15 @@
 
                 <div>
                     <label for="metode_verifikasi" class="text-sm font-bold text-slate-700">Metode verifikasi</label>
-                    <select id="metode_verifikasi" name="metode_verifikasi" required class="mt-2 w-full rounded-2xl border-slate-200 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-500">
+                    <select id="metode_verifikasi" name="metode_verifikasi" class="mt-2 w-full rounded-2xl border-slate-200 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-500">
                         <option value="tatap_muka" @selected(! $dokumenTersedia || old('metode_verifikasi', $warga->metode_verifikasi ?? 'tatap_muka') === 'tatap_muka')>Tatap muka / periksa dokumen fisik</option>
                         <option value="dokumen" @disabled(! $dokumenTersedia) @selected($dokumenTersedia && old('metode_verifikasi', $warga->metode_verifikasi) === 'dokumen')>Review dokumen unggahan</option>
                     </select>
-                    <p class="mt-2 text-xs text-slate-500">Review dokumen hanya tersedia jika minimal satu berkas KTP atau KK dapat dibuka. Buka dan periksa berkas sebelum menyetujui.</p>
+                    @if($dokumenTersedia)
+                        <p class="mt-2 text-xs text-slate-500">Berkas KTP/KK tersedia untuk dicek sebelum diverifikasi.</p>
+                    @else
+                        <p class="mt-2 text-xs text-slate-500">Review dokumen hanya tersedia jika minimal satu berkas KTP atau KK dapat dibuka. Buka dan periksa berkas sebelum menyetujui.</p>
+                    @endif
                 </div>
 
                 <div class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">

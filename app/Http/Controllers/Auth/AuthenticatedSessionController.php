@@ -31,11 +31,7 @@ class AuthenticatedSessionController extends Controller
         if (in_array($request->user()->status_akun, ['pending_verifikasi', 'ditolak'], true)) {
             $request->session()->forget('url.intended');
 
-            return redirect()->route('pendaftaran.show');
-        }
-
-        if ($request->user()->onboarding_domisili) {
-            return redirect()->route('domisili.create');
+            return redirect()->route('dashboard');
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

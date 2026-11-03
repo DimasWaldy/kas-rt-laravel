@@ -50,7 +50,7 @@ beforeEach(function () {
     ]);
 });
 
-test('warga pending login hanya menuju status pendaftaran', function () {
+test('warga pending login hanya menuju dashboard terkunci', function () {
     $warga = buatCalonWarga(['email' => 'pending@example.com']);
 
     $response = $this->post(route('login'), [
@@ -58,9 +58,10 @@ test('warga pending login hanya menuju status pendaftaran', function () {
         'password' => 'password',
     ]);
 
-    $response->assertRedirect(route('pendaftaran.show'))->assertSessionHasNoErrors();
+    $response->assertRedirect(route('dashboard'))->assertSessionHasNoErrors();
     $this->assertAuthenticatedAs($warga->user);
-    $this->get(route('dashboard'))->assertRedirect(route('pendaftaran.show'));
+    $this->get(route('dashboard'))->assertOk()
+        ->assertSee('Pendaftaran Anda sedang diperiksa');
 });
 
 test('rt dapat memverifikasi warga dan mengaktifkan akun', function () {

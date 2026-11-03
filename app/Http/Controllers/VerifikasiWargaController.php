@@ -36,9 +36,33 @@ class VerifikasiWargaController extends Controller
 
         $domisilis = $this->scopeDomisiliToActor(Warga::menungguDomisili(), $actor)
             ->with(['user.rt', 'rumahDiajukan'])->orderBy('domisili_diajukan_at')->get();
+
+        $antrian = collect($wargas)->map(fn (Warga $warga) => (object) [
+            'id' => $warga->id,
+            'jenis' => 'akun',
+            'warga' => $warga,
+            'tanggal' => $warga->created_at,
+            'email' => $warga->user?->email,
+            'rt' => $warga->user?->rt?->name,
+            'label' => $warga->rumahDiajukan?->label
+                ?? $warga->rumah_diajukan
+                ?? ($warga->user?->onboarding_domisili ? 'Diisi warga setelah verifikasi akun' : 'Belum menentukan rumah'),
+        ])
+        ->concat(collect($domisilis)->map(fn (Warga $warga) => (object) [
+            'id' => $warga->id,
+            'jenis' => 'domisili',
+            'warga' => $warga,
+            'tanggal' => $warga->domisili_diajukan_at ?? $warga->updated_at,
+            'email' => $warga->user?->email,
+            'rt' => $warga->user?->rt?->name,
+            'label' => $warga->rumahDiajukan?->label ?? $warga->alamat_domisili,
+        ]))
+        ->sortBy(fn ($item) => $item->tanggal?->timestamp ?? 0)
+        ->values();
+
         $pjHouse = session('domisili_rumah_id') ? Rumah::billingVisibleTo($actor)->whereKey(session('domisili_rumah_id'))->needsBillingContact()->first() : null;
 
-        return view('verifikasi_warga.index', compact('wargas', 'domisilis', 'pjHouse'));
+        return view('verifikasi_warga.index', compact('antrian', 'wargas', 'domisilis', 'pjHouse'));
     }
 
     public function showDomisili(Request $request, Warga $warga): View
@@ -87,6 +111,7 @@ class VerifikasiWargaController extends Controller
 
             // Only the officer's approval may turn a proposal into household access.
             $user->rumah_id = $rumah->id;
+            $user->rt_id = $rumah->rt_id;
             $user->onboarding_domisili = false;
             $user->save();
             $lockedWarga->update([
@@ -94,6 +119,17 @@ class VerifikasiWargaController extends Controller
                 'status_domisili' => 'disetujui', 'catatan_domisili' => null,
                 'domisili_diproses_oleh' => $actor->id, 'domisili_diproses_at' => now(),
             ]);
+
+            if ($lockedWarga->kartu_keluarga_id && $lockedWarga->kartuKeluarga) {
+                $lockedWarga->kartuKeluarga->update(['rumah_id' => $rumah->id]);
+            }
+
+            if ($lockedWarga->ajukan_pj_iuran && ! $rumah->penanggung_jawab_id) {
+                $rumah->update(['penanggung_jawab_id' => $user->id]);
+                $user->is_penanggung_jawab_rumah = true;
+                $user->save();
+            }
+
             $this->auditDomisili($request, $lockedWarga, $oldValues, 'domisili_disetujui', $rumah->id);
 
             return $rumah;
@@ -161,7 +197,7 @@ class VerifikasiWargaController extends Controller
 
         abort_unless($warga->status_verifikasi === 'pending', 404);
 
-        $warga->load(['user.rt', 'rumahDiajukan.rt']);
+        $warga->load(['user.rt', 'rumahDiajukan.rt', 'kartuKeluarga']);
 
         $rts = $actor->isGlobalOperator() && $warga->user?->onboarding_domisili
             ? Rt::where('is_active', true)->whereHas('rw', fn (Builder $q) => $q->where('is_active', true))->with('rw:id,name')->orderBy('rw_id')->orderBy('name')->get()
@@ -199,11 +235,12 @@ class VerifikasiWargaController extends Controller
         abort_unless($warga->status_verifikasi === 'pending', 404);
 
         $validated = $request->validate([
-            'metode_verifikasi' => ['required', 'in:tatap_muka,dokumen'],
+            'metode_verifikasi' => ['nullable', 'in:tatap_muka,dokumen'],
             'rt_id' => ['nullable', 'integer'],
         ]);
+        $validated['metode_verifikasi'] = $validated['metode_verifikasi'] ?? 'tatap_muka';
 
-        $user = DB::transaction(function () use ($validated, $warga, $actor) {
+        $user = DB::transaction(function () use ($request, $validated, $warga, $actor) {
             $lockedWarga = Warga::query()
                 ->with(['user.rt', 'rumahDiajukan.rt'])
                 ->whereKey($warga->id)
@@ -233,6 +270,50 @@ class VerifikasiWargaController extends Controller
                     throw ValidationException::withMessages(['rt_id' => 'Tetapkan RT aktif yang sesuai wilayah verifikasi warga.']);
                 }
                 $user->rt_id = $rt->id;
+
+                if ($lockedWarga->status_domisili === 'pending' || $lockedWarga->rumah_diajukan_id || filled($lockedWarga->alamat_domisili)) {
+                    $oldDomValues = ['status_domisili' => $lockedWarga->status_domisili, 'rumah_id' => $user->rumah_id];
+
+                    if ($lockedWarga->mode_domisili === 'existing' || $lockedWarga->rumah_diajukan_id) {
+                        $rumah = Rumah::whereKey($lockedWarga->rumah_diajukan_id)->where('rt_id', $rt->id)
+                            ->where('status', 'aktif')->lockForUpdate()->first();
+                    } else {
+                        $alamat = trim($lockedWarga->alamat_domisili);
+                        $rumah = Rumah::where('rt_id', $rt->id)->where('status', 'aktif')
+                            ->whereRaw('LOWER(TRIM(alamat)) = ?', [mb_strtolower($alamat)])->lockForUpdate()->first();
+                        if (! $rumah && filled($alamat)) {
+                            $rumah = Rumah::create([
+                                'kode_rumah' => 'R-'.Str::ulid(),
+                                'alamat' => $alamat,
+                                'rt_id' => $rt->id,
+                                'status' => 'aktif',
+                            ]);
+                        }
+                    }
+
+                    if ($rumah) {
+                        $user->rumah_id = $rumah->id;
+                        $user->onboarding_domisili = false;
+
+                        $lockedWarga->rumah_diajukan_id = $rumah->id;
+                        $lockedWarga->status_domisili = 'disetujui';
+                        $lockedWarga->catatan_domisili = null;
+                        $lockedWarga->domisili_diproses_oleh = $actor->id;
+                        $lockedWarga->domisili_diproses_at = now();
+
+                        if ($lockedWarga->kartu_keluarga_id && $lockedWarga->kartuKeluarga) {
+                            $lockedWarga->kartuKeluarga->update(['rumah_id' => $rumah->id]);
+                        }
+
+                        // Auto-assign PJ iuran jika warga mengajukan dan rumah belum punya PJ
+                        if ($lockedWarga->ajukan_pj_iuran && ! $rumah->penanggung_jawab_id) {
+                            $rumah->update(['penanggung_jawab_id' => $user->id]);
+                            $user->is_penanggung_jawab_rumah = true;
+                        }
+
+                        $this->auditDomisili($request, $lockedWarga, $oldDomValues, 'domisili_disetujui', $rumah->id);
+                    }
+                }
             }
 
             $lockedWarga->update([
@@ -367,7 +448,7 @@ class VerifikasiWargaController extends Controller
                         $newRegistration->whereRaw('1 = 0');
                     }
                     $newRegistration->where('status_verifikasi', 'pending')
-                        ->whereNull('rumah_diajukan_id')->whereNull('kartu_keluarga_id')
+                        ->whereNull('rumah_diajukan_id')
                         ->whereHas('user', fn (Builder $userQuery) => $userQuery
                             ->where('onboarding_domisili', true)->where('status_akun', 'pending_verifikasi')
                             ->whereNull('rt_id')->whereNull('rumah_id')->whereHas('role', fn (Builder $role) => $role->where('name', 'warga')));

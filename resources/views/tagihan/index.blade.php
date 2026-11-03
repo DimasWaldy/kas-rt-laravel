@@ -10,6 +10,22 @@
         @if($rumah)
             <p class="mt-2 text-sm font-semibold text-emerald-700">Rumah: {{ $rumah->label }}</p>
         @endif
+        @if(auth()->user()->role_name !== 'warga')
+            <div class="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-900">
+                <div class="flex items-start gap-3">
+                    <i class="fa-solid fa-circle-info mt-0.5 text-sky-600"></i>
+                    <div>
+                        <p class="text-sm font-semibold">Informasi Khusus Pengurus / Non-Warga</p>
+                        <p class="mt-0.5 text-xs leading-5 text-sky-700">
+                            Halaman tagihan personal ini diperuntukkan bagi warga penerima tagihan iuran rumah. Akun dengan peran pengurus/petugas tidak memiliki tagihan personal kecuali terdaftar sebagai warga penanggung jawab rumah.
+                            @if(auth()->user()->canManageFinance())
+                                Untuk memantau, memverifikasi, atau mengelola tagihan seluruh warga, silakan buka menu <a href="{{ route('tagihan.admin') }}" class="font-bold underline text-sky-800 hover:text-sky-950">Kelola Tagihan Warga</a>.
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            </div>
+        @endif
         <div class="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
             <p class="text-sm font-semibold text-emerald-900">Tagihan dihitung per rumah/unit hunian, bukan per KK.</p>
             <p class="mt-1 text-xs leading-5 text-emerald-700">Jika satu rumah berisi lebih dari satu KK, tagihan iuran tetap dibuat satu kali untuk rumah tersebut dan dibayarkan oleh penanggung jawab rumah.</p>

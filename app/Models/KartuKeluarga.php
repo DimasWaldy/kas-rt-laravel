@@ -12,6 +12,7 @@ class KartuKeluarga extends Model
         'no_kk',
         'rumah_id',
         'nama_kepala_keluarga',
+        'jumlah_anggota',
     ];
 
     public function rumah(): BelongsTo

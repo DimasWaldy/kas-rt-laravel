@@ -48,9 +48,9 @@
                     @enderror
                 </div>
 
-                <div x-data="{ rtId: @js((string) old('rt_id', auth()->user()->canAccessAllRts() ? '' : auth()->user()->rt_id)) }" class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
-                    <h2 class="text-sm font-bold text-emerald-900">Data Rumah / Unit Hunian</h2>
-                    <p class="mt-1 text-xs text-emerald-700">Tagihan iuran dibuat per rumah. Satu rumah bisa punya lebih dari satu KK.</p>
+                <div x-data="{ rtId: @js((string) old('rt_id', auth()->user()->canAccessAllRts() ? '' : auth()->user()->rt_id)) }" class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5 dark:border-slate-800 dark:bg-slate-800/40">
+                    <h2 class="text-sm font-bold text-emerald-900 dark:text-emerald-400">Data Rumah / Unit Hunian</h2>
+                    <p class="mt-1 text-xs text-emerald-700 dark:text-slate-400">Tagihan iuran dibuat per rumah. Satu rumah bisa punya lebih dari satu KK.</p>
 
                     @include('admin.warga.partials.rt-field', ['user' => null])
 
@@ -106,12 +106,12 @@
                     </label>
                 </div>
 
-                <div class="lg:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                    <label class="inline-flex items-start gap-2 text-sm font-medium text-amber-950">
+                <div class="lg:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/30">
+                    <label class="inline-flex items-start gap-2 text-sm font-medium text-amber-950 dark:text-amber-200">
                         <input type="checkbox" name="ganti_kepala_keluarga" value="1" @checked(old('ganti_kepala_keluarga')) class="mt-1 rounded-sm border-amber-300 text-emerald-600">
                         Saya sudah memeriksa dan menyetujui penggantian kepala KK yang sudah terdaftar.
                     </label>
-                    <p class="mt-2 text-xs text-amber-900">Gunakan bersama pilihan Kepala Keluarga hanya saat benar-benar mengganti kepala yang lama. Kepala sebelumnya akan menjadi anggota; satu KK hanya memiliki satu kepala keluarga.</p>
+                    <p class="mt-2 text-xs text-amber-900 dark:text-amber-300">Gunakan bersama pilihan Kepala Keluarga hanya saat benar-benar mengganti kepala yang lama. Kepala sebelumnya akan menjadi anggota; satu KK hanya memiliki satu kepala keluarga.</p>
                 </div>
 
                 <div class="flex items-center gap-3">

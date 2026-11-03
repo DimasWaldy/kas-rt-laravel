@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Ringkasan Statistik')
 
@@ -16,26 +16,96 @@
 @section('content')
 <div class="font-inter">
 
-{{-- =============================================
-     SECTION 0: STATUS PERSONAL (KHUSUS WARGA)
-     ============================================= --}}
 @if(auth()->user()->role_name === 'warga')
-<div class="mb-6">
-    <div class="bg-linear-to-br/srgb from-indigo-600 to-violet-700 rounded-2xl p-6 text-white shadow-lg shadow-indigo-100">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+@php
+    $accountStatus = auth()->user()->status_akun;
+    $needsDomicile = auth()->user()->onboarding_domisili && ! auth()->user()->rumah_id;
+    $domisiliStatus = $needsDomicile ? (auth()->user()->warga?->status_domisili) : null;
+
+    if ($accountStatus === 'ditolak') {
+        $statusTone = 'amber';
+        $statusIcon = 'fa-circle-exclamation';
+        $statusTitle = 'Pengajuan perlu perbaikan';
+        $statusMessage = 'Pengurus menolak pengajuan Anda. Buka halaman status pendaftaran untuk melihat alasan dan mengirim perbaikan.';
+        $statusCtaUrl = route('pendaftaran.show');
+        $statusCtaLabel = 'Periksa status & perbaiki';
+    } elseif ($accountStatus === 'pending_verifikasi') {
+        $statusTone = 'indigo';
+        $statusIcon = 'fa-hourglass-half';
+        $statusTitle = 'Pendaftaran Anda sedang diperiksa';
+        $statusMessage = 'Pengurus akan memeriksa identitas Anda. Fitur layanan masih terkunci sampai akun disetujui.';
+        $statusCtaUrl = null;
+        $statusCtaLabel = '';
+    } elseif ($needsDomicile) {
+        if ($domisiliStatus === 'perlu_perbaikan') {
+            $statusTone = 'amber';
+            $statusIcon = 'fa-triangle-exclamation';
+            $statusTitle = 'Domisili perlu perbaikan';
+            $statusMessage = auth()->user()->warga?->catatan_domisili;
+            $statusCtaUrl = route('profile.edit');
+            $statusCtaLabel = 'Perbaiki domisili';
+        } elseif ($domisiliStatus === 'pending') {
+            $statusTone = 'emerald';
+            $statusIcon = 'fa-hourglass-half';
+            $statusTitle = 'Menunggu persetujuan domisili';
+            $statusMessage = 'Akun sudah aktif, tetapi rumah belum terhubung. Fitur layanan dan data rumah tetap terkunci sampai pengajuan domisili disetujui.';
+            $statusCtaUrl = route('profile.edit');
+            $statusCtaLabel = 'Lihat status domisili';
+        } else {
+            $statusTone = 'emerald';
+            $statusIcon = 'fa-house-circle-check';
+            $statusTitle = 'Lengkapi domisili';
+            $statusMessage = 'Lengkapi rumah tempat Anda tinggal dari halaman profil. Pengurus akan memeriksa sebelum akses data rumah dibuka.';
+            $statusCtaUrl = route('profile.edit');
+            $statusCtaLabel = 'Lengkapi domisili';
+        }
+    } else {
+        $statusTone = 'slate';
+        $statusIcon = 'fa-circle-check';
+        $statusTitle = 'Akun aktif';
+        $statusMessage = 'Lengkapi data profil Anda agar layanan warga berjalan lancar.';
+        $statusCtaUrl = route('profile.edit');
+        $statusCtaLabel = 'Kelola profil';
+    }
+
+    $statusCardClasses = match($statusTone) {
+        'amber' => 'border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10',
+        'indigo' => 'border-indigo-200 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/10',
+                'emerald' => 'border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/30',
+                default => 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900',
+    };
+    $statusIconClasses = match($statusTone) {
+        'amber' => 'text-amber-600 dark:text-amber-400',
+        'indigo' => 'text-indigo-600 dark:text-indigo-400',
+        'emerald' => 'text-emerald-600 dark:text-emerald-400',
+        default => 'text-slate-500 dark:text-slate-400',
+    };
+    $statusButtonClasses = match($statusTone) {
+        'amber' => 'bg-amber-600 hover:bg-amber-700',
+        'indigo' => 'bg-indigo-600 hover:bg-indigo-700',
+        'emerald' => 'bg-emerald-600 hover:bg-emerald-700',
+        default => 'bg-slate-700 hover:bg-slate-800',
+    };
+@endphp
+<div class="mb-6 rounded-2xl border {{ $statusCardClasses }} p-6">
+    <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="flex items-start gap-3">
+            <i class="fa-solid {{ $statusIcon }} {{ $statusIconClasses }} mt-1 text-2xl"></i>
             <div>
-                <p class="text-indigo-100 text-xs font-medium uppercase tracking-wider mb-1">Status Iuran Anda</p>
-                <h2 class="text-2xl font-bold">{{ now()->translatedFormat('F Y') }}</h2>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ $statusTitle }}</h2>
+                <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ $statusMessage }}</p>
+                @if($statusCtaUrl)
+                    <a href="{{ $statusCtaUrl }}" class="mt-3 inline-flex items-center gap-2 rounded-xl {{ $statusButtonClasses }} px-4 py-2.5 text-sm font-bold text-white shadow-xs transition">
+                        <i class="fa-solid {{ $statusTone === 'amber' ? 'fa-pen-to-square' : 'fa-house' }}"></i>
+                        {{ $statusCtaLabel }}
+                    </a>
+                @endif
             </div>
-            <div class="flex items-center gap-3">
-                <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2">
-                    <p class="text-[10px] text-indigo-100 leading-none mb-1">Status Saat Ini</p>
-                    <p class="text-sm font-bold capitalize">{{ str_replace('_', ' ', $userStatus ?? 'Belum Ada Tagihan') }}</p>
-                </div>
-                <a href="{{ route('tagihan.index') }}" class="bg-white text-indigo-600 hover:bg-indigo-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors">
-                    Detail Tagihan
-                </a>
-            </div>
+        </div>
+        <div class="shrink-0 rounded-xl border border-black/5 bg-white/60 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                    <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Status Iuran</p>
+                    <p class="mt-1 text-sm font-bold capitalize text-slate-700 dark:text-slate-100">{{ str_replace('_', ' ', $userStatus ?? 'Belum Ada Tagihan') }}</p>
+            <a href="{{ route('tagihan.index') }}" class="mt-1 inline-block text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">Detail Tagihan</a>
         </div>
     </div>
 </div>
@@ -53,21 +123,21 @@
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
 
     {{-- Kas Masuk --}}
-    <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
         <div class="flex items-start justify-between gap-3">
             <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-slate-500 mb-1">Total kas masuk</p>
-                <p class="text-2xl font-semibold text-slate-900 truncate">
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Total kas masuk</p>
+                <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100 truncate">
                     Rp {{ number_format($kasMasuk ?? 0, 0, ',', '.') }}
                 </p>
                 <p class="text-xs text-slate-400 mt-1">Sepanjang waktu</p>
             </div>
-            <div class="bg-green-50 p-2.5 rounded-xl shrink-0">
-                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg>
+            <div class="bg-green-50 dark:bg-green-500/10 p-2.5 rounded-xl shrink-0">
+                            <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg>
             </div>
         </div>
-        <div class="mt-3 pt-3 border-t border-slate-100">
-            <span class="inline-flex items-center gap-1 text-xs font-medium bg-green-50 text-green-700 px-2.5 py-1 rounded-full">
+        <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <span class="inline-flex items-center gap-1 text-xs font-medium bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300 px-2.5 py-1 rounded-full">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"/></svg>
                 Bulan ini: Rp {{ number_format($monthlyRevenue ?? 0, 0, ',', '.') }}
             </span>
@@ -75,11 +145,11 @@
     </div>
 
     {{-- Kas Keluar --}}
-    <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
         <div class="flex items-start justify-between gap-3">
             <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-slate-500 mb-1">Total kas keluar</p>
-                <p class="text-2xl font-semibold text-slate-900 truncate">
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Total kas keluar</p>
+                <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100 truncate">
                     Rp {{ number_format($kasKeluar ?? 0, 0, ',', '.') }}
                 </p>
                 <p class="text-xs text-slate-400 mt-1">Sepanjang waktu</p>
@@ -88,7 +158,7 @@
                 <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6L9 12.75l4.306-4.307a11.95 11.95 0 015.814 5.519l2.74 1.22m0 0l-5.94 2.28m5.94-2.28l-2.28-5.941"/></svg>
             </div>
         </div>
-        <div class="mt-3 pt-3 border-t border-slate-100">
+        <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             <span class="inline-flex items-center gap-1 text-xs font-medium bg-red-50 text-red-700 px-2.5 py-1 rounded-full">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"/></svg>
                 Pengeluaran tercatat
@@ -101,22 +171,22 @@
         $saldo = ($kasMasuk ?? 0) - ($kasKeluar ?? 0);
         $saldoPositif = $saldo >= 0;
     @endphp
-    <div class="bg-white rounded-2xl border p-5 {{ $saldoPositif ? 'border-slate-200' : 'border-red-200' }}">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border p-5 {{ $saldoPositif ? 'border-slate-200 dark:border-slate-700' : 'border-red-200' }}">
         <div class="flex items-start justify-between gap-3">
             <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-slate-500 mb-1">Saldo bersih</p>
-                <p class="text-2xl font-semibold truncate {{ $saldoPositif ? 'text-green-700' : 'text-red-600' }}">
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Saldo bersih</p>
+                <p class="text-2xl font-semibold truncate {{ $saldoPositif ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
                     Rp {{ number_format(abs($saldo), 0, ',', '.') }}
                 </p>
-                <p class="text-xs text-slate-400 mt-1">Kas masuk − kas keluar</p>
+                <p class="text-xs text-slate-400 mt-1">Kas masuk âˆ’ kas keluar</p>
             </div>
-            <div class="{{ $saldoPositif ? 'bg-blue-50' : 'bg-red-50' }} p-2.5 rounded-xl shrink-0">
+            <div class="{{ $saldoPositif ? 'bg-blue-50 dark:bg-blue-500/10' : 'bg-red-50' }} p-2.5 rounded-xl shrink-0">
                 <svg class="w-5 h-5 {{ $saldoPositif ? 'text-blue-500' : 'text-red-500' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z"/></svg>
             </div>
         </div>
-        <div class="mt-3 pt-3 border-t border-slate-100">
+        <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             @if($saldoPositif)
-                <span class="inline-flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
+                <span class="inline-flex items-center gap-1 text-xs font-medium bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
                     Saldo positif
                 </span>
@@ -140,40 +210,40 @@
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
 
-    <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
         <div class="bg-indigo-50 w-9 h-9 rounded-xl flex items-center justify-center mb-3">
             <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
         </div>
-        <p class="text-xs font-medium text-slate-500">{{ auth()->user()->isRwOfficial() ? 'Total Warga RW' : 'Warga RT' }}</p>
-        <p class="text-2xl font-semibold text-slate-900 mt-0.5">{{ $totalWarga ?? 0 }}</p>
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ auth()->user()->isRwOfficial() ? 'Total Warga RW' : 'Warga RT' }}</p>
+        <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mt-0.5">{{ $totalWarga ?? 0 }}</p>
         <p class="text-xs text-slate-400 mt-1">orang terdaftar</p>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
         <div class="bg-amber-50 w-9 h-9 rounded-xl flex items-center justify-center mb-3">
             <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"/></svg>
         </div>
-        <p class="text-xs font-medium text-slate-500">Rumah terdaftar</p>
-        <p class="text-2xl font-semibold text-slate-900 mt-0.5">{{ $totalKK ?? 0 }}</p>
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Rumah terdaftar</p>
+        <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mt-0.5">{{ $totalKK ?? 0 }}</p>
         <p class="text-xs text-slate-400 mt-1">unit hunian</p>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 p-5">
-        <div class="bg-emerald-50 w-9 h-9 rounded-xl flex items-center justify-center mb-3">
-            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+        <div class="bg-emerald-50 dark:bg-emerald-500/10 w-9 h-9 rounded-xl flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
         </div>
-        <p class="text-xs font-medium text-slate-500">Rumah aktif</p>
-        <p class="text-2xl font-semibold text-slate-900 mt-0.5">{{ $kepalaKeluargaAktif ?? 0 }}</p>
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Rumah aktif</p>
+        <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mt-0.5">{{ $kepalaKeluargaAktif ?? 0 }}</p>
         <p class="text-xs text-slate-400 mt-1">dari {{ $totalKK ?? 0 }} rumah</p>
     </div>
 
     {{-- Card Belum Bayar - border merah kalau ada tunggakan --}}
-    <div class="bg-white rounded-2xl border p-5 {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'border-red-200' : 'border-slate-200' }}">
-        <div class="{{ ($totalUnpaidTagihan ?? 0) > 0 ? 'bg-red-50' : 'bg-slate-50' }} w-9 h-9 rounded-xl flex items-center justify-center mb-3">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border p-5 {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'border-red-200' : 'border-slate-200 dark:border-slate-700' }}">
+        <div class="{{ ($totalUnpaidTagihan ?? 0) > 0 ? 'bg-red-50' : 'bg-slate-50 dark:bg-slate-800' }} w-9 h-9 rounded-xl flex items-center justify-center mb-3">
             <svg class="w-5 h-5 {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-500' : 'text-slate-400' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0M3.124 7.5A8.969 8.969 0 015.292 3m13.416 0a8.969 8.969 0 012.168 4.5"/></svg>
         </div>
-        <p class="text-xs font-medium text-slate-500">Belum bayar</p>
-        <p class="text-2xl font-semibold mt-0.5 {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-600' : 'text-slate-900' }}">{{ $totalUnpaidTagihan ?? 0 }}</p>
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Belum bayar</p>
+        <p class="text-2xl font-semibold mt-0.5 {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-600' : 'text-slate-900 dark:text-slate-100' }}">{{ $totalUnpaidTagihan ?? 0 }}</p>
         <p class="text-xs text-slate-400 mt-1">tagihan tertunggak</p>
     </div>
 
@@ -188,10 +258,10 @@
     <div class="flex flex-col gap-6">
 
         {{-- Ringkasan bulan ini + alert pending --}}
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
             <div class="flex items-center justify-between mb-4">
-                <p class="text-sm font-semibold text-slate-800">Ringkasan bulan ini</p>
-                <span class="text-xs font-medium bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Ringkasan bulan ini</p>
+                <span class="text-xs font-medium bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full">
                     {{ now()->translatedFormat('F Y') }}
                 </span>
             </div>
@@ -199,8 +269,8 @@
             <div class="space-y-3 mb-4">
                 <div>
                     <div class="flex justify-between items-center text-xs mb-1">
-                        <span class="text-slate-500">Pendapatan masuk</span>
-                        <span class="font-medium text-slate-800">Rp {{ number_format($monthlyRevenue ?? 0, 0, ',', '.') }}</span>
+                        <span class="text-slate-500 dark:text-slate-400">Pendapatan masuk</span>
+                        <span class="font-medium text-slate-800 dark:text-slate-200">Rp {{ number_format($monthlyRevenue ?? 0, 0, ',', '.') }}</span>
                     </div>
                     <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
                         @php
@@ -212,8 +282,8 @@
                 </div>
                 <div>
                     <div class="flex justify-between items-center text-xs mb-1">
-                        <span class="text-slate-500">Tagihan lunas</span>
-                        <span class="font-medium text-slate-800">{{ $totalPaidTagihan ?? 0 }} tagihan</span>
+                        <span class="text-slate-500 dark:text-slate-400">Tagihan lunas</span>
+                        <span class="font-medium text-slate-800 dark:text-slate-200">{{ $totalPaidTagihan ?? 0 }} tagihan</span>
                     </div>
                     <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
                         @php
@@ -225,8 +295,8 @@
                 </div>
                 <div>
                     <div class="flex justify-between items-center text-xs mb-1">
-                        <span class="text-slate-500">Tagihan belum bayar</span>
-                        <span class="font-medium {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-600' : 'text-slate-800' }}">{{ $totalUnpaidTagihan ?? 0 }} tagihan</span>
+                        <span class="text-slate-500 dark:text-slate-400">Tagihan belum bayar</span>
+                        <span class="font-medium {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-600' : 'text-slate-800 dark:text-slate-200' }}">{{ $totalUnpaidTagihan ?? 0 }} tagihan</span>
                     </div>
                     <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
                         @php
@@ -247,25 +317,46 @@
                     </div>
                 </div>
             @endif
+
+            {{-- Shortcut Iuran Bulanan untuk Ketua RT & Bendahara --}}
+            @if(in_array(auth()->user()->role_name, ['ketua_rt', 'rt', 'ketua-rt']) || auth()->user()->canManageFinance())
+                <a href="{{ route('iuran-bulanan.index') }}"
+                   class="flex items-center justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50 dark:bg-teal-900/20 dark:border-teal-700 p-3 transition hover:bg-teal-100 dark:hover:bg-teal-900/40">
+                    <div class="flex items-center gap-2.5">
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-100 dark:bg-teal-800">
+                            <svg class="h-4 w-4 text-teal-700 dark:text-teal-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="text-xs font-semibold text-teal-800 dark:text-teal-200">Iuran Bulanan</p>
+                            <p class="text-[11px] text-teal-600 dark:text-teal-400">Generate & kelola tagihan warga</p>
+                        </div>
+                    </div>
+                    <svg class="h-4 w-4 shrink-0 text-teal-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            @endif
         </div>
 
         {{-- Top 5 rumah --}}
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <p class="text-sm font-semibold text-slate-800 mb-4">Top 5 Rumah - total iuran</p>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Top 5 Rumah - total iuran</p>
 
             @forelse($topKKIuran as $topKK)
-                <div class="flex items-center justify-between gap-3 py-2.5 {{ !$loop->last ? 'border-b border-slate-100' : '' }}">
+                <div class="flex items-center justify-between gap-3 py-2.5 {{ !$loop->last ? 'border-b border-slate-100 dark:border-slate-800' : '' }}">
                     <div class="flex items-center gap-3">
                         <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0
-                            {{ $loop->first ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500' }}">
+                            {{ $loop->first ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500 dark:text-slate-400' }}">
                             {{ $loop->iteration }}
                         </span>
                         <div>
-                            <p class="text-sm font-medium text-slate-800">{{ $topKK['kepala_keluarga'] }}</p>
+                            <p class="text-sm font-medium text-slate-800 dark:text-slate-200">{{ $topKK['kepala_keluarga'] }}</p>
                             <p class="text-xs text-slate-400">Rumah {{ $topKK['no_kk'] }}</p>
                         </div>
                     </div>
-                    <p class="text-sm font-semibold text-slate-900 shrink-0">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 shrink-0">
                         Rp {{ number_format($topKK['total_iuran'], 0, ',', '.') }}
                     </p>
                 </div>
@@ -281,13 +372,13 @@
     <div class="flex flex-col gap-6">
 
         {{-- Chart tren pembayaran --}}
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <p class="text-sm font-semibold text-slate-800">Tren pembayaran</p>
+                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Tren pembayaran</p>
                     <p class="text-xs text-slate-400 mt-0.5">Kas masuk & keluar per hari</p>
                 </div>
-                <span class="text-xs font-medium bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">Bulan ini</span>
+                <span class="text-xs font-medium bg-slate-100 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-full">Bulan ini</span>
             </div>
             <div class="h-56">
                 <canvas id="kasChart" class="w-full h-full"></canvas>
@@ -296,17 +387,17 @@
 
         @if(auth()->user()->role_name !== 'warga')
             {{-- Aktivitas terakhir --}}
-            <div class="bg-white rounded-2xl border border-slate-200 p-5">
-                <p class="text-sm font-semibold text-slate-800 mb-4">Aktivitas terakhir</p>
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Aktivitas terakhir</p>
 
                 @forelse($recentAuditLogs as $log)
-                    <div class="py-2.5 {{ !$loop->last ? 'border-b border-slate-100' : '' }}">
+                    <div class="py-2.5 {{ !$loop->last ? 'border-b border-slate-100 dark:border-slate-800' : '' }}">
                         <div class="flex items-start justify-between gap-2">
-                            <p class="text-sm font-medium text-slate-800 leading-snug">{{ $log['event'] }}</p>
+                            <p class="text-sm font-medium text-slate-800 dark:text-slate-200 leading-snug">{{ $log['event'] }}</p>
                             <span class="text-xs text-slate-400 shrink-0 mt-0.5">{{ $log['created_at_human'] }}</span>
                         </div>
                         @if($log['notes'])
-                            <p class="text-xs text-slate-500 mt-1">{{ $log['notes'] }}</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ $log['notes'] }}</p>
                         @endif
                         <p class="text-xs text-slate-400 mt-1">Oleh: {{ $log['user_name'] ?? 'Sistem' }}</p>
                     </div>
@@ -318,23 +409,23 @@
             </div>
         @else
             {{-- Tampilan Alternatif untuk Warga: Panduan Pembayaran --}}
-            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
                 <div class="flex items-center justify-between mb-4">
-                    <p class="text-sm font-semibold text-slate-800">Panduan Pembayaran</p>
+                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Panduan Pembayaran</p>
                     <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
 
                 <div class="space-y-4">
-                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <p class="text-xs font-bold text-slate-700 mb-1">Metode Transfer</p>
-                        <p class="text-[11px] text-slate-500 leading-relaxed">
+                    <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <p class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Metode Transfer</p>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                             Silakan transfer ke rekening <strong>BCA 1234-567-890</strong> a/n Bendahara RT. Pastikan simpan bukti transfer untuk diunggah di menu Tagihan.
                         </p>
                     </div>
 
-                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <p class="text-xs font-bold text-slate-700 mb-1">Metode Offline</p>
-                        <p class="text-[11px] text-slate-500 leading-relaxed">
+                    <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <p class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Metode Offline</p>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                             Pembayaran tunai dapat diserahkan langsung kepada Bendahara atau Ketua RT pada jam kerja pengurus (19:00 - 21:00).
                         </p>
                     </div>

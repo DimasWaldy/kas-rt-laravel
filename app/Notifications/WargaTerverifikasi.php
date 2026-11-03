@@ -18,9 +18,9 @@ class WargaTerverifikasi extends Notification
     {
         return [
             'pesan' => $notifiable->onboarding_domisili
-                ? 'Akun Anda telah diverifikasi pengurus. Silakan lengkapi domisili setelah masuk.'
+                ? 'Akun Anda telah diverifikasi pengurus. Silakan lengkapi domisili dari dashboard.'
                 : 'Akun Anda telah diverifikasi RT dan sekarang sudah aktif.',
-            'url' => $notifiable->onboarding_domisili ? '/domisili' : '/dashboard',
+            'url' => '/dashboard',
         ];
     }
 }

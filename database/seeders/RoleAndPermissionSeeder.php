@@ -197,6 +197,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-warga',
                     'manage-pengaduan',
                     'view-finance',
+                    'verify-payment',
                     'view-surat',
                     'approve-surat',
                     'export-surat',

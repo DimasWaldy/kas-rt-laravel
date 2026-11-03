@@ -16,7 +16,7 @@ class RegistrationStatusController extends Controller
     {
         $user = $request->user();
         if ($user->isAktif()) {
-            return redirect()->route($user->onboarding_domisili ? 'domisili.create' : 'dashboard');
+            return redirect()->route('dashboard');
         }
         abort_unless(in_array($user->status_akun, ['pending_verifikasi', 'ditolak'], true), 403);
         $warga = $user->warga;

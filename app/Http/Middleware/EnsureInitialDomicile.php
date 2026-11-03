@@ -10,16 +10,22 @@ class EnsureInitialDomicile
     public function handle(Request $request, Closure $next)
     {
         $user = $request->user();
-        if (! $user?->onboarding_domisili || $request->routeIs('logout', 'pendaftaran.show', 'pendaftaran.resubmit')) {
+        if (! $user?->onboarding_domisili) {
             return $next($request);
         }
 
-        abort_unless($user->isAktif() && $user->warga?->status_verifikasi === 'terverifikasi', 403, 'Akun masih menunggu verifikasi pengurus.');
+        if ($request->routeIs('dashboard', 'logout', 'pendaftaran.show', 'pendaftaran.resubmit', 'domisili.store', 'profile.edit', 'profile.update')) {
+            if ($request->routeIs('domisili.store')) {
+                abort_unless($user->isAktif() && $user->warga?->status_verifikasi === 'terverifikasi', 403, 'Akun masih menunggu verifikasi pengurus.');
+            }
 
-        if (! $request->routeIs('domisili.*')) {
-            return redirect()->route('domisili.create');
+            return $next($request);
         }
 
-        return $next($request);
+        if ($request->expectsJson() || ! $request->isMethodSafe()) {
+            abort(403, 'Lengkapi dan tunggu persetujuan domisili terlebih dahulu.');
+        }
+
+        return redirect()->route('dashboard');
     }
 }

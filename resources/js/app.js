@@ -6,6 +6,27 @@ import { rfidMonitor } from './rfid-monitor';
 window.Alpine = Alpine;
 Alpine.data('rfidMonitor', rfidMonitor);
 
+const revealTargets = document.querySelectorAll('[data-reveal]');
+
+if (revealTargets.length > 0) {
+    const io = new IntersectionObserver(
+        (entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    io.unobserve(entry.target);
+                }
+            }
+        },
+        {
+            threshold: 0.12,
+            rootMargin: '0px 0px -8% 0px',
+        },
+    );
+
+    revealTargets.forEach((target) => io.observe(target));
+}
+
 Alpine.data('appShell', () => ({
     mobileMenuOpen: false,
     navigating: false,

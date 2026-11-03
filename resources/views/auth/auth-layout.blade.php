@@ -67,22 +67,55 @@
 
         @media (max-width: 768px) {
             .auth-card {
-                min-height: auto !important;
+                min-height: 480px !important;
                 border-radius: 28px !important;
+                display: grid;
+                overflow: hidden;
             }
 
             .form-container {
+                grid-area: 1 / 1;
                 position: relative !important;
+                left: 0 !important;
+                top: 0 !important;
                 width: 100% !important;
-                min-height: auto !important;
-                transform: none !important;
-                opacity: 1 !important;
-                pointer-events: auto !important;
+                height: auto !important;
+                min-height: 100% !important;
+                transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.55s !important;
+                backface-visibility: hidden;
+                will-change: transform, opacity;
             }
 
-            .sign-up { display: none; }
-            .auth-card.active .sign-in { display: none; }
-            .auth-card.active .sign-up { display: block; }
+            .sign-in {
+                transform: translateX(0) !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                visibility: visible !important;
+            }
+
+            .sign-up {
+                transform: translateX(100%) !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                visibility: hidden !important;
+                animation: none !important;
+            }
+
+            .auth-card.active .sign-in {
+                transform: translateX(-100%) !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                visibility: hidden !important;
+            }
+
+            .auth-card.active .sign-up {
+                transform: translateX(0) !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                visibility: visible !important;
+                animation: none !important;
+            }
+
             .toggle-container { display: none; }
         }
     </style>

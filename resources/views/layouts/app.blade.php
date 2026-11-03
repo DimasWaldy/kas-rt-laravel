@@ -62,15 +62,6 @@
                     'visible' => true,
                 ],
                 [
-                    'label' => 'Verifikasi Warga',
-                    'route' => 'verifikasi-warga.index',
-                    'active' => 'verifikasi-warga*',
-                    'icon' => 'fa-user-check',
-                    'iconClass' => 'text-emerald-600',
-                    'permission' => 'manage-warga',
-                    'visible' => $user->hasPermission('manage-warga'),
-                ],
-                [
                     'label' => 'Direktori RW',
                     'route' => 'direktori-rw.index',
                     'active' => 'direktori-rw*',
@@ -80,6 +71,19 @@
                     'visible' => $user->hasPermission('view-direktori-rw'),
                 ],
                 [
+                    'label' => 'Edit Profil',
+                    'route' => 'profile.edit',
+                    'active' => 'profile',
+                    'icon' => 'fa-user',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => true,
+                ],
+            ],
+        ],
+        [
+            'label' => 'Menu Khusus Admin',
+            'items' => [
+                [
                     'label' => 'Admin Dashboard',
                     'route' => 'admin.dashboard',
                     'active' => 'admin/dashboard',
@@ -88,12 +92,13 @@
                     'visible' => $user->isAdmin(),
                 ],
                 [
-                    'label' => 'Edit Profil',
-                    'route' => 'profile.edit',
-                    'active' => 'profile',
-                    'icon' => 'fa-user',
+                    'label' => 'Verifikasi Warga',
+                    'route' => 'verifikasi-warga.index',
+                    'active' => 'verifikasi-warga*',
+                    'icon' => 'fa-user-check',
                     'iconClass' => 'text-emerald-600',
-                    'visible' => true,
+                    'permission' => 'manage-warga',
+                    'visible' => $user->hasPermission('manage-warga'),
                 ],
             ],
         ],
@@ -143,7 +148,7 @@
                     'active' => 'admin/iuran-bulanan*',
                     'icon' => 'fa-list-check',
                     'iconClass' => 'text-teal-600',
-                    'visible' => $user->canManageFinance(),
+                    'visible' => $user->canManageFinance() || in_array($user->role_name, ['ketua_rt', 'rt', 'ketua-rt'], true),
                 ],
                 [
                     'label' => 'Iuran Khusus',
@@ -344,8 +349,9 @@
     $profileCompletionIssues = $user->role_name === 'warga'
         ? $user->profileCompletionIssues()
         : [];
+    $isRegistrationPending = in_array($user->status_akun, ['pending_verifikasi', 'ditolak'], true);
 @endphp
-<body class="bg-gray-50 font-sans text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100" x-data="appShell()" x-on:keydown.escape.window="mobileMenuOpen = false">
+<body class="bg-gray-50 font-sans text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100" x-data="appShell()" x-on:keydown.escape.window="mobileMenuOpen = false">
 
     <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-40 bg-emerald-950/35 lg:hidden" x-transition.opacity x-on:click="mobileMenuOpen = false"></div>
     <div x-cloak x-show="navigating" x-transition.opacity class="fixed left-1/2 top-4 z-[9999] -translate-x-1/2 rounded-full bg-emerald-600 px-4 py-2 text-xs font-black text-white shadow-2xl shadow-emerald-900/20">
@@ -353,11 +359,11 @@
     </div>
 
     <aside
-        class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] -translate-x-full flex-col border-r border-emerald-100 bg-linear-to-b/srgb from-emerald-50 via-green-50 to-white text-slate-700 shadow-2xl shadow-emerald-950/10 transition-transform duration-300 dark:border-slate-800 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-200 lg:translate-x-0"
+        class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] -translate-x-full flex-col border-r border-emerald-100 bg-linear-to-b/srgb from-emerald-50 via-green-50 to-white text-slate-700 shadow-2xl shadow-emerald-950/10 transition-transform duration-300 dark:border-slate-800 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 dark:text-slate-200 lg:translate-x-0"
         :class="{ 'translate-x-0': mobileMenuOpen, '-translate-x-full': !mobileMenuOpen }"
         aria-label="Navigasi utama"
     >
-        <div class="flex items-center justify-between border-b border-emerald-100 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-950/70 lg:p-6">
+        <div class="flex items-center justify-between border-b border-emerald-100 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70 lg:p-6">
             <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-3">
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500 shadow-xs shadow-emerald-500/30">
                     <i class="fa-solid fa-wallet text-lg text-white"></i>
@@ -379,16 +385,28 @@
                             @php
                                 $isActive = collect((array) $item['active'])
                                     ->contains(fn($pattern) => request()->is($pattern));
+                                $isLocked = $isRegistrationPending && $item['route'] !== 'dashboard';
                             @endphp
                             <li>
-                                <a
-                                    href="{{ route($item['route'], $item['params'] ?? []) }}"
-                                    x-on:click="goToMenu($event)"
-                                    class="sidebar-item flex min-h-12 touch-manipulation items-center gap-3 rounded-xl p-3 text-sm font-semibold hover:bg-emerald-100 hover:text-emerald-950 {{ $isActive ? 'active-menu' : '' }}"
-                                >
-                                    <i class="fa-solid {{ $item['icon'] }} w-5 shrink-0 text-center {{ $isActive ? 'text-white' : $item['iconClass'] }}"></i>
-                                    <span class="min-w-0 truncate font-medium">{{ $item['label'] }}</span>
-                                </a>
+                                @if($isLocked)
+                                    <span
+                                        class="sidebar-item flex min-h-12 touch-manipulation cursor-not-allowed items-center gap-3 rounded-xl p-3 text-sm font-semibold text-slate-400"
+                                        title="Terkunci sampai pendaftaran disetujui"
+                                    >
+                                        <i class="fa-solid {{ $item['icon'] }} w-5 shrink-0 text-center {{ $item['iconClass'] }} opacity-50"></i>
+                                        <span class="min-w-0 truncate font-medium">{{ $item['label'] }}</span>
+                                        <i class="fa-solid fa-lock ml-auto text-xs text-slate-300"></i>
+                                    </span>
+                                @else
+                                    <a
+                                        href="{{ route($item['route'], $item['params'] ?? []) }}"
+                                        x-on:click="goToMenu($event)"
+                                        class="sidebar-item flex min-h-12 touch-manipulation items-center gap-3 rounded-xl p-3 text-sm font-semibold hover:bg-emerald-100 hover:text-emerald-950 {{ $isActive ? 'active-menu' : '' }}"
+                                    >
+                                        <i class="fa-solid {{ $item['icon'] }} w-5 shrink-0 text-center {{ $isActive ? 'text-white' : $item['iconClass'] }}"></i>
+                                        <span class="min-w-0 truncate font-medium">{{ $item['label'] }}</span>
+                                    </a>
+                                @endif
                             </li>
                         @endforeach
                     </ul>
@@ -396,8 +414,8 @@
             @endforeach
         </nav>
 
-        <div class="border-t border-emerald-100 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-950/70">
-            <div class="mb-3 rounded-2xl border border-emerald-100 bg-white p-4 shadow-xs">
+        <div class="border-t border-emerald-100 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+            <div class="mb-3 rounded-2xl border border-emerald-100 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
                 <div class="flex items-center gap-3">
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
                         {{ substr($user->name, 0, 1) }}
@@ -420,7 +438,7 @@
     </aside>
 
     <div class="min-h-screen lg:pl-72">
-        <header class="sticky top-0 z-30 border-b bg-white/95 px-4 py-3 shadow-xs backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
+        <header class="sticky top-0 z-30 border-b bg-white/95 px-4 py-3 shadow-xs backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/95 lg:hidden">
             <div class="flex items-center justify-between gap-3">
                 <button type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-xs shadow-emerald-500/30" x-on:click="mobileMenuOpen = true" aria-label="Buka menu">
                     <i class="fa-solid fa-bars text-lg"></i>
@@ -448,13 +466,13 @@
                         @endif
                     </button>
 
-                    <div x-cloak x-show="open" x-transition x-on:click.outside="open = false" class="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-                        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                            <p class="text-sm font-black text-slate-800">Notifikasi</p>
+                    <div x-cloak x-show="open" x-transition x-on:click.outside="open = false" class="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800">
+                        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+                            <p class="text-sm font-black text-slate-800 dark:text-slate-100">Notifikasi</p>
                             @if($visibleUnreadCount)
                                 <form method="POST" action="{{ route('notifications.read-all') }}">
                                     @csrf
-                                    <button class="text-xs font-bold text-emerald-700 hover:text-emerald-900">Tandai semua dibaca</button>
+                                    <button class="text-xs font-bold text-emerald-700 hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-200">Tandai semua dibaca</button>
                                 </form>
                             @endif
                         </div>
@@ -470,23 +488,23 @@
                                     };
                                     $notifUrl = $notification->data['url'] ?? null;
                                 @endphp
-                                <div class="flex gap-3 border-b border-slate-100 px-4 py-3 last:border-0">
+                                <div class="flex gap-3 border-b border-slate-100 px-4 py-3 last:border-0 dark:border-slate-700">
                                     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $notifColor }}"><i class="fa-solid {{ $notifIcon }}"></i></span>
                                     <div class="min-w-0 flex-1">
                                         @if($notifUrl)
-                                            <a href="{{ $notifUrl }}" class="block text-sm font-bold text-slate-800 hover:text-emerald-700">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</a>
+                                            <a href="{{ $notifUrl }}" class="block text-sm font-bold text-slate-800 hover:text-emerald-700 dark:text-slate-100 dark:hover:text-emerald-300">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</a>
                                         @else
-                                            <p class="text-sm font-bold text-slate-800">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</p>
+                                            <p class="text-sm font-bold text-slate-800 dark:text-slate-100">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</p>
                                         @endif
-                                        <p class="mt-1 text-xs text-slate-400">{{ $notification->created_at->diffForHumans() }}</p>
+                                        <p class="mt-1 text-xs text-slate-400 dark:text-slate-400">{{ $notification->created_at->diffForHumans() }}</p>
                                         <form method="POST" action="{{ route('notifications.read', $notification->id) }}" class="mt-2">
                                             @csrf
-                                            <button class="text-xs font-bold text-slate-500 hover:text-emerald-700">Tandai dibaca</button>
+                                            <button class="text-xs font-bold text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-300">Tandai dibaca</button>
                                         </form>
                                     </div>
                                 </div>
                             @empty
-                                <p class="px-4 py-8 text-center text-sm text-slate-500">Belum ada notifikasi baru.</p>
+                                <p class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">Belum ada notifikasi baru.</p>
                             @endforelse
                         </div>
                     </div>
@@ -494,7 +512,7 @@
             </div>
         </header>
 
-        <header class="hidden h-20 items-center justify-between border-b bg-white px-8 shadow-xs dark:border-slate-800 dark:bg-slate-950 lg:flex">
+        <header class="hidden h-20 items-center justify-between border-b bg-white px-8 shadow-xs dark:border-slate-800 dark:bg-slate-900 lg:flex">
             <div class="flex min-w-0 items-center gap-2">
                 <h3 class="truncate text-lg font-bold capitalize text-slate-700">
                     @yield('title', 'Dashboard')
@@ -526,13 +544,13 @@
                         @endif
                     </button>
 
-                    <div x-cloak x-show="open" x-transition x-on:click.outside="open = false" class="absolute right-0 top-14 z-50 w-96 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-                        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                            <p class="text-sm font-black text-slate-800">Notifikasi</p>
+                    <div x-cloak x-show="open" x-transition x-on:click.outside="open = false" class="absolute right-0 top-14 z-50 w-96 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800">
+                        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+                            <p class="text-sm font-black text-slate-800 dark:text-slate-100">Notifikasi</p>
                             @if($visibleUnreadCount)
                                 <form method="POST" action="{{ route('notifications.read-all') }}">
                                     @csrf
-                                    <button class="text-xs font-bold text-emerald-700 hover:text-emerald-900">Tandai semua dibaca</button>
+                                    <button class="text-xs font-bold text-emerald-700 hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-200">Tandai semua dibaca</button>
                                 </form>
                             @endif
                         </div>
@@ -548,30 +566,30 @@
                                     };
                                     $notifUrl = $notification->data['url'] ?? null;
                                 @endphp
-                                <div class="flex gap-3 border-b border-slate-100 px-4 py-3 last:border-0">
+                                <div class="flex gap-3 border-b border-slate-100 px-4 py-3 last:border-0 dark:border-slate-700">
                                     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $notifColor }}"><i class="fa-solid {{ $notifIcon }}"></i></span>
                                     <div class="min-w-0 flex-1">
                                         @if($notifUrl)
-                                            <a href="{{ $notifUrl }}" class="block text-sm font-bold text-slate-800 hover:text-emerald-700">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</a>
+                                            <a href="{{ $notifUrl }}" class="block text-sm font-bold text-slate-800 hover:text-emerald-700 dark:text-slate-100 dark:hover:text-emerald-300">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</a>
                                         @else
-                                            <p class="text-sm font-bold text-slate-800">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</p>
+                                            <p class="text-sm font-bold text-slate-800 dark:text-slate-100">{{ $notification->data['pesan'] ?? 'Notifikasi baru' }}</p>
                                         @endif
-                                        <p class="mt-1 text-xs text-slate-400">{{ $notification->created_at->diffForHumans() }}</p>
+                                        <p class="mt-1 text-xs text-slate-400 dark:text-slate-400">{{ $notification->created_at->diffForHumans() }}</p>
                                         <form method="POST" action="{{ route('notifications.read', $notification->id) }}" class="mt-2">
                                             @csrf
-                                            <button class="text-xs font-bold text-slate-500 hover:text-emerald-700">Tandai dibaca</button>
+                                            <button class="text-xs font-bold text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-300">Tandai dibaca</button>
                                         </form>
                                     </div>
                                 </div>
                             @empty
-                                <p class="px-4 py-8 text-center text-sm text-slate-500">Belum ada notifikasi baru.</p>
+                                <p class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">Belum ada notifikasi baru.</p>
                             @endforelse
                         </div>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 rounded-full bg-emerald-50 px-3 py-1.5">
-                    <span class="text-sm font-semibold text-emerald-800">{{ $roleLabel }}</span>
+                <div class="flex items-center gap-3 rounded-full bg-emerald-50 px-3 py-1.5 dark:bg-emerald-500/10">
+                    <span class="text-sm font-semibold text-emerald-800 dark:text-emerald-300">{{ $roleLabel }}</span>
                 </div>
 
                 <form method="POST" action="{{ route('logout') }}">
@@ -585,7 +603,7 @@
         </header>
 
         @if($user->canManageFinance() && $visibleUnreadCount)
-            <div class="border-b border-amber-100 bg-amber-50 px-4 py-3 text-amber-800 md:px-8">
+            <div class="border-b border-amber-100 bg-amber-50 px-4 py-3 text-amber-800 dark:border-amber-900/40 dark:bg-amber-500/10 dark:text-amber-200 md:px-8">
                 <p class="text-sm font-semibold">
                     Ada {{ $visibleUnreadCount }} notifikasi baru.
                     <a href="{{ route('tagihan.admin') }}" class="underline">Klik untuk verifikasi</a>.

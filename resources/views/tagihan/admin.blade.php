@@ -16,8 +16,52 @@
         </div>
     </div>
 
+    {{-- Ringkasan Tunggakan --}}
+    @if(isset($summaryTunggakan))
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="rounded-3xl border border-rose-100 bg-rose-50/50 p-5">
+                <div class="text-xs font-semibold uppercase tracking-wider text-rose-600">Total Tunggakan</div>
+                <div class="mt-2 text-2xl font-bold text-rose-700">Rp {{ number_format($summaryTunggakan['total_nominal'], 0, ',', '.') }}</div>
+                <div class="mt-1 text-xs text-rose-500">Iuran belum diselesaikan</div>
+            </div>
+            <div class="rounded-3xl border border-amber-100 bg-amber-50/50 p-5">
+                <div class="text-xs font-semibold uppercase tracking-wider text-amber-600">Tagihan Tertunggak</div>
+                <div class="mt-2 text-2xl font-bold text-amber-700">{{ $summaryTunggakan['total_tagihan'] }} Item</div>
+                <div class="mt-1 text-xs text-amber-500">Belum dibayar & ditolak</div>
+            </div>
+            <div class="rounded-3xl border border-sky-100 bg-sky-50/50 p-5">
+                <div class="text-xs font-semibold uppercase tracking-wider text-sky-600">Rumah Menunggak</div>
+                <div class="mt-2 text-2xl font-bold text-sky-700">{{ $summaryTunggakan['total_rumah'] }} Rumah</div>
+                <div class="mt-1 text-xs text-sky-500">Memiliki tagihan aktif</div>
+            </div>
+        </div>
+    @endif
+
     <div class="rounded-3xl bg-white p-6 shadow-xs">
-        <form method="GET" action="{{ route('tagihan.admin') }}" class="grid gap-4 md:grid-cols-[1fr_1fr_auto_auto] md:items-end">
+        <form method="GET" action="{{ route('tagihan.admin') }}" class="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr_auto_auto] md:items-end">
+            <div>
+                <label class="block text-sm font-bold text-slate-700">Status Tagihan</label>
+                <select name="status" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 focus:border-emerald-500 focus:ring-emerald-200">
+                    <option value="">Semua Status</option>
+                    <option value="tunggakan" {{ request('status') === 'tunggakan' ? 'selected' : '' }}>Semua Tunggakan</option>
+                    <option value="belum_bayar" {{ request('status') === 'belum_bayar' ? 'selected' : '' }}>Belum Bayar</option>
+                    <option value="menunggu_konfirmasi" {{ request('status') === 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi</option>
+                    <option value="lunas" {{ request('status') === 'lunas' ? 'selected' : '' }}>Lunas</option>
+                    <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>Ditolak</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700">Filter Rumah</label>
+                <select name="rumah_id" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 focus:border-emerald-500 focus:ring-emerald-200">
+                    <option value="">Semua Rumah</option>
+                    @foreach($rumahList as $r)
+                        <option value="{{ $r->id }}" {{ (string) request('rumah_id') === (string) $r->id ? 'selected' : '' }}>
+                            {{ $r->kode_rumah }} - {{ Str::limit($r->alamat, 20) }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
             <div>
                 <label class="block text-sm font-bold text-slate-700">Filter Bulan</label>
                 <select name="bulan" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 focus:border-emerald-500 focus:ring-emerald-200">

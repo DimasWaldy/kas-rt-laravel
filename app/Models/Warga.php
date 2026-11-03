@@ -33,6 +33,8 @@ class Warga extends Model
         'domisili_diajukan_at',
         'domisili_diproses_oleh',
         'domisili_diproses_at',
+        'ajukan_pj_iuran',
+        'jumlah_penghuni_rumah',
     ];
 
     protected function casts(): array

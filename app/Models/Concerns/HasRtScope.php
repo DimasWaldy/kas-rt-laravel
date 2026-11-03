@@ -20,11 +20,16 @@ trait HasRtScope
             return $query;
         }
 
+        if (! $actor->rt_id) {
+            return $query->whereRaw('1 = 0');
+        }
+
         return $query->where($query->getModel()->qualifyColumn('rt_id'), $actor->rt_id);
     }
 
     public function isVisibleTo(User $actor): bool
     {
-        return $actor->canAccessAllRts() || $this->rt_id === $actor->rt_id;
+        return $actor->canAccessAllRts()
+            || ($actor->rt_id && $this->rt_id === $actor->rt_id);
     }
 }

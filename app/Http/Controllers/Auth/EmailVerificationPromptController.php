@@ -13,6 +13,6 @@ class EmailVerificationPromptController extends Controller
      */
     public function __invoke(Request $request): RedirectResponse
     {
-        return redirect()->route($request->user()->onboarding_domisili ? 'domisili.create' : 'dashboard');
+        return redirect()->route('dashboard');
     }
 }

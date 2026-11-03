@@ -69,9 +69,21 @@ class TagihanController extends Controller
             }
         }
 
-        // Optimasi: Ambil semua iuran bulanan yang relevan untuk breakdown tanpa N+1 query
-        $periodes = $tagihan->map(fn($t) => $t->bulan . '-' . $t->tahun)->unique();
-        $allIuranItems = IuranBulanan::whereIn(DB::raw("CONCAT(bulan, '-', tahun)"), $periodes)->get();
+        // Optimasi: Ambil semua iuran bulanan yang relevan untuk breakdown tanpa N+1 query.
+        // Filter manual agar kompatibel SQLite maupun MySQL (CONCAT tidak ada di SQLite).
+        $periodes = $tagihan->map(fn($t) => $t->bulan . '-' . $t->tahun)->unique()->filter();
+        $allIuranItems = IuranBulanan::query()
+            ->when($periodes->isNotEmpty(), function ($query) use ($periodes) {
+                $query->where(function ($query) use ($periodes) {
+                    foreach ($periodes as $periode) {
+                        [$bulan, $tahun] = array_pad(explode('-', (string) $periode, 2), 2, null);
+                        $query->orWhere(function ($query) use ($bulan, $tahun) {
+                            $query->where('bulan', $bulan)->where('tahun', $tahun);
+                        });
+                    }
+                });
+            })
+            ->get();
 
         $tagihan->each(function ($item) use ($allIuranItems) {
             $item->details = $allIuranItems->filter(function ($iuran) use ($item) {
@@ -182,15 +194,34 @@ class TagihanController extends Controller
 
         $filterBulan = $request->filled('bulan') ? (int) $request->query('bulan') : null;
         $filterTahun = $request->filled('tahun') ? (int) $request->query('tahun') : null;
+        $filterStatus = $request->filled('status') ? (string) $request->query('status') : null;
+        $filterRumahId = $request->filled('rumah_id') ? (int) $request->query('rumah_id') : null;
 
         $tagihans = Tagihan::with(['user', 'rumah', 'verifier', 'rejecter'])
             ->withExists('cashEntries')
             ->visibleTo($request->user())
             ->when($filterBulan, fn ($query) => $query->where('bulan', $filterBulan))
             ->when($filterTahun, fn ($query) => $query->where('tahun', $filterTahun))
+            ->when($filterStatus === 'tunggakan', fn ($query) => $query->whereIn('status', ['belum_bayar', 'failed', 'menunggu_konfirmasi']))
+            ->when($filterStatus && $filterStatus !== 'tunggakan', fn ($query) => $query->where('status', $filterStatus))
+            ->when($filterRumahId, fn ($query) => $query->where('rumah_id', $filterRumahId))
             ->orderByDesc('tahun')
             ->orderByDesc('bulan')
             ->paginate(20);
+
+        // Ringkasan Tunggakan Tagihan per RT
+        $tunggakanSummaryQuery = Tagihan::visibleTo($request->user())
+            ->whereIn('status', ['belum_bayar', 'failed', 'menunggu_konfirmasi']);
+
+        $summaryTunggakan = [
+            'total_nominal' => (int) (clone $tunggakanSummaryQuery)->sum('jumlah'),
+            'total_tagihan' => (int) (clone $tunggakanSummaryQuery)->count(),
+            'total_rumah' => (int) (clone $tunggakanSummaryQuery)->whereNotNull('rumah_id')->distinct('rumah_id')->count('rumah_id'),
+        ];
+
+        $rumahList = \App\Models\Rumah::visibleTo($request->user())
+            ->orderBy('kode_rumah')
+            ->get(['id', 'kode_rumah', 'alamat']);
 
         $users = User::whereRelation('role', 'name', 'warga')
             ->with('rt:id,name')
@@ -204,7 +235,7 @@ class TagihanController extends Controller
         }
         $tahunList = range(now()->year - 2, now()->year + 1);
 
-        return view('tagihan.admin', compact('tagihans', 'users', 'bulanList', 'tahunList', 'filterBulan', 'filterTahun'));
+        return view('tagihan.admin', compact('tagihans', 'users', 'bulanList', 'tahunList', 'filterBulan', 'filterTahun', 'filterStatus', 'filterRumahId', 'summaryTunggakan', 'rumahList'));
     }
 
     public function confirm(Request $request)

@@ -170,7 +170,7 @@ test('registration does not send email verification or activate account automati
     $user = User::where('email', 'no-verification@example.test')->sole();
     expect($user->email_verified_at)->toBeNull()->and($user->status_akun)->toBe('pending_verifikasi');
     Notification::assertNothingSent();
-    $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect(route('pendaftaran.show'));
+    $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect(route('dashboard'));
     $this->assertAuthenticatedAs($user);
-    $this->get(route('dashboard'))->assertRedirect(route('pendaftaran.show'));
+    $this->get(route('dashboard'))->assertOk();
 });

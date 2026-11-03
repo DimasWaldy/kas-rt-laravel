@@ -140,6 +140,94 @@ test('bendahara rt cash report excludes transactions from other rt', function ()
         ->assertDontSee('Kas Keluar RT Dua');
 });
 
+test('warga only sees incoming cash from their own rt', function () {
+    KasMasuk::create([
+        'rt_id' => $this->rtSatu->id,
+        'keterangan' => 'Kas Masuk Warga RT Satu',
+        'jumlah' => 125000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    KasMasuk::create([
+        'rt_id' => $this->rtDua->id,
+        'keterangan' => 'Kas Masuk Warga RT Dua',
+        'jumlah' => 875000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    $this->actingAs($this->wargaRtSatu)
+        ->get(route('kas-masuk.index'))
+        ->assertOk()
+        ->assertSee('Kas Masuk Warga RT Satu')
+        ->assertDontSee('Kas Masuk Warga RT Dua');
+});
+
+test('warga without rt sees no incoming cash', function () {
+    $wargaTanpaRt = User::factory()->create([
+        'role_id' => Role::where('name', 'warga')->value('id'),
+        'rt_id' => null,
+    ]);
+
+    KasMasuk::create([
+        'rt_id' => $this->rtSatu->id,
+        'keterangan' => 'Kas Masuk Tanpa RT',
+        'jumlah' => 125000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    $this->actingAs($wargaTanpaRt)
+        ->get(route('kas-masuk.index'))
+        ->assertOk()
+        ->assertDontSee('Kas Masuk Tanpa RT');
+});
+
+test('warga only sees outgoing cash from their own rt', function () {
+    KasKeluar::create([
+        'rt_id' => $this->rtSatu->id,
+        'keterangan' => 'Kas Keluar Warga RT Satu',
+        'jumlah' => 45000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    KasKeluar::create([
+        'rt_id' => $this->rtDua->id,
+        'keterangan' => 'Kas Keluar Warga RT Dua',
+        'jumlah' => 95000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    $this->actingAs($this->wargaRtSatu)
+        ->get(route('kas-keluar.index'))
+        ->assertOk()
+        ->assertSee('Kas Keluar Warga RT Satu')
+        ->assertDontSee('Kas Keluar Warga RT Dua');
+});
+
+test('non-warga user sees role banner on personal tagihan page', function () {
+    $this->actingAs($this->bendaharaRtSatu)
+        ->get(route('tagihan.index'))
+        ->assertOk()
+        ->assertSee('Informasi Khusus Pengurus / Non-Warga')
+        ->assertSee('Kelola Tagihan Warga');
+
+    $this->actingAs($this->wargaRtSatu)
+        ->get(route('tagihan.index'))
+        ->assertOk()
+        ->assertDontSee('Informasi Khusus Pengurus / Non-Warga');
+});
+
+test('ketua rt can access iuran bulanan page and menu', function () {
+    $ketuaRt = User::factory()->create([
+        'role_id' => Role::where('name', 'ketua_rt')->value('id') ?? Role::where('name', 'rt')->value('id'),
+        'rt_id' => $this->rtSatu->id,
+    ]);
+
+    $this->actingAs($ketuaRt)
+        ->get(route('iuran-bulanan.index'))
+        ->assertOk()
+        ->assertSee('Iuran Bulanan');
+});
+
 test('bendahara rt dashboard totals only include their own rt', function () {
     KasMasuk::create([
         'rt_id' => $this->rtSatu->id,

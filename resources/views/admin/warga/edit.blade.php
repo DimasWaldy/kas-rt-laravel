@@ -4,10 +4,10 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
-    <div class="rounded-3xl bg-white shadow-xs p-6">
+    <div class="rounded-3xl bg-white shadow-xs p-6 dark:border dark:border-slate-800">
         <div class="mb-6">
-            <h1 class="text-2xl font-bold text-slate-800">Edit Profil Warga</h1>
-            <p class="mt-2 text-sm text-slate-500">Perbarui data warga, KK, dan rumah/unit hunian untuk dasar tagihan iuran.</p>
+            <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Edit Profil Warga</h1>
+            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Perbarui data warga, KK, dan rumah/unit hunian untuk dasar tagihan iuran.</p>
         </div>
 
         @if($errors->any())
@@ -35,9 +35,9 @@
                     <input type="email" name="email" value="{{ old('email', $user->email) }}" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200" required>
                 </div>
 
-                <div x-data="{ rtId: @js((string) old('rt_id', $user->rt_id)) }" class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
-                    <h2 class="text-sm font-bold text-emerald-900">Data Rumah / Unit Hunian</h2>
-                    <p class="mt-1 text-xs text-emerald-700">Tagihan iuran dibuat per rumah. Gunakan penanggung jawab untuk menentukan akun yang menerima tagihan.</p>
+                <div x-data="{ rtId: @js((string) old('rt_id', $user->rt_id)) }" class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5 dark:border-slate-800 dark:bg-slate-800/40">
+                    <h2 class="text-sm font-bold text-emerald-900 dark:text-emerald-400">Data Rumah / Unit Hunian</h2>
+                    <p class="mt-1 text-xs text-emerald-700 dark:text-slate-400">Tagihan iuran dibuat per rumah. Gunakan penanggung jawab untuk menentukan akun yang menerima tagihan.</p>
 
                     @include('admin.warga.partials.rt-field')
 
@@ -87,12 +87,12 @@
                     </label>
                 </div>
 
-                <div class="lg:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                    <label class="inline-flex items-start gap-2 text-sm font-medium text-amber-950">
+                <div class="lg:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/30">
+                    <label class="inline-flex items-start gap-2 text-sm font-medium text-amber-950 dark:text-amber-200">
                         <input type="checkbox" name="ganti_kepala_keluarga" value="1" @checked(old('ganti_kepala_keluarga')) class="mt-1 rounded-sm border-amber-300 text-emerald-600">
                         Saya sudah memeriksa dan menyetujui penggantian kepala KK yang sudah terdaftar.
                     </label>
-                    <p class="mt-2 text-xs text-amber-900">Gunakan bersama pilihan Kepala Keluarga hanya saat benar-benar mengganti kepala yang lama. Kepala sebelumnya akan menjadi anggota; satu KK hanya memiliki satu kepala keluarga.</p>
+                    <p class="mt-2 text-xs text-amber-900 dark:text-amber-300">Gunakan bersama pilihan Kepala Keluarga hanya saat benar-benar mengganti kepala yang lama. Kepala sebelumnya akan menjadi anggota; satu KK hanya memiliki satu kepala keluarga.</p>
                 </div>
 
                 <div class="flex items-center gap-3">
@@ -104,7 +104,7 @@
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <a href="{{ route('admin.warga.index') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Kembali</a>
+                <a href="{{ route('admin.warga.index') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Kembali</a>
                 <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700">Simpan Perubahan</button>
             </div>
         </form>

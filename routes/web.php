@@ -33,8 +33,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
-    Route::get('/domisili', [\App\Http\Controllers\DomisiliController::class, 'create'])->name('domisili.create');
     Route::post('/domisili', [\App\Http\Controllers\DomisiliController::class, 'store'])->middleware('throttle:10,1')->name('domisili.store');
+    Route::get('/domisili', fn () => redirect()->route('dashboard'))->name('domisili.create');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::middleware('permission:view-direktori-rw')->group(function () {
@@ -94,23 +94,21 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/kas-keluar', [KasKeluarController::class, 'index'])->name('kas-keluar.index');
 
+    Route::middleware(['permission:verify-payment'])->group(function () {
+        Route::get('/admin/tagihan', [TagihanController::class, 'adminIndex'])->name('tagihan.admin');
+        Route::post('/admin/tagihan/confirm', [TagihanController::class, 'confirm'])->name('tagihan.confirm');
+    });
+
     Route::middleware(['permission:manage-finance'])->group(function () {
         Route::get('/kas-keluar/create', [KasKeluarController::class, 'create'])->name('kas-keluar.create');
         Route::post('/kas-keluar/store', [KasKeluarController::class, 'store'])->name('kas-keluar.store');
         Route::get('/kas-keluar/{kasKeluar}/bukti', [KasKeluarController::class, 'bukti'])->name('kas-keluar.bukti');
 
-        Route::get('/admin/tagihan', [TagihanController::class, 'adminIndex'])->name('tagihan.admin');
         Route::get('/tagihan/create', [TagihanController::class, 'create'])->name('tagihan.create');
         Route::post('/tagihan', [TagihanController::class, 'store'])->name('tagihan.store');
         Route::get('/tagihan/{tagihan}/edit', [TagihanController::class, 'edit'])->name('tagihan.edit');
         Route::patch('/tagihan/{tagihan}', [TagihanController::class, 'update'])->name('tagihan.update');
         Route::delete('/tagihan/{tagihan}', [TagihanController::class, 'destroy'])->name('tagihan.destroy');
-        Route::post('/admin/tagihan/confirm', [TagihanController::class, 'confirm'])->name('tagihan.confirm');
-
-        Route::get('/admin/iuran-bulanan', [IuranBulananController::class, 'index'])->name('iuran-bulanan.index');
-        Route::get('/admin/iuran-bulanan/create', [IuranBulananController::class, 'create'])->name('iuran-bulanan.create');
-        Route::post('/admin/iuran-bulanan/store', [IuranBulananController::class, 'store'])->name('iuran-bulanan.store');
-        Route::post('/admin/iuran-bulanan/generate', [IuranBulananController::class, 'generateMassal'])->name('iuran-bulanan.generate');
 
         Route::get('/iuran-khusus', [IuranKhususController::class, 'index'])->name('iuran-khusus.index');
         Route::get('/iuran-khusus/create', [IuranKhususController::class, 'create'])->name('iuran-khusus.create');
@@ -118,8 +116,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/iuran-khusus/{iuranKhusus}', [IuranKhususController::class, 'show'])->name('iuran-khusus.show');
         Route::patch('/iuran-khusus/tagihan/{tagihan}/kecualikan', [IuranKhususController::class, 'kecualikan'])->name('iuran-khusus.kecualikan');
         Route::patch('/iuran-khusus/tagihan/{tagihan}/batal-kecualikan', [IuranKhususController::class, 'batalKecualikan'])->name('iuran-khusus.batal-kecualikan');
-
     });
+
+    Route::get('/admin/iuran-bulanan', [IuranBulananController::class, 'index'])->name('iuran-bulanan.index');
+    Route::get('/admin/iuran-bulanan/create', [IuranBulananController::class, 'create'])->name('iuran-bulanan.create');
+    Route::post('/admin/iuran-bulanan/store', [IuranBulananController::class, 'store'])->name('iuran-bulanan.store');
+    Route::post('/admin/iuran-bulanan/generate', [IuranBulananController::class, 'generateMassal'])->name('iuran-bulanan.generate');
+    Route::get('/admin/iuran-bulanan/{iuranBulanan}/edit', [IuranBulananController::class, 'edit'])->name('iuran-bulanan.edit');
+    Route::patch('/admin/iuran-bulanan/{iuranBulanan}', [IuranBulananController::class, 'update'])->name('iuran-bulanan.update');
+    Route::delete('/admin/iuran-bulanan/{iuranBulanan}', [IuranBulananController::class, 'destroy'])->name('iuran-bulanan.destroy');
+    Route::post('/admin/iuran-bulanan/sync', [IuranBulananController::class, 'syncTagihan'])->name('iuran-bulanan.sync');
 
     Route::get('/admin/laporan-kas', [LaporanKasController::class, 'index'])
         ->middleware('permission:view-finance')
@@ -517,6 +523,17 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/', [WelcomeController::class, 'index']);
+
+Route::get('/docs/{slug?}', function (?string $slug = null) {
+    $allowedSlugs = [
+        'mulai', 'daftar', 'dashboard-warga', 'tagihan', 'layanan-warga',
+        'verifikasi', 'kelola-warga', 'tagihan-admin', 'laporan',
+    ];
+
+    abort_if($slug !== null && ! in_array($slug, $allowedSlugs, true), 404);
+
+    return view('docs.index', ['activeSlug' => $slug ?? 'mulai']);
+})->name('docs.index');
 
 Route::get('/verifikasi-surat/{code}', [SuratController::class, 'verifyPublic'])->name('surat.verify-public');
 

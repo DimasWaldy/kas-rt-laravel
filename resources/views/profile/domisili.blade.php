@@ -21,7 +21,7 @@
                 <p>Rumah yang Anda ajukan: <strong>{{ $warga->rumahDiajukan?->label ?? $warga->alamat_domisili }}</strong></p>
                 <p>Pengurus akan memeriksa bahwa Anda tinggal di alamat tersebut. Layanan dan data rumah dapat diakses setelah domisili disetujui.</p>
                 <p>Jika alamat salah, hubungi pengurus agar pengajuan dikembalikan untuk diperbaiki.</p>
-                <a href="{{ route('domisili.create') }}" class="inline-block rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white">Periksa status</a>
+                <a href="{{ route('profile.edit') }}" class="inline-block rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white">Periksa status</a>
             </section>
         @else
             @if($warga->status_domisili === 'perlu_perbaikan')

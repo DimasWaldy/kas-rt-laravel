@@ -16,9 +16,14 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $wargaId = $this->user()->warga?->id;
+        $user = $this->user();
+        $wargaId = $user->warga?->id;
+        $warga = $user->warga;
+        $isOnboardingDomisili = $user->role_name === 'warga'
+            && $user->onboarding_domisili
+            && ! $user->rumah_id;
 
-        return [
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
@@ -26,7 +31,7 @@ class ProfileUpdateRequest extends FormRequest
                 'lowercase',
                 'email',
                 'max:255',
-                Rule::unique(User::class)->ignore($this->user()->id),
+                Rule::unique(User::class)->ignore($user->id),
             ],
             // These assignments control access to other residents' data.
             // Only the scoped management workflow may change them.
@@ -44,19 +49,62 @@ class ProfileUpdateRequest extends FormRequest
             'no_kk' => [
                 'sometimes', 'nullable',
                 'digits:16',
-                $this->unchangedFamilyAssignment('no_kk'),
+                $isOnboardingDomisili ? 'nullable' : $this->unchangedFamilyAssignment('no_kk'),
             ],
-            'status_dalam_kk' => ['sometimes', 'nullable', 'in:kepala_keluarga,anggota', $this->unchangedFamilyAssignment('status_dalam_kk')],
+            'status_dalam_kk' => [
+                'sometimes', 'nullable', 'in:kepala_keluarga,anggota',
+                $isOnboardingDomisili ? 'nullable' : $this->unchangedFamilyAssignment('status_dalam_kk'),
+            ],
+            'dokumen_ktp' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
+            'dokumen_kk' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
+            'ajukan_pj_iuran' => $isOnboardingDomisili ? ['sometimes', 'boolean'] : ['prohibited'],
+            'jumlah_penghuni_rumah' => $isOnboardingDomisili ? ['nullable', 'integer', 'min:1', 'max:50'] : ['prohibited'],
+            'jumlah_anggota' => $isOnboardingDomisili ? ['nullable', 'integer', 'min:1', 'max:50'] : ['prohibited'],
             'kartu_keluarga_id' => ['prohibited'],
             'nama_kepala_keluarga' => ['prohibited'],
             'is_kepala_keluarga' => ['prohibited'],
             'ganti_kepala_keluarga' => ['prohibited'],
         ];
+
+        if ($isOnboardingDomisili && $warga?->status_domisili !== 'pending') {
+            $rules['rt_id'] = [
+                'nullable',
+                'integer',
+                Rule::exists('rts', 'id')->where('is_active', true),
+            ];
+            $rules['mode'] = ['nullable', 'in:existing,new'];
+            $rules['rumah_id'] = [
+                'required_if:mode,existing',
+                'prohibited_unless:mode,existing',
+                'nullable',
+                'integer',
+                Rule::exists('rumahs', 'id')
+                    ->where('status', 'aktif')
+                    ->where('rt_id', $this->input('rt_id') ?? $user->rt_id),
+            ];
+            $rules['alamat'] = [
+                'required_if:mode,new',
+                'prohibited_unless:mode,new',
+                'nullable',
+                'string',
+                'min:5',
+                'max:500',
+            ];
+        }
+
+        return $rules;
     }
 
     public function messages(): array
     {
         return [
+            'rt_id.required' => 'Pilih RT tempat domisili Anda.',
+            'rt_id.exists' => 'RT yang dipilih tidak valid atau tidak aktif.',
+            'mode.required' => 'Pilih cara pengisian domisili.',
+            'rumah_id.required_if' => 'Pilih rumah yang sudah terdaftar.',
+            'rumah_id.exists' => 'Rumah yang dipilih tidak valid atau bukan milik RT tersebut.',
+            'alamat.required_if' => 'Isi alamat lengkap rumah Anda.',
+            'alamat.min' => 'Alamat minimal 5 karakter.',
             'rumah_kode.prohibited' => 'Pembuatan rumah harus melalui pengurus.',
             'rumah_alamat.prohibited' => 'Perubahan alamat rumah harus melalui pengurus.',
             'phone.regex' => 'Nomor HP harus berisi angka saja, minimal 10 digit dan maksimal 13 digit.',

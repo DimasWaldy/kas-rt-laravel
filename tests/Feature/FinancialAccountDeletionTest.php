@@ -20,7 +20,7 @@ test('self deletion preserves cooperative loan and installments in every status'
         'amount' => 120000, 'paid_at' => now(), 'status' => 'terverifikasi',
     ]);
     $this->actingAs($user)->get('/profile')->assertOk();
-    $this->from('/profile')->delete('/profile', ['password' => 'password'])
+    $this->from('/profile')->delete('/profile', ['password' => 'password', 'confirmation' => 'konfirmasi'])
         ->assertRedirect('/profile')->assertSessionHasErrorsIn('userDeletion', 'account');
     $this->assertAuthenticatedAs($user);
     $this->assertDatabaseHas('koperasi_pinjams', ['id' => $loan->id, 'status' => $status]);
@@ -44,7 +44,7 @@ test('soft deleted cash history still blocks account deletion', function () {
         'user_id' => $user->id, 'jumlah' => 50000, 'tanggal' => now(), 'keterangan' => 'Audit',
     ]);
     $cash->delete();
-    $this->actingAs($user)->from('/profile')->delete('/profile', ['password' => 'password'])
+    $this->actingAs($user)->from('/profile')->delete('/profile', ['password' => 'password', 'confirmation' => 'konfirmasi'])
         ->assertSessionHasErrorsIn('userDeletion', 'account');
     expect($user->fresh())->not->toBeNull();
     $this->assertSoftDeleted('kas_masuks', ['id' => $cash->id]);

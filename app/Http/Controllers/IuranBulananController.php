@@ -12,8 +12,145 @@ use Illuminate\Support\Facades\DB;
 
 class IuranBulananController extends Controller
 {
+    public function edit(Request $request, IuranBulanan $iuranBulanan)
+    {
+        $this->authorizeManage($request);
+
+        return view('iuran_bulanan.edit', compact('iuranBulanan'));
+    }
+
+    public function update(Request $request, IuranBulanan $iuranBulanan)
+    {
+        $this->authorizeManage($request);
+
+        $validated = $request->validate([
+            'nama'       => ['required', 'string', 'max:255'],
+            'jumlah'     => ['required', 'integer', 'min:1'],
+            'keterangan' => ['nullable', 'string', 'max:500'],
+            'is_wajib'   => ['required', 'boolean'],
+        ]);
+
+        $oldValues = $iuranBulanan->toArray();
+        $iuranBulanan->update($validated);
+
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'auditable_type' => IuranBulanan::class,
+            'auditable_id' => $iuranBulanan->id,
+            'event' => 'iuran_updated',
+            'old_values' => $oldValues,
+            'new_values' => $iuranBulanan->fresh()->toArray(),
+            'notes' => 'Komponen iuran diupdate: ' . $iuranBulanan->nama . ' untuk periode ' . \Carbon\Carbon::create(null, $iuranBulanan->bulan)->translatedFormat('F') . ' ' . $iuranBulanan->tahun,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        // Otomatis sinkronisasi tagihan yang belum dibayar di periode terkait
+        $syncResult = Tagihan::generate($iuranBulanan->bulan, $iuranBulanan->tahun, Auth::user());
+
+        return redirect()->route('iuran-bulanan.index', [
+            'bulan' => $iuranBulanan->bulan,
+            'tahun' => $iuranBulanan->tahun,
+        ])->with('success', 'Komponen iuran berhasil diperbarui dan tagihan belum dibayar telah disinkronkan.')
+          ->with('billing_result', $this->generationSummary($syncResult, (int) $iuranBulanan->bulan, (int) $iuranBulanan->tahun));
+    }
+
+    public function destroy(Request $request, IuranBulanan $iuranBulanan)
+    {
+        $this->authorizeManage($request);
+
+        $bulan = (int) $iuranBulanan->bulan;
+        $tahun = (int) $iuranBulanan->tahun;
+
+        // Cek apakah sudah ada tagihan yang lunas atau sedang verifikasi pembayaran
+        $hasPaidOrPending = Tagihan::forMonth($bulan, $tahun)
+            ->where(function ($q) {
+                $q->where('status', 'lunas')
+                  ->orWhereIn('status', ['pending_transfer', 'pending_offline'])
+                  ->orWhereIn('verification_status', ['menunggu', 'valid']);
+            })
+            ->exists();
+
+        if ($hasPaidOrPending) {
+            return redirect()->route('iuran-bulanan.index', ['bulan' => $bulan, 'tahun' => $tahun])
+                ->with('error', 'Komponen iuran tidak dapat dihapus karena sudah ada pembayaran yang lunas atau sedang menunggu verifikasi pada periode ini.');
+        }
+
+        $namaKomponen = $iuranBulanan->nama;
+        $oldValues = $iuranBulanan->toArray();
+
+        DB::transaction(function () use ($iuranBulanan, $request, $oldValues, $namaKomponen, $bulan, $tahun) {
+            $iuranBulanan->delete();
+
+            AuditLog::create([
+                'user_id' => Auth::id(),
+                'auditable_type' => IuranBulanan::class,
+                'auditable_id' => $oldValues['id'] ?? 0,
+                'event' => 'iuran_deleted',
+                'old_values' => $oldValues,
+                'new_values' => [],
+                'notes' => 'Komponen iuran dihapus: ' . $namaKomponen . ' periode ' . \Carbon\Carbon::create(null, $bulan)->translatedFormat('F') . ' ' . $tahun,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            // Sinkronkan ulang tagihan belum dibayar
+            Tagihan::generate($bulan, $tahun, Auth::user());
+        });
+
+        return redirect()->route('iuran-bulanan.index', ['bulan' => $bulan, 'tahun' => $tahun])
+            ->with('success', 'Komponen iuran "' . $namaKomponen . '" berhasil dihapus dan tagihan diperbarui.');
+    }
+
+    public function syncTagihan(Request $request)
+    {
+        $this->authorizeManage($request);
+
+        $validated = $request->validate([
+            'bulan' => ['required', 'integer', 'between:1,12'],
+            'tahun' => ['required', 'integer', 'min:2024', 'max:' . (now()->year + 5)],
+        ]);
+
+        $bulan = (int) $validated['bulan'];
+        $tahun = (int) $validated['tahun'];
+
+        $result = Tagihan::generate($bulan, $tahun, Auth::user());
+
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'auditable_type' => Tagihan::class,
+            'auditable_id' => 0, // 0 menandakan aksi massal
+            'event' => 'tagihan_synced',
+            'old_values' => [],
+            'new_values' => $result,
+            'notes' => 'Sinkronisasi tagihan manual oleh ' . Auth::user()->name . ' untuk periode ' . \Carbon\Carbon::create(null, $bulan)->translatedFormat('F') . ' ' . $tahun,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return redirect()->route('iuran-bulanan.index', ['bulan' => $bulan, 'tahun' => $tahun])
+            ->with('success', 'Sinkronisasi tagihan periode ini berhasil dijalankan.')
+            ->with('billing_result', $this->generationSummary($result, $bulan, $tahun));
+    }
+
+    private function authorizeManage(Request $request): void
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $isKetuaRt = in_array($user->role_name, ['ketua_rt', 'rt', 'ketua-rt'], true);
+
+        if (! $user->canManageFinance() && ! $isKetuaRt) {
+            abort(403, 'Halaman ini hanya dapat diakses oleh pengelola keuangan atau Ketua RT.');
+        }
+    }
+
     public function index(Request $request)
     {
+        $this->authorizeManage($request);
         $period = $request->validate([
             'bulan' => ['nullable', 'integer', 'between:1,12'],
             'tahun' => ['nullable', 'integer', 'min:2024', 'max:' . (now()->year + 5)],
@@ -32,13 +169,15 @@ class IuranBulananController extends Controller
         return view('iuran_bulanan.index', compact('items', 'needsPjCount', 'needsPjHouses', 'bulan', 'tahun'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
+        $this->authorizeManage($request);
         return view('iuran_bulanan.create');
     }
 
     public function store(Request $request)
     {
+        $this->authorizeManage($request);
         $data = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
             'keterangan' => ['nullable', 'string', 'max:500'],
@@ -77,6 +216,7 @@ class IuranBulananController extends Controller
      */
     public function generateMassal(Request $request)
     {
+        $this->authorizeManage($request);
         $validated = $request->validate([
             'bulan' => ['nullable', 'integer', 'between:1,12'],
             'tahun' => ['nullable', 'integer', 'min:2024', 'max:' . (now()->year + 5)],
@@ -131,8 +271,17 @@ class IuranBulananController extends Controller
             return $result;
         });
 
+        $namaBulan = \Carbon\Carbon::create(null, $bulan)->translatedFormat('F');
+        $flashType = 'success';
+        $flashMsg = "Proses tagihan periode {$namaBulan} {$tahun} selesai. Periksa hasil dan rumah yang belum dapat ditagih.";
+
+        if (($result['created'] ?? 0) === 0 && ($result['updated'] ?? 0) === 0) {
+            $flashType = 'info';
+            $flashMsg = "Tagihan periode {$namaBulan} {$tahun} sudah digenerate sebelumnya. Tidak ada tagihan baru yang dibuat.";
+        }
+
         return redirect()->route('iuran-bulanan.index', ['bulan' => $bulan, 'tahun' => $tahun])
-            ->with('success', "Proses tagihan periode " . \Carbon\Carbon::create(null, $bulan)->translatedFormat('F') . " $tahun selesai. Periksa hasil dan rumah yang belum dapat ditagih.")
+            ->with($flashType, $flashMsg)
             ->with('billing_result', $this->generationSummary($result, $bulan, $tahun));
     }
 
