@@ -569,3 +569,64 @@ test('admin bill page paginates and filters by month and year', function () {
             && $tagihans->every(fn (Tagihan $tagihan) => $tagihan->bulan === 6 && $tagihan->tahun === 2026);
     });
 });
+
+test('admin can filter bills by status including menunggu konfirmasi and view accurate summary', function () {
+    $admin = User::factory()->create([
+        'role_id' => $this->adminRole->id,
+    ]);
+
+    $resident = buatWargaTagihan([
+        'role_id' => $this->wargaRole->id,
+    ]);
+
+    Tagihan::create([
+        'user_id' => $resident->id,
+        'bulan' => 1,
+        'tahun' => 2026,
+        'total' => 25000,
+        'status' => 'pending_transfer',
+        'verification_status' => 'menunggu',
+    ]);
+
+    Tagihan::create([
+        'user_id' => $resident->id,
+        'bulan' => 2,
+        'tahun' => 2026,
+        'total' => 30000,
+        'status' => 'pending_offline',
+        'verification_status' => 'menunggu',
+    ]);
+
+    Tagihan::create([
+        'user_id' => $resident->id,
+        'bulan' => 3,
+        'tahun' => 2026,
+        'total' => 45000,
+        'status' => 'belum_bayar',
+    ]);
+
+    Tagihan::create([
+        'user_id' => $resident->id,
+        'bulan' => 4,
+        'tahun' => 2026,
+        'total' => 50000,
+        'status' => 'lunas',
+    ]);
+
+    // Test filter menunggu_konfirmasi
+    $response = $this->actingAs($admin)->get(route('tagihan.admin', [
+        'status' => 'menunggu_konfirmasi',
+    ]));
+
+    $response->assertOk();
+    $response->assertViewHas('tagihans', function ($tagihans) {
+        return $tagihans->count() === 2
+            && $tagihans->every(fn (Tagihan $t) => in_array($t->status, ['pending_transfer', 'pending_offline'], true));
+    });
+
+    // Test summary nominal calculation
+    $response->assertViewHas('summaryTunggakan', function ($summary) {
+        return $summary['total_nominal'] === (25000 + 30000 + 45000)
+            && $summary['total_tagihan'] === 3;
+    });
+});

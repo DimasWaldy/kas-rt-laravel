@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\KasKeluar;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class KasKeluarController extends Controller
@@ -55,6 +56,12 @@ class KasKeluarController extends Controller
             'tanggal' => $validated['tanggal'],
             'bukti' => $path,
         ]);
+
+        Cache::forget('admin.dashboard.stats');
+        Cache::forget('admin.dashboard.stats.v2');
+        Cache::forget('admin.dashboard.stats.v3');
+        Cache::forget('dashboard.stats.user.' . auth()->id());
+        Cache::forget('dashboard.stats.user.v2.' . auth()->id());
 
         return redirect()->route('kas-keluar.index')
             ->with('success', 'Data pengeluaran berhasil dicatat.');

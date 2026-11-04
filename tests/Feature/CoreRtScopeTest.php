@@ -263,3 +263,54 @@ test('bendahara rt dashboard totals only include their own rt', function () {
         ->assertViewHas('kasMasuk', 125000)
         ->assertViewHas('kasKeluar', 20000);
 });
+
+test('rw officials cannot view or access data from another rw', function () {
+    $rwDua = Rw::create([
+        'name' => 'RW Dua Luar',
+        'is_active' => true,
+    ]);
+
+    $rtTigaRwDua = Rt::create([
+        'rw_id' => $rwDua->id,
+        'name' => 'RT 03 RW 02',
+        'is_active' => true,
+    ]);
+
+    $bendaharaRwSatu = User::factory()->create([
+        'role_id' => Role::where('name', 'bendahara_rw')->value('id'),
+        'rt_id' => $this->rtSatu->id,
+    ]);
+
+    $kasMasukRwSatu = KasMasuk::create([
+        'rt_id' => $this->rtSatu->id,
+        'keterangan' => 'Kas RW 01 Internal',
+        'jumlah' => 150000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    $kasMasukRwDua = KasMasuk::create([
+        'rt_id' => $rtTigaRwDua->id,
+        'keterangan' => 'Kas RW 02 Luar',
+        'jumlah' => 750000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    // HasRtScope isolation across RW boundaries
+    $visibleKas = KasMasuk::visibleTo($bendaharaRwSatu)->pluck('id');
+    expect($visibleKas)->toContain($kasMasukRwSatu->id)
+        ->not->toContain($kasMasukRwDua->id);
+
+    expect($kasMasukRwSatu->isVisibleTo($bendaharaRwSatu))->toBeTrue();
+    expect($kasMasukRwDua->isVisibleTo($bendaharaRwSatu))->toBeFalse();
+
+    // User scope isolation across RW boundaries
+    $wargaRwDua = User::factory()->create([
+        'role_id' => Role::where('name', 'warga')->value('id'),
+        'rt_id' => $rtTigaRwDua->id,
+    ]);
+
+    $visibleUsers = User::visibleTo($bendaharaRwSatu)->pluck('id');
+    expect($visibleUsers)->toContain($this->wargaRtSatu->id)
+        ->toContain($this->wargaRtDua->id)
+        ->not->toContain($wargaRwDua->id);
+});

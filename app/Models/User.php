@@ -117,8 +117,21 @@ class User extends Authenticatable
 
     public function scopeVisibleTo(Builder $query, User $actor): Builder
     {
-        if ($actor->canAccessAllRts()) {
+        if ($actor->isGlobalOperator()) {
             return $query;
+        }
+
+        if ($actor->isRwOfficial()) {
+            $rwId = $actor->rt()->value('rw_id')
+                ?: \App\Models\Rw::where('is_active', true)->orderBy('id')->value('id');
+
+            return $rwId
+                ? $query->whereHas('rt', fn (Builder $rt) => $rt->where('rw_id', $rwId))
+                : $query->whereRaw('1 = 0');
+        }
+
+        if (! $actor->rt_id) {
+            return $query->whereRaw('1 = 0');
         }
 
         return $query->where('rt_id', $actor->rt_id);

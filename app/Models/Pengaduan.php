@@ -45,15 +45,45 @@ class Pengaduan extends Model
 
     public function scopeVisibleTo(Builder $query, User $actor): Builder
     {
-        if ($actor->canAccessAllRts()) {
+        if ($actor->isGlobalOperator()) {
             return $query;
         }
 
-        return $query->whereHas('user', fn (Builder $userQuery) => $userQuery->where('rt_id', $actor->rt_id));
+        if ($actor->isRwOfficial()) {
+            $rwId = $actor->rt()->value('rw_id')
+                ?: \App\Models\Rw::where('is_active', true)->orderBy('id')->value('id');
+
+            return $rwId
+                ? $query->where(function (Builder $subQuery) use ($actor, $rwId) {
+                    $subQuery->where('user_id', $actor->id)
+                        ->orWhereHas('user.rt', fn (Builder $rt) => $rt->where('rw_id', $rwId));
+                })
+                : $query->where('user_id', $actor->id);
+        }
+
+        if (! $actor->rt_id) {
+            return $query->where('user_id', $actor->id);
+        }
+
+        return $query->where(function (Builder $subQuery) use ($actor) {
+            $subQuery->where('user_id', $actor->id)
+                ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->where('rt_id', $actor->rt_id));
+        });
     }
 
     public function isVisibleTo(User $actor): bool
     {
-        return $actor->canAccessAllRts() || $this->user()->where('rt_id', $actor->rt_id)->exists();
+        if ($actor->isGlobalOperator() || $this->user_id === $actor->id) {
+            return true;
+        }
+
+        if ($actor->isRwOfficial()) {
+            $rwId = $actor->rt()->value('rw_id')
+                ?: \App\Models\Rw::where('is_active', true)->orderBy('id')->value('id');
+
+            return (bool) ($rwId && $this->user()->whereHas('rt', fn (Builder $rt) => $rt->where('rw_id', $rwId))->exists());
+        }
+
+        return (bool) ($actor->rt_id && $this->user()->where('rt_id', $actor->rt_id)->exists());
     }
 }

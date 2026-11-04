@@ -163,3 +163,49 @@ test('complaints and complaint actions are isolated by rt', function () {
     expect($pengaduanRtSatu->fresh()->status)->toBe('proses');
     expect($pengaduanRtDua->fresh()->status)->toBe('pending');
 });
+
+test('rw officials cannot view or respond to complaints from another rw', function () {
+    $rwLain = Rw::create([
+        'name' => 'RW Lain Luar',
+        'is_active' => true,
+    ]);
+
+    $rtRwLain = Rt::create([
+        'rw_id' => $rwLain->id,
+        'name' => 'RT 01 RW Lain',
+        'is_active' => true,
+    ]);
+
+    $wargaRwLain = User::factory()->create([
+        'role_id' => Role::where('name', 'warga')->value('id'),
+        'rt_id' => $rtRwLain->id,
+    ]);
+
+    $ketuaRwSatu = User::factory()->create([
+        'role_id' => Role::where('name', 'ketua_rw')->value('id'),
+        'rt_id' => $this->rtSatu->id,
+    ]);
+
+    $pengaduanRwSatu = Pengaduan::create([
+        'user_id' => $this->wargaRtSatu->id,
+        'judul' => 'Pengaduan RW Satu',
+        'kategori' => 'Keamanan',
+        'deskripsi' => 'Pengaduan warga RW satu.',
+        'status' => 'pending',
+    ]);
+
+    $pengaduanRwLain = Pengaduan::create([
+        'user_id' => $wargaRwLain->id,
+        'judul' => 'Pengaduan RW Lain',
+        'kategori' => 'Kebersihan',
+        'deskripsi' => 'Pengaduan warga RW lain.',
+        'status' => 'pending',
+    ]);
+
+    expect($pengaduanRwSatu->isVisibleTo($ketuaRwSatu))->toBeTrue();
+    expect($pengaduanRwLain->isVisibleTo($ketuaRwSatu))->toBeFalse();
+
+    $visibleIds = Pengaduan::visibleTo($ketuaRwSatu)->pluck('id');
+    expect($visibleIds)->toContain($pengaduanRwSatu->id)
+        ->not->toContain($pengaduanRwLain->id);
+});

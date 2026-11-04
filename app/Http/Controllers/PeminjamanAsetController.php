@@ -24,7 +24,14 @@ class PeminjamanAsetController extends Controller
         $this->authorizePinjamScope($scope, $user);
 
         $query = PeminjamanAset::with(['aset.rt', 'aset.rw', 'pemohon', 'processor'])
-            ->whereHas('aset', fn ($query) => $query->where('scope', $scope))
+            ->whereHas('aset', function ($query) use ($scope, $user) {
+                $query->where('scope', $scope)
+                    ->when(
+                        $scope === 'rw',
+                        fn ($query) => $query->where('rw_id', $this->resolveRwId($user)),
+                        fn ($query) => $query->where('rt_id', $this->resolveRtId($user))
+                    );
+            })
             ->latest();
 
         if ($this->canManageScope($scope, $user)) {

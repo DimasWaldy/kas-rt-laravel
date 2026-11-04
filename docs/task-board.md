@@ -24,7 +24,8 @@ dan kebutuhan dev harian.
 | done | WFL-1 | Audit dokumentasi + workflow AI coding | `docs/AI_CODING_RULES.md` | tidak ubah kode |
 | done | WFL-2 | Buat `.github/copilot-instructions.md`, `AGENTS.md` | file ini | |
 | done | WFL-3 | Pindahkan blueprint root ke `docs/` | `git mv` | referensi path diperbarui |
-| done | REL-7 | Commit + uji penuh perubahan hardening | `docs/AUDIT_RILIS_2026-10-30.md` | commit `6e3022a`/`fa24284`/`3e8b5f8`; 445 test, build OK |
+| done | REL-7 | Commit + uji penuh perubahan hardening | `docs/AUDIT_RILIS_2026-10-30.md` | commit `6e3022a`/`fa24284`/`3e8b5f8`/`7ec9176`; 456 test lulus |
+| done | REL-11 | Hardening isolasi wilayah (RT, RW, personal) & fix runtime tagihan | `app/Models/Concerns/HasRtScope.php` | 459 test lulus |
 | backlog | REL-8 | Uji pakai ponsel dan pengguna awam | `docs/AUDIT_RILIS_2026-10-30.md` | perlu perangkat + data nyata |
 | review | REL-9 | Audit kesiapan server produksi | `docs/AUDIT_RILIS_2026-10-30.md` | baca-saja lokal selesai; sisanya butuh akses server |
 | backlog | REL-10 | Seed wilayah nyata + admin produksi | `README.md`, `RestoreAdminSeeder` | butuh data wilayah + kredensial `SEED_ADMIN_*` dari pemilik |

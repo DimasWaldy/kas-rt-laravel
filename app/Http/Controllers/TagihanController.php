@@ -202,8 +202,9 @@ class TagihanController extends Controller
             ->visibleTo($request->user())
             ->when($filterBulan, fn ($query) => $query->where('bulan', $filterBulan))
             ->when($filterTahun, fn ($query) => $query->where('tahun', $filterTahun))
-            ->when($filterStatus === 'tunggakan', fn ($query) => $query->whereIn('status', ['belum_bayar', 'failed', 'menunggu_konfirmasi']))
-            ->when($filterStatus && $filterStatus !== 'tunggakan', fn ($query) => $query->where('status', $filterStatus))
+            ->when($filterStatus === 'tunggakan', fn ($query) => $query->whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline']))
+            ->when($filterStatus === 'menunggu_konfirmasi', fn ($query) => $query->whereIn('status', ['pending_transfer', 'pending_offline']))
+            ->when($filterStatus && ! in_array($filterStatus, ['tunggakan', 'menunggu_konfirmasi'], true), fn ($query) => $query->where('status', $filterStatus))
             ->when($filterRumahId, fn ($query) => $query->where('rumah_id', $filterRumahId))
             ->orderByDesc('tahun')
             ->orderByDesc('bulan')
@@ -211,10 +212,10 @@ class TagihanController extends Controller
 
         // Ringkasan Tunggakan Tagihan per RT
         $tunggakanSummaryQuery = Tagihan::visibleTo($request->user())
-            ->whereIn('status', ['belum_bayar', 'failed', 'menunggu_konfirmasi']);
+            ->whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline']);
 
         $summaryTunggakan = [
-            'total_nominal' => (int) (clone $tunggakanSummaryQuery)->sum('jumlah'),
+            'total_nominal' => (int) (clone $tunggakanSummaryQuery)->sum('total'),
             'total_tagihan' => (int) (clone $tunggakanSummaryQuery)->count(),
             'total_rumah' => (int) (clone $tunggakanSummaryQuery)->whereNotNull('rumah_id')->distinct('rumah_id')->count('rumah_id'),
         ];
@@ -318,11 +319,7 @@ class TagihanController extends Controller
             return $tagihan;
         });
 
-        Cache::forget('admin.dashboard.stats');
-        Cache::forget('admin.dashboard.stats.v2');
-        Cache::forget('admin.dashboard.stats.v3');
-        Cache::forget('dashboard.stats.user.' . $tagihan->user_id);
-        Cache::forget('dashboard.stats.user.v2.' . $tagihan->user_id);
+        $this->clearDashboardCache($tagihan->user_id);
 
         if ($request->ajax()) {
             return response()->json([
@@ -402,6 +399,8 @@ class TagihanController extends Controller
             'Tagihan baru dibuat untuk ' . $user->name
         );
 
+        $this->clearDashboardCache($tagihan->user_id);
+
         return redirect()->route('tagihan.admin')->with('success', 'Tagihan berhasil dibuat.');
     }
 
@@ -454,6 +453,8 @@ class TagihanController extends Controller
             );
         });
 
+        $this->clearDashboardCache($tagihan->user_id);
+
         return redirect()->route('tagihan.admin')->with('success', 'Tagihan berhasil diperbarui.');
     }
 
@@ -466,6 +467,7 @@ class TagihanController extends Controller
         }
 
         $tagihName = $tagihan->user->name . ' (' . $tagihan->bulan . '/' . $tagihan->tahun . ')';
+        $userId = $tagihan->user_id;
 
         $oldValues = $tagihan->getAttributes();
         $tagihan->deleteQuietly();
@@ -475,7 +477,20 @@ class TagihanController extends Controller
             'Tagihan dihapus untuk ' . $tagihName
         );
 
+        $this->clearDashboardCache($userId);
+
         return redirect()->route('tagihan.admin')->with('success', "Tagihan '$tagihName' berhasil dihapus.");
+    }
+
+    private function clearDashboardCache(?int $userId = null): void
+    {
+        Cache::forget('admin.dashboard.stats');
+        Cache::forget('admin.dashboard.stats.v2');
+        Cache::forget('admin.dashboard.stats.v3');
+        if ($userId) {
+            Cache::forget('dashboard.stats.user.' . $userId);
+            Cache::forget('dashboard.stats.user.v2.' . $userId);
+        }
     }
 
     private function canViewBukti(Tagihan $tagihan): bool
