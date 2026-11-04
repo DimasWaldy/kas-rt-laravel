@@ -23,9 +23,11 @@ class PengaduanFasilitasController extends Controller
         $query = PengaduanFasilitas::with(['fasilitas.rt', 'pelapor', 'tindakLanjutOleh'])
             ->whereHas('fasilitas', function (Builder $query) use ($rwId, $user) {
                 $query->where('rw_id', $rwId)
-                    ->when(! $user->canAccessAllRts(), function (Builder $query) use ($user) {
-                        $query->whereNull('rt_id');
-                        $query->orWhere('rt_id', $user->rt_id);
+                    ->when(! $user->isRwOfficial() && ! $user->isGlobalOperator(), function (Builder $query) use ($user) {
+                        $query->where(function (Builder $scope) use ($user) {
+                            $scope->whereNull('rt_id')
+                                ->orWhere('rt_id', $user->rt_id);
+                        });
                     });
             })
             ->latest();
@@ -51,9 +53,11 @@ class PengaduanFasilitasController extends Controller
         $rwId = $this->resolveRwId($request->user());
         $fasilitas = Fasilitas::with('rt')
             ->where('rw_id', $rwId)
-            ->when(! $request->user()->canAccessAllRts(), function (Builder $query) use ($request) {
-                $query->whereNull('rt_id');
-                $query->orWhere('rt_id', $request->user()->rt_id);
+            ->when(! $request->user()->isRwOfficial() && ! $request->user()->isGlobalOperator(), function (Builder $query) use ($request) {
+                $query->where(function (Builder $scope) use ($request) {
+                    $scope->whereNull('rt_id')
+                        ->orWhere('rt_id', $request->user()->rt_id);
+                });
             })
             ->where('is_active', true)
             ->orderBy('nama')
@@ -197,7 +201,7 @@ class PengaduanFasilitasController extends Controller
 
         abort_unless($fasilitas->rw_id === $this->resolveRwId($user), 403);
 
-        if (! $user->canAccessAllRts() && $fasilitas->rt_id) {
+        if (! $user->isRwOfficial() && ! $user->isGlobalOperator() && $fasilitas->rt_id) {
             abort_unless($fasilitas->rt_id === $user->rt_id, 403);
         }
     }
@@ -206,7 +210,7 @@ class PengaduanFasilitasController extends Controller
     {
         $rwId = $user->rt()->value('rw_id');
 
-        if (! $rwId && ($user->isRwOfficial() || $user->isGlobalOperator())) {
+        if (! $rwId && $user->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
         }
 

@@ -10,7 +10,7 @@
 @endphp
 
 <div class="space-y-6" x-data="{ showKasMasukForm: {{ old('_form') === 'kas_masuk' ? 'true' : 'false' }} }">
-    <div class="rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-100">
+    <div class="rounded-3xl border border-emerald-100 bg-linear-to-r/srgb from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-100">
         <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">Transaksi Masuk</p>
@@ -21,7 +21,7 @@
             </div>
 
             @can('manage-finance')
-                <button type="button" x-on:click="showKasMasukForm = true" class="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-50">
+                <button type="button" x-on:click="showKasMasukForm = true" class="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-xs transition hover:bg-emerald-50">
                     <i class="fa-solid fa-plus mr-2"></i>
                     Tambah Kas Masuk
                 </button>
@@ -30,24 +30,24 @@
     </div>
 
     <div class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Total Pemasukan</p>
             <p class="mt-3 text-2xl font-black text-slate-900">Rp {{ number_format($totalMasuk, 0, ',', '.') }}</p>
             <p class="mt-1 text-sm text-slate-500">Berdasarkan filter aktif.</p>
         </div>
-        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Transaksi</p>
             <p class="mt-3 text-2xl font-black text-slate-900">{{ $jumlahTransaksi }}</p>
             <p class="mt-1 text-sm text-slate-500">Catatan pemasukan ditemukan.</p>
         </div>
-        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Tahun</p>
             <p class="mt-3 text-2xl font-black text-slate-900">{{ $tahunAktif }}</p>
             <p class="mt-1 text-sm text-slate-500">Periode laporan saat ini.</p>
         </div>
     </div>
 
-    <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+    <div class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs">
         <form method="GET" class="grid gap-4 lg:grid-cols-[1.5fr_1fr_1fr_1fr_auto] lg:items-end">
             <div>
                 <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Cari</label>
@@ -102,7 +102,7 @@
         </form>
     </div>
 
-    <div class="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm">
+    <div class="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-xs">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-100 text-sm">
                 <thead class="bg-emerald-50">
@@ -159,7 +159,7 @@
     </div>
 
     @can('manage-finance')
-        <div x-cloak x-show="showKasMasukForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" x-on:click.self="showKasMasukForm = false">
+        <div x-cloak x-show="showKasMasukForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs" x-on:click.self="showKasMasukForm = false">
             <section x-transition class="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
                 <div class="flex items-start justify-between bg-emerald-800 p-6 text-white">
                     <div>

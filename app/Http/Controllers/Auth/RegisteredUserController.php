@@ -5,10 +5,11 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\Warga;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
@@ -31,45 +32,54 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'no_kk' => ['required', 'digits:16'],
-            'is_kepala_keluarga' => ['nullable', 'boolean'],
-            'jumlah_anggota_keluarga' => ['required', 'integer', 'min:1', 'max:20'],
             'phone' => ['required', 'regex:/^[0-9]{10,13}$/'],
-            'rt' => ['required', 'regex:/^[0-9]{1,3}$/'],
-            'rw' => ['required', 'regex:/^[0-9]{1,3}$/'],
+            'rumah_id' => ['prohibited'],
+            'rt_id' => ['prohibited'],
         ], [
-            'no_kk.digits' => 'Nomor KK harus berisi 16 digit angka.',
+            'email.unique' => 'Email sudah terdaftar. Masuk dengan akun yang sama untuk melihat status atau memperbaiki pendaftaran. Jika lupa password, gunakan Lupa Password.',
             'phone.regex' => 'Nomor HP harus berisi angka saja, minimal 10 digit dan maksimal 13 digit.',
-            'rt.regex' => 'RT harus berisi angka saja, maksimal 3 digit.',
-            'rw.regex' => 'RW harus berisi angka saja, maksimal 3 digit.',
+            'rumah_id.prohibited' => 'Domisili diisi di dalam aplikasi setelah akun diverifikasi.',
+            'rt_id.prohibited' => 'RT ditetapkan oleh pengurus saat verifikasi akun.',
         ]);
 
-        $role = Role::firstOrCreate(
-            ['name' => 'warga'],
-            ['description' => 'Warga']
-        );
+        $user = DB::transaction(function () use ($validated) {
+            $role = Role::firstOrCreate(
+                ['name' => 'warga'],
+                ['description' => 'Warga']
+            );
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role_id' => $role->id,
-            'no_kk' => $request->no_kk,
-            'is_kepala_keluarga' => $request->boolean('is_kepala_keluarga'),
-            'jumlah_anggota_keluarga' => $request->jumlah_anggota_keluarga,
-            'phone' => $request->phone,
-            'rt' => $request->rt,
-            'rw' => $request->rw,
-        ]);
+            $user = new User([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'phone' => $validated['phone'],
+                'role_id' => $role->id,
+                'status_akun' => 'pending_verifikasi',
+            ]);
+            $user->onboarding_domisili = true;
+            $user->save();
 
-        event(new Registered($user));
+            Warga::create([
+                'user_id' => $user->id,
+                'nama_lengkap' => $validated['name'],
+                'status_verifikasi' => 'pending',
+            ]);
 
-        Auth::login($user);
+            return $user;
+        });
 
-        return redirect(route('dashboard', absolute: false));
+        try {
+            event(new Registered($user));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        session()->flash('status', 'Pendaftaran berhasil! Masuk untuk memantau status verifikasi pengurus. Setelah disetujui, lanjutkan pengajuan domisili. Tidak perlu verifikasi email.');
+
+        return redirect()->route('login');
     }
 }

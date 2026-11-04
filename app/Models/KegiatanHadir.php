@@ -15,12 +15,14 @@ class KegiatanHadir extends Model
         'user_id',
         'konfirmasi_at',
         'catatan',
+        'rfid_hadir_at',
     ];
 
     protected function casts(): array
     {
         return [
             'konfirmasi_at' => 'datetime',
+            'rfid_hadir_at' => 'datetime',
         ];
     }
 

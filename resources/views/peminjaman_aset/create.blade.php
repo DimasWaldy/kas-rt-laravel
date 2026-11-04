@@ -18,7 +18,7 @@
 <div class="mx-auto max-w-4xl space-y-6">
     <a href="{{ route($asetIndexRoute) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-arrow-left"></i> Kembali ke aset</a>
 
-    <form method="POST" action="{{ route($storeRoute) }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" x-data="{ asetId: '{{ old('aset_id', $asetTerpilih?->id) }}', mulai: '{{ old('tanggal_mulai') }}', selesai: '{{ old('tanggal_selesai') }}', asets: @js($asetOptions), get selectedAset() { return this.asets.find((item) => String(item.id) === String(this.asetId)); }, get durasi() { if (!this.mulai || !this.selesai) return 0; const start = new Date(this.mulai); const end = new Date(this.selesai); const diff = Math.floor((end - start) / 86400000) + 1; return diff > 0 ? diff : 0; } }">
+    <form method="POST" action="{{ route($storeRoute) }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8" x-data="{ asetId: '{{ old('aset_id', $asetTerpilih?->id) }}', mulai: '{{ old('tanggal_mulai') }}', selesai: '{{ old('tanggal_selesai') }}', asets: @js($asetOptions), get selectedAset() { return this.asets.find((item) => String(item.id) === String(this.asetId)); }, get durasi() { if (!this.mulai || !this.selesai) return 0; const start = new Date(this.mulai); const end = new Date(this.selesai); const diff = Math.floor((end - start) / 86400000) + 1; return diff > 0 ? diff : 0; } }">
         @csrf
         <input type="hidden" name="scope" value="{{ $scope ?? 'rt' }}">
         <div>

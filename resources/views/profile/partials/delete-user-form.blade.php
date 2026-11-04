@@ -5,7 +5,7 @@
         </h2>
 
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.') }}
+            Akun hanya dapat dihapus jika tidak memiliki riwayat keuangan. Catatan tagihan, simpanan, pinjaman, dan bank sampah wajib tetap tersimpan untuk laporan pengurus.
         </p>
     </header>
 
@@ -24,21 +24,39 @@
             </h2>
 
             <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
+                Penghapusan akun bersifat permanen dan akan ditolak jika ada riwayat keuangan. Masukkan kata sandi dan ketik "konfirmasi" untuk melanjutkan.
             </p>
 
-            <div class="mt-6">
-                <x-input-label for="password" value="{{ __('Password') }}" class="sr-only" />
+            <div class="mt-6 space-y-4">
+                <div>
+                    <x-input-label for="password" value="Kata Sandi Akun" />
 
-                <x-text-input
-                    id="password"
-                    name="password"
-                    type="password"
-                    class="mt-1 block w-3/4"
-                    placeholder="{{ __('Password') }}"
-                />
+                    <x-text-input
+                        id="password"
+                        name="password"
+                        type="password"
+                        class="mt-1 block w-full sm:w-3/4"
+                        placeholder="Masukkan kata sandi akun"
+                    />
 
-                <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2" />
+                    <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2" />
+                </div>
+
+                <div>
+                    <x-input-label for="confirmation" value="Ketik kata 'konfirmasi'" />
+
+                    <x-text-input
+                        id="confirmation"
+                        name="confirmation"
+                        type="text"
+                        class="mt-1 block w-full sm:w-3/4"
+                        placeholder="Ketik konfirmasi"
+                    />
+
+                    <x-input-error :messages="$errors->userDeletion->get('confirmation')" class="mt-2" />
+                </div>
+
+                <x-input-error :messages="$errors->userDeletion->get('account')" class="mt-2" />
             </div>
 
             <div class="mt-6 flex justify-end">

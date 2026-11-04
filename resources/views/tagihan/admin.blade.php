@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="space-y-6" x-data="{ showTagihanForm: {{ old('_form') === 'tagihan_manual' ? 'true' : 'false' }} }">
-    <div class="rounded-3xl bg-white p-6 shadow-sm">
+    <div class="rounded-3xl bg-white p-6 shadow-xs">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-2xl font-bold text-slate-900">Manajemen Tagihan</h2>
@@ -16,8 +16,52 @@
         </div>
     </div>
 
-    <div class="rounded-3xl bg-white p-6 shadow-sm">
-        <form method="GET" action="{{ route('tagihan.admin') }}" class="grid gap-4 md:grid-cols-[1fr_1fr_auto_auto] md:items-end">
+    {{-- Ringkasan Tunggakan --}}
+    @if(isset($summaryTunggakan))
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="rounded-3xl border border-rose-100 bg-rose-50/50 p-5">
+                <div class="text-xs font-semibold uppercase tracking-wider text-rose-600">Total Tunggakan</div>
+                <div class="mt-2 text-2xl font-bold text-rose-700">Rp {{ number_format($summaryTunggakan['total_nominal'], 0, ',', '.') }}</div>
+                <div class="mt-1 text-xs text-rose-500">Iuran belum diselesaikan</div>
+            </div>
+            <div class="rounded-3xl border border-amber-100 bg-amber-50/50 p-5">
+                <div class="text-xs font-semibold uppercase tracking-wider text-amber-600">Tagihan Tertunggak</div>
+                <div class="mt-2 text-2xl font-bold text-amber-700">{{ $summaryTunggakan['total_tagihan'] }} Item</div>
+                <div class="mt-1 text-xs text-amber-500">Belum dibayar & ditolak</div>
+            </div>
+            <div class="rounded-3xl border border-sky-100 bg-sky-50/50 p-5">
+                <div class="text-xs font-semibold uppercase tracking-wider text-sky-600">Rumah Menunggak</div>
+                <div class="mt-2 text-2xl font-bold text-sky-700">{{ $summaryTunggakan['total_rumah'] }} Rumah</div>
+                <div class="mt-1 text-xs text-sky-500">Memiliki tagihan aktif</div>
+            </div>
+        </div>
+    @endif
+
+    <div class="rounded-3xl bg-white p-6 shadow-xs">
+        <form method="GET" action="{{ route('tagihan.admin') }}" class="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr_auto_auto] md:items-end">
+            <div>
+                <label class="block text-sm font-bold text-slate-700">Status Tagihan</label>
+                <select name="status" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 focus:border-emerald-500 focus:ring-emerald-200">
+                    <option value="">Semua Status</option>
+                    <option value="tunggakan" {{ request('status') === 'tunggakan' ? 'selected' : '' }}>Semua Tunggakan</option>
+                    <option value="belum_bayar" {{ request('status') === 'belum_bayar' ? 'selected' : '' }}>Belum Bayar</option>
+                    <option value="menunggu_konfirmasi" {{ request('status') === 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi</option>
+                    <option value="lunas" {{ request('status') === 'lunas' ? 'selected' : '' }}>Lunas</option>
+                    <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>Ditolak</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700">Filter Rumah</label>
+                <select name="rumah_id" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 focus:border-emerald-500 focus:ring-emerald-200">
+                    <option value="">Semua Rumah</option>
+                    @foreach($rumahList as $r)
+                        <option value="{{ $r->id }}" {{ (string) request('rumah_id') === (string) $r->id ? 'selected' : '' }}>
+                            {{ $r->kode_rumah }} - {{ Str::limit($r->alamat, 20) }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
             <div>
                 <label class="block text-sm font-bold text-slate-700">Filter Bulan</label>
                 <select name="bulan" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 focus:border-emerald-500 focus:ring-emerald-200">
@@ -67,7 +111,7 @@
                     rejectionReason: @js($tagihan->rejection_reason),
                     hasBukti: @js((bool) $tagihan->bukti)
                 })"
-                class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm"
+                class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs"
             >
                 <div class="grid gap-5 xl:grid-cols-[1fr_0.8fr_1.1fr]">
                     <div>
@@ -142,7 +186,7 @@
                         <p class="text-sm font-black text-emerald-950">Aksi Verifikasi</p>
                         <div x-cloak x-show="status === 'lunas'" class="mt-4 rounded-2xl border border-emerald-100 bg-white p-4">
                             <p class="text-sm font-black text-emerald-800">Tagihan sudah lunas.</p>
-                            <p class="mt-1 text-xs font-semibold leading-5 text-slate-500">Pembayaran sudah tercatat ke kas masuk. Gunakan menu edit jika perlu koreksi data tagihan.</p>
+                            <p class="mt-1 text-xs font-semibold leading-5 text-slate-500">Pembayaran sudah tercatat ke kas masuk. Nominal tagihan dikunci untuk menjaga kesesuaian catatan kas.</p>
                         </div>
 
                         <div x-show="status !== 'lunas'">
@@ -177,7 +221,9 @@
                         </div>
 
                         <div class="mt-4 flex gap-2">
-                            <a href="{{ route('tagihan.edit', $tagihan) }}" class="flex-1 rounded-xl bg-amber-500 px-3 py-2 text-center text-xs font-bold text-white hover:bg-amber-600">Edit</a>
+                            @if ($tagihan->canEditDetails())
+                                <a x-show="status === 'belum_bayar' || status === 'failed'" href="{{ route('tagihan.edit', $tagihan) }}" class="flex-1 rounded-xl bg-amber-500 px-3 py-2 text-center text-xs font-bold text-white hover:bg-amber-600">Edit</a>
+                            @endif
                             <button type="button" onclick="confirmDelete('{{ $tagihan->id }}', '{{ addslashes($tagihan->user->name) }} {{ $tagihan->bulan }}/{{ $tagihan->tahun }}')" class="flex-1 rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700">Hapus</button>
                         </div>
                     </div>
@@ -189,12 +235,12 @@
     </div>
 
     @if($tagihans->hasPages())
-        <div class="rounded-3xl bg-white p-4 shadow-sm">
+        <div class="rounded-3xl bg-white p-4 shadow-xs">
             {{ $tagihans->withQueryString()->links() }}
         </div>
     @endif
 
-    <div x-cloak x-show="showTagihanForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" x-on:click.self="showTagihanForm = false">
+    <div x-cloak x-show="showTagihanForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs" x-on:click.self="showTagihanForm = false">
         <section x-transition class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
             <div class="flex items-start justify-between bg-emerald-800 p-6 text-white">
                 <div>
@@ -223,7 +269,7 @@
                         <option value="">Pilih Kepala Keluarga</option>
                         @foreach($users as $user)
                             <option value="{{ $user->id }}" {{ old('_form') === 'tagihan_manual' && old('user_id') == $user->id ? 'selected' : '' }}>
-                                {{ $user->name }} (RT {{ $user->rt }}/RW {{ $user->rw }})
+                                {{ $user->name }} ({{ $user->rt?->name ?? 'RT belum ditentukan' }})
                             </option>
                         @endforeach
                     </select>
@@ -312,7 +358,7 @@
     </div>
 </div>
 
-<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
+<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
     <div class="w-full max-w-sm space-y-4 rounded-3xl bg-white p-6 shadow-lg">
         <h2 class="text-xl font-bold text-slate-800">Hapus Tagihan?</h2>
         <p id="deleteMessage" class="text-slate-600"></p>

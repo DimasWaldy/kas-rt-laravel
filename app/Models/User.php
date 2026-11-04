@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -11,15 +10,36 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'rt_id', 'no_kk', 'is_kepala_keluarga', 'is_penanggung_jawab_rumah', 'jumlah_anggota_keluarga', 'phone', 'rt', 'rw'])]
+#[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'rt_id', 'is_penanggung_jawab_rumah', 'phone', 'status_akun'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if ($user->onboarding_domisili && $user->rumah_id) {
+                $user->onboarding_domisili = false;
+            }
+        });
+        static::deleting(function (User $user) {
+            if (\App\Support\FinancialHistory::existsForUser($user->id)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'account' => \App\Support\FinancialHistory::DELETION_MESSAGE,
+                ]);
+            }
+        });
+    }
+
+    protected $attributes = [
+        'status_akun' => 'aktif',
+    ];
 
     public function routeNotificationForWhatsapp(): ?string
     {
@@ -40,18 +60,22 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'is_kepala_keluarga' => 'boolean',
             'is_penanggung_jawab_rumah' => 'boolean',
-            'jumlah_anggota_keluarga' => 'integer',
             'role_id' => 'integer',
             'rumah_id' => 'integer',
             'rt_id' => 'integer',
+            'onboarding_domisili' => 'boolean',
         ];
     }
 
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
+    }
+
+    public function warga(): HasOne
+    {
+        return $this->hasOne(Warga::class);
     }
 
     public function rumah(): BelongsTo
@@ -62,6 +86,21 @@ class User extends Authenticatable
     public function rt(): BelongsTo
     {
         return $this->belongsTo(Rt::class);
+    }
+
+    public function koperasiMember(): HasOne
+    {
+        return $this->hasOne(KoperasiMember::class);
+    }
+
+    public function koperasiSimpanans(): HasMany
+    {
+        return $this->hasMany(KoperasiSimpanan::class);
+    }
+
+    public function koperasiPinjams(): HasMany
+    {
+        return $this->hasMany(KoperasiPinjam::class);
     }
 
     public function scopeInRt(Builder $query, int $rtId): Builder
@@ -78,8 +117,20 @@ class User extends Authenticatable
 
     public function scopeVisibleTo(Builder $query, User $actor): Builder
     {
-        if ($actor->canAccessAllRts()) {
+        if ($actor->isGlobalOperator()) {
             return $query;
+        }
+
+        if ($actor->isRwOfficial()) {
+            $rwId = $actor->rt()->value('rw_id');
+
+            return $rwId
+                ? $query->whereHas('rt', fn (Builder $rt) => $rt->where('rw_id', $rwId))
+                : $query->whereRaw('1 = 0');
+        }
+
+        if (! $actor->rt_id) {
+            return $query->whereRaw('1 = 0');
         }
 
         return $query->where('rt_id', $actor->rt_id);
@@ -108,6 +159,16 @@ class User extends Authenticatable
         return $this->isGlobalOperator();
     }
 
+    public function isPendingVerifikasi(): bool
+    {
+        return $this->status_akun === 'pending_verifikasi';
+    }
+
+    public function isAktif(): bool
+    {
+        return $this->status_akun === 'aktif';
+    }
+
     public function isGlobalOperator(): bool
     {
         return in_array($this->role_name, ['admin', 'super_admin'], true);
@@ -129,24 +190,48 @@ class User extends Authenticatable
             return false;
         }
 
-        return $this->role->permissions()
-            ->where('name', $permission)
-            ->exists();
+        $this->loadMissing('role.permissions');
+
+        return $this->role?->permissions
+            ->contains('name', $permission) ?? false;
     }
 
     public function getProfileStatusAttribute(): string
     {
-        $required = [
-            $this->no_kk,
-            $this->phone,
-            $this->rt,
-            $this->rw,
-            $this->jumlah_anggota_keluarga,
-        ];
-
-        return collect($required)->every(fn($value) => filled($value))
+        return empty($this->profileCompletionIssues())
             ? 'Lengkap'
             : 'Belum Lengkap';
+    }
+
+    public function profileCompletionIssues(): array
+    {
+        $issues = [];
+
+        if (blank($this->phone)) {
+            $issues[] = 'Nomor HP';
+        }
+
+        if (blank($this->warga?->nik)) {
+            $issues[] = 'NIK';
+        }
+
+        if (blank($this->warga?->kartuKeluarga?->no_kk)) {
+            $issues[] = 'Nomor KK';
+        }
+
+        if (blank($this->rumah_id)) {
+            $issues[] = 'Domisili/Rumah';
+        }
+
+        if (blank($this->rt_id)) {
+            $issues[] = 'RT';
+        }
+
+        if (blank($this->warga?->status_dalam_kk)) {
+            $issues[] = 'Status dalam KK';
+        }
+
+        return $issues;
     }
 
     public function pengaduans(): \Illuminate\Database\Eloquent\Relations\HasMany
@@ -181,20 +266,17 @@ class User extends Authenticatable
 
     public function canManageFinance(): bool
     {
-        return $this->hasPermission('manage-finance')
-            || in_array($this->role_name, ['admin', 'super_admin', 'bendahara', 'bendahara_rt'], true);
+        return $this->hasPermission('manage-finance');
     }
 
     public function canManageWarga(): bool
     {
-        return $this->hasPermission('manage-warga')
-            || in_array($this->role_name, ['admin', 'super_admin', 'sekretaris', 'sekretaris_rt'], true);
+        return $this->hasPermission('manage-warga');
     }
 
     public function canManagePengaduan(): bool
     {
-        return $this->hasPermission('manage-pengaduan')
-            || in_array($this->role_name, ['admin', 'super_admin', 'sekretaris', 'sekretaris_rt', 'ketua_rt'], true);
+        return $this->hasPermission('manage-pengaduan');
     }
 
     public function canViewFinance(): bool

@@ -86,7 +86,7 @@ class FasilitasController extends Controller
         $fasilitas->load([
             'rw',
             'rt',
-            'pengaduanFasilitas' => fn($query) => $query->with('pelapor')->latest(),
+            'pengaduanFasilitas' => fn ($query) => $query->with('pelapor')->latest(),
         ]);
 
         return view('fasilitas.show', compact('fasilitas'));
@@ -237,7 +237,7 @@ class FasilitasController extends Controller
     {
         $rwId = $user->rt()->value('rw_id');
 
-        if (! $rwId && ($user->isRwOfficial() || $user->isGlobalOperator())) {
+        if (! $rwId && $user->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
         }
 

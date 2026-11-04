@@ -1,11 +1,13 @@
 <x-guest-layout>
     <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
+        Terima kasih sudah mendaftar. Sebelum masuk ke Smart RW, mohon verifikasi alamat email dengan membuka link
+        yang sudah kami kirimkan. Link verifikasi bisa kedaluwarsa, jadi kirim ulang email verifikasi jika link lama
+        tidak bisa digunakan atau belum masuk ke inbox.
     </div>
 
     @if (session('status') == 'verification-link-sent')
         <div class="mb-4 font-medium text-sm text-green-600 dark:text-green-400">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
+            Link verifikasi baru sudah dikirim ke alamat email Anda.
         </div>
     @endif
 
@@ -15,7 +17,7 @@
 
             <div>
                 <x-primary-button>
-                    {{ __('Resend Verification Email') }}
+                    Kirim ulang email verifikasi
                 </x-primary-button>
             </div>
         </form>
@@ -23,8 +25,8 @@
         <form method="POST" action="{{ route('logout') }}">
             @csrf
 
-            <button type="submit" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
-                {{ __('Log Out') }}
+            <button type="submit" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
+                Keluar
             </button>
         </form>
     </div>

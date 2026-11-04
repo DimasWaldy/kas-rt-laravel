@@ -38,9 +38,7 @@ test('core uas demo flow works end to end inside one rt', function () {
     $warga = User::factory()->create([
         'role_id' => Role::where('name', 'warga')->value('id'),
         'rt_id' => $rt->id,
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => true,
-        'no_kk' => '3174000000000099',
     ]);
 
     $rumah = Rumah::create([

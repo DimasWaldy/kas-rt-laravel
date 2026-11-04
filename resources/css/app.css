@@ -1,3 +1,255 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss' source(none);
+@import '@fortawesome/fontawesome-free/css/fontawesome.min.css' layer(components);
+@import '@fortawesome/fontawesome-free/css/solid.min.css' layer(components);
+@import '@fortawesome/fontawesome-free/css/regular.min.css' layer(components);
+@import '@fortawesome/fontawesome-free/css/brands.min.css' layer(components);
+
+@source '../views';
+@source '../js';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views';
+@plugin '@tailwindcss/forms';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --default-ring-color: var(--color-blue-500);
+}
+
+@layer base {
+    /* Preserve the former defaults for legacy forms and uncoloured borders. */
+    *, ::after, ::before, ::backdrop, ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+
+    input::placeholder, textarea::placeholder {
+        color: var(--color-gray-400);
+    }
+
+    button:not(:disabled), [role='button']:not(:disabled) {
+        cursor: pointer;
+    }
+
+    dialog {
+        margin: auto;
+    }
+
+    html {
+        color-scheme: light;
+    }
+
+    html.dark {
+        color-scheme: dark;
+    }
+
+    .dark body {
+        background-color: #020617;
+        color: #e2e8f0;
+    }
+}
+
+@layer utilities {
+    .dark .bg-white {
+        background-color: #0f172a !important;
+    }
+
+    .dark .bg-gray-50,
+    .dark .bg-slate-50 {
+        background-color: #111827 !important;
+    }
+
+    /* Softened tinted panels (exact + opacity variants like bg-emerald-50/70) */
+    .dark .bg-emerald-50,
+    .dark .bg-green-50,
+    .dark .bg-lime-50,
+    .dark [class*="bg-emerald-50/"],
+    .dark [class*="bg-green-50/"],
+    .dark [class*="bg-lime-50/"] {
+        background-color: rgb(6 78 59 / 0.22) !important;
+    }
+
+    .dark .bg-indigo-50,
+    .dark .bg-blue-50,
+    .dark [class*="bg-indigo-50/"],
+    .dark [class*="bg-blue-50/"] {
+        background-color: rgb(49 46 129 / 0.25) !important;
+    }
+
+    .dark .bg-amber-50,
+    .dark [class*="bg-amber-50/"] {
+        background-color: rgb(120 53 15 / 0.25) !important;
+    }
+
+    .dark .bg-red-50,
+    .dark .bg-rose-50,
+    .dark [class*="bg-red-50/"],
+    .dark [class*="bg-rose-50/"] {
+        background-color: rgb(127 29 29 / 0.25) !important;
+    }
+
+    .dark .hover\:bg-emerald-50:hover,
+    .dark [class*="hover:bg-emerald-50/"]:hover {
+        background-color: rgb(6 78 59 / 0.38) !important;
+    }
+
+    .dark .bg-emerald-100 {
+        background-color: rgb(6 78 59 / 0.45) !important;
+    }
+
+    .dark .bg-amber-100 {
+        background-color: rgb(120 53 15 / 0.45) !important;
+    }
+
+    .dark .bg-red-100,
+    .dark .bg-rose-100 {
+        background-color: rgb(127 29 29 / 0.45) !important;
+    }
+
+    .dark .bg-blue-100 {
+        background-color: rgb(49 46 129 / 0.45) !important;
+    }
+
+    .dark .border-slate-100,
+    .dark .border-slate-200,
+    .dark .border-slate-300,
+    .dark .border-gray-200,
+    .dark .border-emerald-100,
+    .dark .border-emerald-200,
+    .dark [class*="border-emerald-100/"],
+    .dark [class*="border-emerald-200/"],
+    .dark [class*="border-slate-300/"] {
+        border-color: #1e293b !important;
+    }
+
+    .dark .border-amber-200,
+    .dark [class*="border-amber-200/"] {
+        border-color: rgb(146 64 14 / 0.55) !important;
+    }
+
+    .dark .border-red-200,
+    .dark .border-rose-200,
+    .dark [class*="border-red-200/"],
+    .dark [class*="border-rose-200/"] {
+        border-color: rgb(159 18 57 / 0.55) !important;
+    }
+
+    .dark .text-slate-900,
+    .dark .text-slate-800,
+    .dark .text-gray-900,
+    .dark .text-gray-800,
+    .dark .text-emerald-950,
+    .dark .text-amber-950 {
+        color: #f8fafc !important;
+    }
+
+    .dark .text-emerald-900,
+    .dark .text-emerald-800,
+    .dark [class*="text-emerald-900/"],
+    .dark [class*="text-emerald-800/"] {
+        color: #6ee7b7 !important;
+    }
+
+    .dark .text-emerald-700,
+    .dark [class*="text-emerald-700/"] {
+        color: #34d399 !important;
+    }
+
+    .dark .text-amber-900 {
+        color: #fde68a !important;
+    }
+
+    .dark .text-amber-800 {
+        color: #fcd34d !important;
+    }
+
+    .dark .text-amber-700 {
+        color: #fbbf24 !important;
+    }
+
+    .dark .text-red-800,
+    .dark .text-red-700,
+    .dark .text-rose-700 {
+        color: #fca5a5 !important;
+    }
+
+    .dark .text-slate-700,
+    .dark .text-slate-600,
+    .dark .text-gray-700,
+    .dark .text-gray-600 {
+        color: #cbd5e1 !important;
+    }
+
+    .dark .text-slate-500,
+    .dark .text-slate-400,
+    .dark .text-gray-500,
+    .dark .text-gray-400 {
+        color: #94a3b8 !important;
+    }
+
+    .dark input,
+    .dark select,
+    .dark textarea {
+        background-color: #020617 !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+
+    .dark option {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+    }
+
+    .dark input::placeholder,
+    .dark textarea::placeholder {
+        color: #64748b !important;
+    }
+
+    .dark table thead {
+        background-color: #111827 !important;
+    }
+}
+
+@layer utilities {
+    .reveal {
+        opacity: 0;
+        transform: translateY(24px);
+        transition:
+            opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        transition-delay: var(--reveal-delay, 0ms);
+        will-change: opacity, transform;
+    }
+
+    .reveal.is-visible {
+        opacity: 1;
+        transform: none;
+    }
+
+    .reveal-left {
+        transform: translateX(-48px);
+    }
+
+    .reveal-right {
+        transform: translateX(48px);
+    }
+
+    .reveal-scale {
+        transform: scale(0.9);
+    }
+
+    .reveal-skew {
+        transform: translateY(24px) rotate(-2deg);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .reveal,
+        .reveal-left,
+        .reveal-right,
+        .reveal-scale,
+        .reveal-skew {
+            opacity: 1;
+            transform: none;
+            transition: none;
+        }
+    }
+}

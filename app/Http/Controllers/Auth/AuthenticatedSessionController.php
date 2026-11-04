@@ -28,6 +28,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if (in_array($request->user()->status_akun, ['pending_verifikasi', 'ditolak'], true)) {
+            $request->session()->forget('url.intended');
+
+            return redirect()->route('dashboard');
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

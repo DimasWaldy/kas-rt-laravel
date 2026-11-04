@@ -7,8 +7,8 @@ use App\Models\Rt;
 use App\Models\Rw;
 use App\Models\User;
 use Database\Seeders\RoleAndPermissionSeeder;
-use Illuminate\Support\Carbon;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
@@ -39,7 +39,7 @@ beforeEach(function () {
         ]);
     };
 
-    $this->ketuaRw = $makeUser('ketua_rw');
+    $this->ketuaRw = $makeUser('ketua_rw', $this->rt);
     $this->ketuaRt = $makeUser('ketua_rt', $this->rt);
     $this->warga = $makeUser('warga', $this->rt);
 
@@ -57,6 +57,20 @@ beforeEach(function () {
             'status' => 'akan_datang',
         ], $attributes));
     };
+});
+
+test('pengurus rw tanpa rt tidak melihat kegiatan rw pertama', function () {
+    $kegiatan = ($this->makeKegiatan)();
+    $tanpaRt = User::factory()->create([
+        'role_id' => Role::where('name', 'ketua_rw')->value('id'),
+        'rt_id' => null,
+    ]);
+
+    expect(Kegiatan::visibleTo($tanpaRt)->pluck('id'))->toBeEmpty();
+    $this->actingAs($tanpaRt)->get(route('kegiatan.index'))
+        ->assertOk()
+        ->assertDontSee($kegiatan->nama);
+    $this->actingAs($tanpaRt)->get(route('kegiatan.show', $kegiatan))->assertForbidden();
 });
 
 test('pengurus rw dapat membuat kegiatan dengan foto', function () {

@@ -8,7 +8,7 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
     <main class="min-h-screen flex items-center justify-center px-6 py-12">
-        <section class="w-full max-w-lg bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center">
+        <section class="w-full max-w-lg bg-white border border-slate-200 rounded-2xl shadow-xs p-8 text-center">
             <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
                 <span class="text-2xl font-bold">!</span>
             </div>

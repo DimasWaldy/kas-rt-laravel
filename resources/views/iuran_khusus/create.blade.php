@@ -16,14 +16,14 @@
                 <p class="text-sm text-emerald-100">warga target</p>
             </section>
 
-            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total estimasi</p>
                 <p class="mt-2 text-2xl font-black text-slate-900" x-text="new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(nominal * jumlahWarga)"></p>
                 <p class="mt-2 text-xs leading-5 text-slate-500">Nominal per warga dikalikan jumlah target tagihan.</p>
             </section>
         </aside>
 
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8">
             <p class="text-sm font-semibold text-emerald-700">Batch insidental baru</p>
             <h1 class="mt-1 text-2xl font-black text-slate-900">Buat Iuran Khusus</h1>
 

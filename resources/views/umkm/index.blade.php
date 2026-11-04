@@ -37,7 +37,7 @@
     </div>
 
     @if($canManage)
-        <div class="rounded-3xl border {{ $pendingCount ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white' }} p-5 shadow-sm">
+        <div class="rounded-3xl border {{ $pendingCount ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white' }} p-5 shadow-xs">
             <div class="mb-4 flex items-center justify-between gap-3">
                 <div>
                     <p class="font-black text-slate-900">Panel Persetujuan UMKM</p>
@@ -54,7 +54,7 @@
             </div>
         </div>
     @else
-        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
             <p class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Kategori Usaha</p>
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('umkm.index') }}" class="rounded-xl px-4 py-2 text-xs font-bold transition {{ $kategori === '' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">Semua</a>
@@ -75,7 +75,7 @@
         <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             @foreach($umkms as $umkm)
                 @php($isBuka = $umkm->isBukaSekarang())
-                <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg" x-data="{ rejectOpen: {{ $errors->has('catatan_pengurus') && old('umkm_id') == $umkm->id ? 'true' : 'false' }} }">
+                <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs transition hover:-translate-y-0.5 hover:shadow-lg" x-data="{ rejectOpen: {{ $errors->has('catatan_pengurus') && old('umkm_id') == $umkm->id ? 'true' : 'false' }} }">
                     <div class="relative h-48 bg-slate-100">
                         @if($umkm->foto_usaha)
                             <img src="{{ route('umkm.foto', $umkm) }}" alt="Foto {{ $umkm->nama_usaha }}" class="h-full w-full object-cover">

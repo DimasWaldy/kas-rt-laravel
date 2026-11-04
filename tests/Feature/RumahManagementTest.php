@@ -3,6 +3,11 @@
 use App\Models\Role;
 use App\Models\Rumah;
 use App\Models\User;
+use Database\Seeders\RoleAndPermissionSeeder;
+
+beforeEach(function () {
+    $this->seed(RoleAndPermissionSeeder::class);
+});
 
 function adminForRumahManagement(): User
 {

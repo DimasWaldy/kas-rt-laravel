@@ -4,7 +4,8 @@
 
 @section('content')
 <div class="space-y-6" x-data="{ showWargaForm: {{ old('_form') === 'admin_warga' ? 'true' : 'false' }} }">
-    <div class="rounded-3xl bg-white shadow-sm p-6">
+    <x-input-error :messages="$errors->get('account')" />
+    <div class="rounded-3xl bg-white shadow-xs p-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800">Data Warga</h1>
@@ -17,12 +18,12 @@
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-600">Cari Warga</label>
-                    <input type="search" name="search" value="{{ request('search') }}" placeholder="Nama, No. KK, kode rumah, alamat, telepon" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-200 focus:ring-2" />
+                    <input type="search" name="search" value="{{ request('search') }}" placeholder="Nama, No. KK, kode rumah, alamat, telepon" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-xs focus:border-emerald-500 focus:ring-emerald-200 focus:ring-2" />
                 </div>
 
                 <div class="sm:col-span-1 xl:col-span-2">
                     <label class="block text-sm font-medium text-slate-600">Filter Kepala Keluarga</label>
-                    <select name="filter_head" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-200 focus:ring-2">
+                    <select name="filter_head" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-xs focus:border-emerald-500 focus:ring-emerald-200 focus:ring-2">
                         <option value="" {{ request('filter_head') === null ? 'selected' : '' }}>Semua</option>
                         <option value="kepala" {{ request('filter_head') === 'kepala' ? 'selected' : '' }}>Kepala Keluarga</option>
                         <option value="warga" {{ request('filter_head') === 'warga' ? 'selected' : '' }}>Warga Biasa</option>
@@ -31,7 +32,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition">Cari</button>
+                <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-xs hover:bg-emerald-700 transition">Cari</button>
                 <a href="{{ route('admin.warga.index') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">Reset</a>
             </div>
         </form>
@@ -46,7 +47,6 @@
                         <th class="px-4 py-3 text-left">No. KK</th>
                         <th class="px-4 py-3 text-left">Telepon</th>
                         <th class="px-4 py-3 text-left">RT/RW</th>
-                        <th class="px-4 py-3 text-left">Jumlah Keluarga</th>
                         <th class="px-4 py-3 text-left">Kepala KK</th>
                         <th class="px-4 py-3 text-left">PJ Iuran</th>
                         <th class="px-4 py-3 text-left">Status Profil</th>
@@ -59,13 +59,12 @@
                             <td class="px-4 py-4 text-slate-700">{{ $user->name }}</td>
                             <td class="px-4 py-4 text-slate-500">{{ $user->email }}</td>
                             <td class="px-4 py-4 text-slate-700">{{ $user->rumah?->kode_rumah ?? '-' }}</td>
-                            <td class="px-4 py-4 text-slate-700">{{ $user->no_kk ?? '-' }}</td>
+                            <td class="px-4 py-4 text-slate-700">{{ $user->warga?->kartuKeluarga?->no_kk ?? '-' }}</td>
                             <td class="px-4 py-4 text-slate-700">{{ $user->phone ?? '-' }}</td>
-                            <td class="px-4 py-4 text-slate-700">{{ trim(($user->rt ?? '-') . '/' . ($user->rw ?? '-'), '/') }}</td>
-                            <td class="px-4 py-4 text-slate-700">{{ $user->jumlah_anggota_keluarga ?? '-' }}</td>
+                            <td class="px-4 py-4 text-slate-700">{{ $user->rt?->name ?? '-' }}</td>
                             <td class="px-4 py-4">
-                                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $user->is_kepala_keluarga ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">
-                                    {{ $user->is_kepala_keluarga ? 'Ya' : 'Tidak' }}
+                                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $user->warga?->status_dalam_kk === 'kepala_keluarga' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">
+                                    {{ $user->warga?->status_dalam_kk === 'kepala_keluarga' ? 'Ya' : 'Tidak' }}
                                 </span>
                             </td>
                             <td class="px-4 py-4">
@@ -91,7 +90,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="px-4 py-6 text-center text-slate-500">Tidak ada warga terdaftar.</td>
+                            <td colspan="10" class="px-4 py-6 text-center text-slate-500">Tidak ada warga terdaftar.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -103,7 +102,7 @@
         </div>
     </div>
 
-    <div x-cloak x-show="showWargaForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" x-on:click.self="showWargaForm = false">
+    <div x-cloak x-show="showWargaForm" x-transition.opacity class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs" x-on:click.self="showWargaForm = false">
         <section x-transition class="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
             <div class="flex items-start justify-between bg-emerald-800 p-6 text-white">
                 <div>
@@ -122,7 +121,7 @@
 
                 @if(old('_form') === 'admin_warga' && $errors->any())
                     <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-                        Periksa kembali data warga yang diisi.
+                        <ul class="list-inside list-disc">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
                     </div>
                 @endif
 
@@ -145,23 +144,19 @@
                         @if(old('_form') === 'admin_warga') @error('password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700">Jumlah Anggota Keluarga</label>
-                        <input type="number" name="jumlah_anggota_keluarga" value="{{ old('_form') === 'admin_warga' ? old('jumlah_anggota_keluarga') : 1 }}" min="1" max="20" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('jumlah_anggota_keluarga') border-red-500 @enderror @endif">
-                        @if(old('_form') === 'admin_warga') @error('jumlah_anggota_keluarga') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
-                    </div>
+                    <div x-data="{ rtId: @js((string) old('rt_id', auth()->user()->canAccessAllRts() ? '' : auth()->user()->rt_id)) }" class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5 dark:border-slate-800 dark:bg-slate-800/40">
+                        <h3 class="text-sm font-black text-emerald-900 dark:text-emerald-400">Data Rumah / Unit Hunian</h3>
+                        <p class="mt-1 text-xs text-emerald-700 dark:text-slate-400">Tagihan iuran dibuat per rumah. Satu rumah bisa punya lebih dari satu KK.</p>
 
-                    <div class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
-                        <h3 class="text-sm font-black text-emerald-900">Data Rumah / Unit Hunian</h3>
-                        <p class="mt-1 text-xs text-emerald-700">Tagihan iuran dibuat per rumah. Satu rumah bisa punya lebih dari satu KK.</p>
+                        @include('admin.warga.partials.rt-field', ['user' => null])
 
                         <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-bold text-slate-700">Pilih Rumah yang Sudah Ada</label>
-                                <select name="rumah_id" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                                <select name="rumah_id" x-ref="residentHouse" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                                     <option value="">Buat rumah baru / belum ditentukan</option>
                                     @foreach($rumahs as $rumah)
-                                        <option value="{{ $rumah->id }}" {{ old('_form') === 'admin_warga' && old('rumah_id') == $rumah->id ? 'selected' : '' }}>{{ $rumah->label }}</option>
+                                        <option value="{{ $rumah->id }}" x-show="rtId === '{{ $rumah->rt_id }}'" :disabled="rtId !== '{{ $rumah->rt_id }}'" {{ old('_form') === 'admin_warga' && old('rumah_id') == $rumah->id ? 'selected' : '' }}>{{ $rumah->label }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -190,25 +185,13 @@
                         @if(old('_form') === 'admin_warga') @error('phone') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700">RT</label>
-                        <input type="text" name="rt" value="{{ old('_form') === 'admin_warga' ? old('rt') : '' }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('rt') border-red-500 @enderror @endif">
-                        @if(old('_form') === 'admin_warga') @error('rt') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700">RW</label>
-                        <input type="text" name="rw" value="{{ old('_form') === 'admin_warga' ? old('rw') : '' }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200 @if(old('_form') === 'admin_warga') @error('rw') border-red-500 @enderror @endif">
-                        @if(old('_form') === 'admin_warga') @error('rw') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror @endif
-                    </div>
-
                     <label class="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
-                        <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('_form') === 'admin_warga' && old('is_kepala_keluarga') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('_form') === 'admin_warga' && old('is_kepala_keluarga') ? 'checked' : '' }} class="h-4 w-4 rounded-sm border-slate-300 text-emerald-600 focus:ring-emerald-500">
                         Kepala Keluarga
                     </label>
 
                     <label class="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
-                        <input type="checkbox" name="is_penanggung_jawab_rumah" value="1" {{ old('_form') === 'admin_warga' && old('is_penanggung_jawab_rumah') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" name="is_penanggung_jawab_rumah" value="1" {{ old('_form') === 'admin_warga' && old('is_penanggung_jawab_rumah') ? 'checked' : '' }} class="h-4 w-4 rounded-sm border-slate-300 text-emerald-600 focus:ring-emerald-500">
                         Penanggung Jawab Iuran Rumah
                     </label>
                 </div>
@@ -222,7 +205,7 @@
     </div>
 </div>
 
-<div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+<div id="deleteModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-lg max-w-sm w-full p-6 space-y-4">
         <h2 class="text-xl font-bold text-slate-800">Hapus Warga?</h2>
         <p id="deleteMessage" class="text-slate-600"></p>

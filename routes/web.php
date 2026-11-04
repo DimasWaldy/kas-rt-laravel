@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DemoUtsController;
 use App\Http\Controllers\AsetController;
 use App\Http\Controllers\BankSampahController;
 use App\Http\Controllers\FasilitasController;
@@ -14,24 +13,37 @@ use App\Http\Controllers\KasKeluarController;
 use App\Http\Controllers\KasMasukController;
 use App\Http\Controllers\LaporanKasController;
 use App\Http\Controllers\PeminjamanAsetController;
+use App\Http\Controllers\PemeriksaanPosyanduController;
 use App\Http\Controllers\PenarikanSampahController;
 use App\Http\Controllers\PenjualanSampahController;
 use App\Http\Controllers\ProdukUmkmController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PosyanduController;
 use App\Http\Controllers\PengaduanFasilitasController;
 use App\Http\Controllers\SetoranSampahController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\UmkmController;
+use App\Http\Controllers\VerifikasiWargaController;
+use App\Http\Controllers\KoperasiWargaController;
+use App\Http\Controllers\Admin\KoperasiController as KoperasiAdminController;
+use App\Http\Controllers\DirektoriRwController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\SuratController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
-
 Route::middleware('auth')->group(function () {
+    Route::post('/domisili', [\App\Http\Controllers\DomisiliController::class, 'store'])->middleware('throttle:10,1')->name('domisili.store');
+    Route::get('/domisili', fn () => redirect()->route('dashboard'))->name('domisili.create');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::middleware('permission:view-direktori-rw')->group(function () {
+        Route::get('/direktori-rw', [DirektoriRwController::class, 'index'])
+            ->name('direktori-rw.index');
+        Route::get('/direktori-rw/rt/{rt}', [DirektoriRwController::class, 'showRt'])
+            ->name('direktori-rw.rt.show');
+    });
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -49,7 +61,28 @@ Route::middleware('auth')->group(function () {
     })->name('notifications.read-all');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'permission:manage-warga'])->group(function () {
+    Route::get('/verifikasi-warga', [VerifikasiWargaController::class, 'index'])
+        ->name('verifikasi-warga.index');
+    Route::get('/verifikasi-warga/{warga}', [VerifikasiWargaController::class, 'show'])
+        ->name('verifikasi-warga.show');
+    Route::get('/verifikasi-warga/{warga}/domisili', [VerifikasiWargaController::class, 'showDomisili'])
+        ->name('verifikasi-warga.domisili.show');
+    Route::patch('/verifikasi-warga/{warga}/domisili/setujui', [VerifikasiWargaController::class, 'verifikasiDomisili'])
+        ->name('verifikasi-warga.domisili.setujui');
+    Route::patch('/verifikasi-warga/{warga}/domisili/perbaiki', [VerifikasiWargaController::class, 'perbaikiDomisili'])
+        ->name('verifikasi-warga.domisili.perbaiki');
+    Route::get('/verifikasi-warga/{warga}/dokumen/{jenis}', [VerifikasiWargaController::class, 'dokumen'])
+        ->name('verifikasi-warga.dokumen');
+    Route::patch('/verifikasi-warga/{warga}/verifikasi', [VerifikasiWargaController::class, 'verifikasi'])
+        ->name('verifikasi-warga.verifikasi');
+    Route::patch('/verifikasi-warga/{warga}/tolak', [VerifikasiWargaController::class, 'tolak'])
+        ->name('verifikasi-warga.tolak');
+    Route::get('/api/rumah/{rumah}/kartu-keluarga', [VerifikasiWargaController::class, 'getKkDiRumah'])
+        ->name('api.rumah.kk');
+});
+
+Route::middleware('auth')->group(function () {
     Route::get('/kas-masuk', [KasMasukController::class, 'index'])->name('kas-masuk.index');
 
     Route::middleware(['permission:manage-finance'])->group(function () {
@@ -58,26 +91,24 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware('auth')->group(function () {
     Route::get('/kas-keluar', [KasKeluarController::class, 'index'])->name('kas-keluar.index');
+
+    Route::middleware(['permission:verify-payment'])->group(function () {
+        Route::get('/admin/tagihan', [TagihanController::class, 'adminIndex'])->name('tagihan.admin');
+        Route::post('/admin/tagihan/confirm', [TagihanController::class, 'confirm'])->name('tagihan.confirm');
+    });
 
     Route::middleware(['permission:manage-finance'])->group(function () {
         Route::get('/kas-keluar/create', [KasKeluarController::class, 'create'])->name('kas-keluar.create');
         Route::post('/kas-keluar/store', [KasKeluarController::class, 'store'])->name('kas-keluar.store');
         Route::get('/kas-keluar/{kasKeluar}/bukti', [KasKeluarController::class, 'bukti'])->name('kas-keluar.bukti');
 
-        Route::get('/admin/tagihan', [TagihanController::class, 'adminIndex'])->name('tagihan.admin');
         Route::get('/tagihan/create', [TagihanController::class, 'create'])->name('tagihan.create');
         Route::post('/tagihan', [TagihanController::class, 'store'])->name('tagihan.store');
         Route::get('/tagihan/{tagihan}/edit', [TagihanController::class, 'edit'])->name('tagihan.edit');
         Route::patch('/tagihan/{tagihan}', [TagihanController::class, 'update'])->name('tagihan.update');
         Route::delete('/tagihan/{tagihan}', [TagihanController::class, 'destroy'])->name('tagihan.destroy');
-        Route::post('/admin/tagihan/confirm', [TagihanController::class, 'confirm'])->name('tagihan.confirm');
-
-        Route::get('/admin/iuran-bulanan', [IuranBulananController::class, 'index'])->name('iuran-bulanan.index');
-        Route::get('/admin/iuran-bulanan/create', [IuranBulananController::class, 'create'])->name('iuran-bulanan.create');
-        Route::post('/admin/iuran-bulanan/store', [IuranBulananController::class, 'store'])->name('iuran-bulanan.store');
-        Route::post('/admin/iuran-bulanan/generate', [IuranBulananController::class, 'generateMassal'])->name('iuran-bulanan.generate');
 
         Route::get('/iuran-khusus', [IuranKhususController::class, 'index'])->name('iuran-khusus.index');
         Route::get('/iuran-khusus/create', [IuranKhususController::class, 'create'])->name('iuran-khusus.create');
@@ -85,9 +116,16 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/iuran-khusus/{iuranKhusus}', [IuranKhususController::class, 'show'])->name('iuran-khusus.show');
         Route::patch('/iuran-khusus/tagihan/{tagihan}/kecualikan', [IuranKhususController::class, 'kecualikan'])->name('iuran-khusus.kecualikan');
         Route::patch('/iuran-khusus/tagihan/{tagihan}/batal-kecualikan', [IuranKhususController::class, 'batalKecualikan'])->name('iuran-khusus.batal-kecualikan');
-
-        Route::get('/admin/demo-uts', [DemoUtsController::class, 'index'])->name('demo-uts.index');
     });
+
+    Route::get('/admin/iuran-bulanan', [IuranBulananController::class, 'index'])->name('iuran-bulanan.index');
+    Route::get('/admin/iuran-bulanan/create', [IuranBulananController::class, 'create'])->name('iuran-bulanan.create');
+    Route::post('/admin/iuran-bulanan/store', [IuranBulananController::class, 'store'])->name('iuran-bulanan.store');
+    Route::post('/admin/iuran-bulanan/generate', [IuranBulananController::class, 'generateMassal'])->name('iuran-bulanan.generate');
+    Route::get('/admin/iuran-bulanan/{iuranBulanan}/edit', [IuranBulananController::class, 'edit'])->name('iuran-bulanan.edit');
+    Route::patch('/admin/iuran-bulanan/{iuranBulanan}', [IuranBulananController::class, 'update'])->name('iuran-bulanan.update');
+    Route::delete('/admin/iuran-bulanan/{iuranBulanan}', [IuranBulananController::class, 'destroy'])->name('iuran-bulanan.destroy');
+    Route::post('/admin/iuran-bulanan/sync', [IuranBulananController::class, 'syncTagihan'])->name('iuran-bulanan.sync');
 
     Route::get('/admin/laporan-kas', [LaporanKasController::class, 'index'])
         ->middleware('permission:view-finance')
@@ -144,7 +182,45 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/surat/{surat}/tolak', [SuratController::class, 'reject'])->name('surat.reject');
     Route::get('/surat/{surat}/cetak', [SuratController::class, 'print'])->name('surat.print');
 
+    Route::middleware('permission:manage-posyandu')->group(function () {
+        Route::get('/posyandu/balita/create', [PosyanduController::class, 'create'])
+            ->name('posyandu.create');
+        Route::post('/posyandu/balita', [PosyanduController::class, 'store'])
+            ->name('posyandu.store');
+        Route::get('/posyandu/balita/{balita}/edit', [PosyanduController::class, 'edit'])
+            ->name('posyandu.edit');
+        Route::put('/posyandu/balita/{balita}', [PosyanduController::class, 'update'])
+            ->name('posyandu.update');
+        Route::patch('/posyandu/balita/{balita}/toggle-active', [PosyanduController::class, 'toggleActive'])
+            ->name('posyandu.toggle-active');
+    });
+
+    Route::middleware('permission:record-posyandu')->group(function () {
+        Route::post('/posyandu/balita/{balita}/pemeriksaan', [PemeriksaanPosyanduController::class, 'store'])
+            ->name('posyandu.pemeriksaan.store');
+        Route::put('/posyandu/pemeriksaan/{pemeriksaan}', [PemeriksaanPosyanduController::class, 'update'])
+            ->name('posyandu.pemeriksaan.update');
+        Route::delete('/posyandu/pemeriksaan/{pemeriksaan}', [PemeriksaanPosyanduController::class, 'destroy'])
+            ->name('posyandu.pemeriksaan.destroy');
+    });
+
+    Route::middleware('permission:view-posyandu')->group(function () {
+        Route::get('/posyandu', [PosyanduController::class, 'index'])
+            ->name('posyandu.index');
+        Route::get('/posyandu/balita/{balita}', [PosyanduController::class, 'show'])
+            ->name('posyandu.show');
+    });
+
     Route::middleware('permission:manage-kegiatan')->group(function () {
+        Route::prefix('/kegiatan/{kegiatan}/rfid')->name('kegiatan.rfid.')->controller(\App\Http\Controllers\KegiatanRfidController::class)->group(function () {
+            Route::get('/', 'show')->name('show');
+            Route::get('/status', 'status')->name('status');
+            Route::post('/open', 'open')->middleware('throttle:10,1')->name('open');
+            Route::post('/close', 'close')->name('close');
+            Route::post('/enroll', 'enroll')->name('enroll');
+            Route::post('/cancel-enrollment', 'cancelEnrollment')->name('cancel-enrollment');
+            Route::post('/revoke', 'revoke')->name('revoke');
+        });
         Route::get('/kegiatan/create', [KegiatanController::class, 'create'])->name('kegiatan.create');
         Route::post('/kegiatan', [KegiatanController::class, 'store'])->name('kegiatan.store');
         Route::get('/kegiatan/{kegiatan}/edit', [KegiatanController::class, 'edit'])->name('kegiatan.edit');
@@ -420,9 +496,44 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/peminjaman-aset-rw/{peminjamanAset}/kembali', [PeminjamanAsetController::class, 'konfirmasiKembali'])
             ->name('peminjaman-aset-rw.kembali');
     });
+
+    // Koperasi Warga
+    Route::middleware('permission:view-koperasi')->group(function () {
+        Route::get('/koperasi', [KoperasiWargaController::class, 'index'])->name('koperasi.index');
+        Route::post('/koperasi/daftar', [KoperasiWargaController::class, 'storeDaftar'])->name('koperasi.store-daftar');
+        Route::get('/koperasi/simpan', [KoperasiWargaController::class, 'simpan'])->name('koperasi.simpan');
+        Route::post('/koperasi/simpan', [KoperasiWargaController::class, 'storeSimpanan'])->name('koperasi.store-simpanan');
+        Route::get('/koperasi/pinjam', [KoperasiWargaController::class, 'pinjam'])->name('koperasi.pinjam');
+        Route::post('/koperasi/pinjam', [KoperasiWargaController::class, 'storePinjam'])->name('koperasi.store-pinjam');
+        Route::get('/koperasi/angsuran/{pinjaman}', [KoperasiWargaController::class, 'angsuran'])->name('koperasi.angsuran');
+        Route::post('/koperasi/angsuran/{pinjaman}', [KoperasiWargaController::class, 'storeAngsuran'])->name('koperasi.store-angsuran');
+    });
+
+    // Koperasi Admin
+    Route::middleware('permission:manage-koperasi')->group(function () {
+        Route::get('/admin/koperasi', [KoperasiAdminController::class, 'index'])->name('admin.koperasi.index');
+        Route::get('/admin/koperasi/simpanan/{simpanan}/bukti', [KoperasiAdminController::class, 'buktiSimpanan'])->name('admin.koperasi.simpanan-bukti');
+        Route::get('/admin/koperasi/pinjaman/{pinjaman}/bukti', [KoperasiAdminController::class, 'buktiPinjaman'])->name('admin.koperasi.pinjaman-bukti');
+        Route::get('/admin/koperasi/angsuran/{angsuran}/bukti', [KoperasiAdminController::class, 'buktiAngsuran'])->name('admin.koperasi.angsuran-bukti');
+        Route::patch('/admin/koperasi/member/{member}/approve', [KoperasiAdminController::class, 'approveMember'])->name('admin.koperasi.approve-member');
+        Route::patch('/admin/koperasi/simpanan/{simpanan}/approve', [KoperasiAdminController::class, 'approveSimpanan'])->name('admin.koperasi.approve-simpanan');
+        Route::patch('/admin/koperasi/pinjaman/{pinjaman}/approve', [KoperasiAdminController::class, 'approvePinjaman'])->name('admin.koperasi.approve-pinjaman');
+        Route::patch('/admin/koperasi/angsuran/{angsuran}/approve', [KoperasiAdminController::class, 'approveAngsuran'])->name('admin.koperasi.approve-angsuran');
+    });
 });
 
 Route::get('/', [WelcomeController::class, 'index']);
+
+Route::get('/docs/{slug?}', function (?string $slug = null) {
+    $allowedSlugs = [
+        'mulai', 'daftar', 'dashboard-warga', 'tagihan', 'layanan-warga',
+        'verifikasi', 'kelola-warga', 'tagihan-admin', 'laporan',
+    ];
+
+    abort_if($slug !== null && ! in_array($slug, $allowedSlugs, true), 404);
+
+    return view('docs.index', ['activeSlug' => $slug ?? 'mulai']);
+})->name('docs.index');
 
 Route::get('/verifikasi-surat/{code}', [SuratController::class, 'verifyPublic'])->name('surat.verify-public');
 

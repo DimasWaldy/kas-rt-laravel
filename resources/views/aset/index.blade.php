@@ -45,7 +45,7 @@
         @endif
     </div>
 
-    <form method="GET" action="{{ route($indexRoute) }}" class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="GET" action="{{ route($indexRoute) }}" class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         <div>
             <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Kategori</p>
             <div class="flex flex-wrap gap-2">
@@ -92,7 +92,7 @@
     @else
         <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             @foreach($asets as $aset)
-                <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs transition hover:-translate-y-0.5 hover:shadow-lg">
                     <div class="relative h-48 bg-slate-100">
                         @if($aset->foto)
                             <img src="{{ route($fotoRoute, $aset) }}" alt="Foto {{ $aset->nama }}" class="h-full w-full object-cover">

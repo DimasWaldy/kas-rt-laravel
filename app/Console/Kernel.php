@@ -9,8 +9,7 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('bills:generate')->monthlyOn(1, '07:00');
-        $schedule->command('tagihan:daily-notification')->dailyAt('08:00');
+        // Scheduling is registered in routes/console.php for the current Laravel app structure.
     }
 
     protected function commands(): void

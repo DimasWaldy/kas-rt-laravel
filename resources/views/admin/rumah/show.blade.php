@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+    <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Detail Unit Hunian</p>
@@ -18,27 +18,35 @@
         </div>
     </div>
 
+    <x-billing-contact-warning :rumah="$rumah" :show-action="true" />
+    @if(! $rumah->billingIssue())
+        <p class="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-950">PJ iuran rumah sudah siap.
+            @if(auth()->user()->canManageFinance())<a class="font-bold underline" href="{{ route('iuran-bulanan.index') }}">Generate ulang tagihan periode yang belum dibuat</a>.
+            @else Minta bendahara generate ulang tagihan periode yang belum dibuat.
+            @endif
+        </p>
+    @endif
     <div class="grid gap-4 md:grid-cols-4">
-        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Status Rumah</p>
             <p class="mt-2 text-2xl font-black capitalize {{ $rumah->status === 'aktif' ? 'text-emerald-700' : ($rumah->status === 'kosong' ? 'text-slate-600' : 'text-rose-600') }}">{{ $rumah->status }}</p>
         </div>
-        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Jumlah Warga</p>
             <p class="mt-2 text-2xl font-black text-slate-900">{{ $rumah->warga->count() }}</p>
         </div>
-        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Jumlah KK</p>
-            <p class="mt-2 text-2xl font-black text-slate-900">{{ $rumah->warga->where('is_kepala_keluarga', true)->count() }}</p>
+            <p class="mt-2 text-2xl font-black text-slate-900">{{ $rumah->warga->filter(fn ($user) => $user->warga?->status_dalam_kk === 'kepala_keluarga')->count() }}</p>
         </div>
-        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">PJ Iuran</p>
             <p class="mt-2 text-base font-black text-slate-900">{{ $rumah->penanggungJawab?->name ?? 'Belum ditentukan' }}</p>
         </div>
     </div>
 
     <div class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <section class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <section class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
             <div class="mb-5">
                 <h2 class="text-lg font-black text-slate-900">Warga di Rumah Ini</h2>
                 <p class="mt-1 text-sm text-slate-500">Gunakan aksi pindah jika warga sudah tidak tinggal di unit ini.</p>
@@ -74,7 +82,7 @@
                                 @endforeach
                             </select>
                             <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-600">
-                                <input type="checkbox" name="make_penanggung_jawab" value="1" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                <input type="checkbox" name="make_penanggung_jawab" value="1" class="rounded-sm border-slate-300 text-emerald-600 focus:ring-emerald-500">
                                 Jadikan PJ di rumah tujuan
                             </label>
                             <button class="rounded-2xl border border-emerald-200 px-4 py-3 text-xs font-black text-emerald-800 hover:bg-emerald-50">Pindahkan</button>
@@ -87,7 +95,7 @@
         </section>
 
         <aside class="space-y-6">
-            <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+            <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
                 <h2 class="text-lg font-black text-slate-900">Tagihan Periode Ini</h2>
                 <p class="mt-1 text-sm text-slate-500">{{ \Carbon\Carbon::create(null, $bulan)->translatedFormat('F') }} {{ $tahun }}</p>
                 <div class="mt-4 space-y-3">

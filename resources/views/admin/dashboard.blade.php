@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-500 to-green-500 p-6 text-white shadow-lg shadow-emerald-100 md:p-8">
+    <div class="rounded-3xl border border-emerald-100 bg-linear-to-r/srgb from-emerald-500 to-green-500 p-6 text-white shadow-lg shadow-emerald-100 md:p-8">
         <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <p class="mb-2 text-xs font-bold uppercase tracking-[0.25em] text-emerald-50">Kontrol Pengurus</p>
@@ -15,10 +15,10 @@
             </div>
 
             <div class="grid grid-cols-2 gap-3 text-sm">
-                <a href="{{ route('tagihan.admin') }}" class="rounded-2xl bg-white/15 px-4 py-3 font-bold text-white backdrop-blur transition hover:bg-white/25">
+                <a href="{{ route('tagihan.admin') }}" class="rounded-2xl bg-white/15 px-4 py-3 font-bold text-white backdrop-blur-sm transition hover:bg-white/25">
                     Verifikasi Tagihan
                 </a>
-                <a href="{{ route('pengaduan.index', ['filter' => 'pending']) }}" class="rounded-2xl bg-white/15 px-4 py-3 font-bold text-white backdrop-blur transition hover:bg-white/25">
+                <a href="{{ route('pengaduan.index', ['filter' => 'pending']) }}" class="rounded-2xl bg-white/15 px-4 py-3 font-bold text-white backdrop-blur-sm transition hover:bg-white/25">
                     Pengaduan Tambahan
                 </a>
             </div>
@@ -26,7 +26,7 @@
     </div>
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <a href="{{ route('tagihan.admin') }}" class="rounded-2xl border {{ $pendingTransferCount + $pendingOfflineCount > 0 ? 'border-amber-200 bg-amber-50' : 'border-emerald-100 bg-white' }} p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <a href="{{ route('tagihan.admin') }}" class="rounded-2xl border {{ $pendingTransferCount + $pendingOfflineCount > 0 ? 'border-amber-200 bg-amber-50' : 'border-emerald-100 bg-white' }} p-5 shadow-xs transition hover:-translate-y-0.5 hover:shadow-md">
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Perlu Verifikasi</p>
@@ -39,7 +39,7 @@
             </div>
         </a>
 
-        <a href="{{ route('tagihan.admin') }}" class="rounded-2xl border {{ $rumahBelumBayarCount > 0 ? 'border-lime-200 bg-lime-50' : 'border-emerald-100 bg-white' }} p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <a href="{{ route('tagihan.admin') }}" class="rounded-2xl border {{ $rumahBelumBayarCount > 0 ? 'border-lime-200 bg-lime-50' : 'border-emerald-100 bg-white' }} p-5 shadow-xs transition hover:-translate-y-0.5 hover:shadow-md">
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Rumah Belum Lunas</p>
@@ -52,7 +52,7 @@
             </div>
         </a>
 
-        <a href="{{ route('pengaduan.index', ['filter' => 'pending']) }}" class="rounded-2xl border {{ $pengaduanPending > 0 ? 'border-emerald-200 bg-emerald-50' : 'border-emerald-100 bg-white' }} p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <a href="{{ route('pengaduan.index', ['filter' => 'pending']) }}" class="rounded-2xl border {{ $pengaduanPending > 0 ? 'border-emerald-200 bg-emerald-50' : 'border-emerald-100 bg-white' }} p-5 shadow-xs transition hover:-translate-y-0.5 hover:shadow-md">
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Pengaduan Tambahan</p>
@@ -65,7 +65,7 @@
             </div>
         </a>
 
-        <a href="{{ route('admin.warga.index') }}" class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <a href="{{ route('admin.warga.index') }}" class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs transition hover:-translate-y-0.5 hover:shadow-md">
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Data Warga</p>
@@ -80,31 +80,31 @@
     </div>
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-sm font-medium text-slate-600">Total Kas Masuk</p>
             <h2 class="mt-2 text-2xl font-black text-slate-900">Rp {{ number_format($totalKasMasuk, 0, ',', '.') }}</h2>
             <p class="mt-2 text-xs font-semibold text-emerald-600">Bulan ini: Rp {{ number_format($masukBulanIni, 0, ',', '.') }}</p>
         </div>
 
-        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-sm font-medium text-slate-600">Total Kas Keluar</p>
             <h2 class="mt-2 text-2xl font-black text-slate-900">Rp {{ number_format($totalKasKeluar, 0, ',', '.') }}</h2>
             <p class="mt-2 text-xs font-semibold text-green-700">Bulan ini: Rp {{ number_format($keluarBulanIni, 0, ',', '.') }}</p>
         </div>
 
-        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-sm font-medium text-slate-600">Saldo Akhir</p>
             <h2 class="mt-2 text-2xl font-black {{ $saldoAkhir >= 0 ? 'text-emerald-700' : 'text-red-600' }}">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</h2>
             <p class="mt-2 text-xs font-semibold {{ $saldoAkhir >= 0 ? 'text-emerald-600' : 'text-red-600' }}">{{ $saldoAkhir >= 0 ? 'Saldo positif' : 'Saldo negatif' }}</p>
         </div>
 
-        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-sm font-medium text-slate-600">Net Bulan Ini</p>
             <h2 class="mt-2 text-2xl font-black {{ $netBulanIni >= 0 ? 'text-emerald-700' : 'text-red-600' }}">Rp {{ number_format($netBulanIni, 0, ',', '.') }}</h2>
             <p class="mt-2 text-xs font-semibold text-slate-500">Masuk dikurangi keluar bulan ini</p>
         </div>
 
-        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xs">
             <p class="text-sm font-medium text-slate-600">Rasio Lunas Tagihan</p>
             @php
                 $totalTagihanRatio = max($totalTagihan, 1);
@@ -118,7 +118,7 @@
     </div>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-xs">
             <h2 class="text-lg font-black text-slate-900">Prioritas Hari Ini</h2>
             <div class="mt-4 space-y-3">
                 <a href="{{ route('tagihan.admin') }}" class="flex items-center justify-between rounded-2xl bg-amber-50 p-4 transition hover:bg-amber-100">
@@ -145,7 +145,7 @@
             </div>
         </div>
 
-        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm xl:col-span-2">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-xs xl:col-span-2">
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <h2 class="text-lg font-black text-slate-900">Rumah Belum Bayar Bulan Ini</h2>
@@ -176,7 +176,7 @@
     </div>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm xl:col-span-2">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-xs xl:col-span-2">
             <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="text-lg font-black text-slate-900">Grafik Kas {{ $chartData['label'] }}</h2>
@@ -192,7 +192,7 @@
             </div>
         </div>
 
-        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-xs">
             <h2 class="mb-4 text-lg font-black text-slate-900">Tagihan Menunggu Verifikasi</h2>
             <div class="space-y-3">
                 @forelse($tagihanMenungguVerifikasi as $tagihan)
@@ -202,7 +202,7 @@
                                 <p class="truncate text-sm font-bold text-slate-900">{{ $tagihan['user_name'] }}</p>
                                 <p class="text-xs font-semibold text-slate-500">{{ $tagihan['status_label'] }} - {{ $tagihan['bulan'] }}/{{ $tagihan['tahun'] }}</p>
                             </div>
-                            <p class="flex-shrink-0 text-sm font-black text-emerald-700">Rp {{ number_format($tagihan['total'], 0, ',', '.') }}</p>
+                            <p class="shrink-0 text-sm font-black text-emerald-700">Rp {{ number_format($tagihan['total'], 0, ',', '.') }}</p>
                         </div>
                     </div>
                 @empty
@@ -216,7 +216,7 @@
     </div>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-xs">
             <h2 class="text-lg font-black text-slate-900">Tagihan Jatuh Tempo</h2>
             <p class="mt-1 text-xs font-semibold text-slate-500">Menampilkan tagihan yang overdue atau mendekati akhir bulan.</p>
             <div class="mt-4 space-y-3">
@@ -234,7 +234,7 @@
             </div>
         </div>
 
-        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-xs">
             <h2 class="text-lg font-black text-slate-900">Kas Keluar Terbesar Bulan Ini</h2>
             <p class="mt-1 text-xs font-semibold text-slate-500">Bantu cek pengeluaran besar yang perlu dipertanggungjawabkan.</p>
             <div class="mt-4 space-y-3">
@@ -254,16 +254,16 @@
     </div>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-xs">
             <h2 class="mb-4 text-lg font-black text-slate-900">Top 5 Warga - Sepanjang Masa</h2>
             <div class="space-y-3">
                 @forelse($topWarga as $warga)
                     <div class="flex items-center justify-between rounded-xl bg-emerald-50/70 p-3 transition hover:bg-emerald-50">
                         <div class="flex min-w-0 items-center gap-3">
-                            <span class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white">{{ $loop->iteration }}</span>
+                            <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white">{{ $loop->iteration }}</span>
                             <p class="truncate font-semibold text-slate-800">{{ $warga['name'] }}</p>
                         </div>
-                        <p class="flex-shrink-0 font-bold text-emerald-700">Rp {{ number_format($warga['total_iuran'], 0, ',', '.') }}</p>
+                        <p class="shrink-0 font-bold text-emerald-700">Rp {{ number_format($warga['total_iuran'], 0, ',', '.') }}</p>
                     </div>
                 @empty
                     <p class="py-4 text-center text-slate-500">Belum ada data transaksi</p>
@@ -271,7 +271,7 @@
             </div>
         </div>
 
-        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-xs">
             <h2 class="mb-1 text-lg font-black text-slate-900">Pengaduan Terbaru</h2>
             <p class="mb-4 text-xs font-semibold text-slate-500">Fitur tambahan di luar fokus utama kas RT.</p>
             <div class="space-y-3">
@@ -282,7 +282,7 @@
                                 <p class="truncate text-sm font-bold text-slate-900">{{ $pengaduan['judul'] }}</p>
                                 <p class="text-xs font-semibold text-slate-500">{{ $pengaduan['user_name'] ?? 'Warga' }} - {{ $pengaduan['kategori'] }}</p>
                             </div>
-                            <span class="flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase {{ $pengaduan['status'] === 'pending' ? 'bg-amber-100 text-amber-700' : ($pengaduan['status'] === 'proses' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600') }}">
+                            <span class="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase {{ $pengaduan['status'] === 'pending' ? 'bg-amber-100 text-amber-700' : ($pengaduan['status'] === 'proses' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600') }}">
                                 {{ $pengaduan['status'] }}
                             </span>
                         </div>
@@ -294,7 +294,7 @@
         </div>
     </div>
 
-    <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+    <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-xs">
         <h2 class="mb-4 text-lg font-black text-slate-900">Transaksi Terbaru</h2>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-emerald-100 text-sm">

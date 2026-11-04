@@ -15,8 +15,10 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
+use App\Models\Warga;
 use App\Notifications\PaymentReceived;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 
 class TagihanController extends Controller
 {
@@ -42,16 +44,19 @@ class TagihanController extends Controller
                 ->orderByDesc('tahun')
                 ->orderByDesc('bulan')
                 ->get();
-        } elseif ($user->is_kepala_keluarga) {
+        } elseif ($user->warga?->status_dalam_kk === 'kepala_keluarga') {
             $headUser = $user;
             $tagihan = Tagihan::where('user_id', $user->id)
                 ->orderByDesc('tahun')
                 ->orderByDesc('bulan')
                 ->get();
         } else {
-            $headUser = User::where('no_kk', $user->no_kk)
-                ->where('is_kepala_keluarga', true)
-                ->first();
+            $headUser = $user->warga?->kartu_keluarga_id
+                ? User::whereHas('warga', fn ($query) => $query
+                    ->where('kartu_keluarga_id', $user->warga->kartu_keluarga_id)
+                    ->where('status_dalam_kk', 'kepala_keluarga'))
+                    ->first()
+                : null;
 
             if ($headUser) {
                 $showHeadNotice = true;
@@ -64,9 +69,21 @@ class TagihanController extends Controller
             }
         }
 
-        // Optimasi: Ambil semua iuran bulanan yang relevan untuk breakdown tanpa N+1 query
-        $periodes = $tagihan->map(fn($t) => $t->bulan . '-' . $t->tahun)->unique();
-        $allIuranItems = IuranBulanan::whereIn(DB::raw("CONCAT(bulan, '-', tahun)"), $periodes)->get();
+        // Optimasi: Ambil semua iuran bulanan yang relevan untuk breakdown tanpa N+1 query.
+        // Filter manual agar kompatibel SQLite maupun MySQL (CONCAT tidak ada di SQLite).
+        $periodes = $tagihan->map(fn($t) => $t->bulan . '-' . $t->tahun)->unique()->filter();
+        $allIuranItems = IuranBulanan::query()
+            ->when($periodes->isNotEmpty(), function ($query) use ($periodes) {
+                $query->where(function ($query) use ($periodes) {
+                    foreach ($periodes as $periode) {
+                        [$bulan, $tahun] = array_pad(explode('-', (string) $periode, 2), 2, null);
+                        $query->orWhere(function ($query) use ($bulan, $tahun) {
+                            $query->where('bulan', $bulan)->where('tahun', $tahun);
+                        });
+                    }
+                });
+            })
+            ->get();
 
         $tagihan->each(function ($item) use ($allIuranItems) {
             $item->details = $allIuranItems->filter(function ($iuran) use ($item) {
@@ -90,7 +107,7 @@ class TagihanController extends Controller
             return redirect()->route('tagihan.index')->with('error', 'Hanya penanggung jawab rumah yang dapat membayar tagihan iuran.');
         }
 
-        if (! $user->rumah_id && ! $user->is_kepala_keluarga) {
+        if (! $user->rumah_id && $user->warga?->status_dalam_kk !== 'kepala_keluarga') {
             return redirect()->route('tagihan.index')->with('error', 'Hanya kepala keluarga yang dapat membayar tagihan KK.');
         }
 
@@ -177,18 +194,40 @@ class TagihanController extends Controller
 
         $filterBulan = $request->filled('bulan') ? (int) $request->query('bulan') : null;
         $filterTahun = $request->filled('tahun') ? (int) $request->query('tahun') : null;
+        $filterStatus = $request->filled('status') ? (string) $request->query('status') : null;
+        $filterRumahId = $request->filled('rumah_id') ? (int) $request->query('rumah_id') : null;
 
         $tagihans = Tagihan::with(['user', 'rumah', 'verifier', 'rejecter'])
+            ->withExists('cashEntries')
             ->visibleTo($request->user())
             ->when($filterBulan, fn ($query) => $query->where('bulan', $filterBulan))
             ->when($filterTahun, fn ($query) => $query->where('tahun', $filterTahun))
+            ->when($filterStatus === 'tunggakan', fn ($query) => $query->whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline']))
+            ->when($filterStatus === 'menunggu_konfirmasi', fn ($query) => $query->whereIn('status', ['pending_transfer', 'pending_offline']))
+            ->when($filterStatus && ! in_array($filterStatus, ['tunggakan', 'menunggu_konfirmasi'], true), fn ($query) => $query->where('status', $filterStatus))
+            ->when($filterRumahId, fn ($query) => $query->where('rumah_id', $filterRumahId))
             ->orderByDesc('tahun')
             ->orderByDesc('bulan')
             ->paginate(20);
 
+        // Ringkasan Tunggakan Tagihan per RT
+        $tunggakanSummaryQuery = Tagihan::visibleTo($request->user())
+            ->whereIn('status', ['belum_bayar', 'failed', 'pending_transfer', 'pending_offline']);
+
+        $summaryTunggakan = [
+            'total_nominal' => (int) (clone $tunggakanSummaryQuery)->sum('total'),
+            'total_tagihan' => (int) (clone $tunggakanSummaryQuery)->count(),
+            'total_rumah' => (int) (clone $tunggakanSummaryQuery)->whereNotNull('rumah_id')->distinct('rumah_id')->count('rumah_id'),
+        ];
+
+        $rumahList = \App\Models\Rumah::visibleTo($request->user())
+            ->orderBy('kode_rumah')
+            ->get(['id', 'kode_rumah', 'alamat']);
+
         $users = User::whereRelation('role', 'name', 'warga')
+            ->with('rt:id,name')
             ->visibleTo($request->user())
-            ->where('is_kepala_keluarga', true)
+            ->whereHas('warga', fn ($query) => $query->where('status_dalam_kk', 'kepala_keluarga'))
             ->orderBy('name')
             ->get();
         $bulanList = [];
@@ -197,7 +236,7 @@ class TagihanController extends Controller
         }
         $tahunList = range(now()->year - 2, now()->year + 1);
 
-        return view('tagihan.admin', compact('tagihans', 'users', 'bulanList', 'tahunList', 'filterBulan', 'filterTahun'));
+        return view('tagihan.admin', compact('tagihans', 'users', 'bulanList', 'tahunList', 'filterBulan', 'filterTahun', 'filterStatus', 'filterRumahId', 'summaryTunggakan', 'rumahList'));
     }
 
     public function confirm(Request $request)
@@ -212,11 +251,10 @@ class TagihanController extends Controller
             'rejection_reason.min' => 'Alasan penolakan minimal 5 karakter.',
         ]);
 
-        $tagihan = Tagihan::visibleTo($request->user())->findOrFail($request->tagihan_id);
-
-        $oldValues = $tagihan->getOriginal();
-
-        DB::transaction(function () use ($tagihan, $request, $oldValues) {
+        $tagihan = DB::transaction(function () use ($request) {
+            $tagihan = Tagihan::visibleTo($request->user())
+                ->lockForUpdate()->findOrFail($request->tagihan_id);
+            $oldValues = $tagihan->getOriginal();
             if ($request->status === 'lunas') {
                 $tagihan->status = 'lunas';
                 $tagihan->verification_status = 'valid';
@@ -277,13 +315,11 @@ class TagihanController extends Controller
             } else {
                 KasMasuk::where('tagihan_id', $tagihan->id)->delete();
             }
+
+            return $tagihan;
         });
 
-        Cache::forget('admin.dashboard.stats');
-        Cache::forget('admin.dashboard.stats.v2');
-        Cache::forget('admin.dashboard.stats.v3');
-        Cache::forget('dashboard.stats.user.' . $tagihan->user_id);
-        Cache::forget('dashboard.stats.user.v2.' . $tagihan->user_id);
+        $this->clearDashboardCache($tagihan->user_id);
 
         if ($request->ajax()) {
             return response()->json([
@@ -303,8 +339,9 @@ class TagihanController extends Controller
     public function create(): View
     {
         $users = User::whereRelation('role', 'name', 'warga')
+            ->with('rt:id,name')
             ->visibleTo(Auth::user())
-            ->where('is_kepala_keluarga', true)
+            ->whereHas('warga', fn ($query) => $query->where('status_dalam_kk', 'kepala_keluarga'))
             ->orderBy('name')
             ->get();
         $bulanList = [];
@@ -321,7 +358,7 @@ class TagihanController extends Controller
         $validated = $request->validated();
 
         $user = User::visibleTo($request->user())->findOrFail($validated['user_id']);
-        if ($user->role?->name !== 'warga' || !$user->is_kepala_keluarga) {
+        if ($user->role?->name !== 'warga' || $user->warga?->status_dalam_kk !== 'kepala_keluarga') {
             return redirect()->back()->with('error', 'User harus kepala keluarga.');
         }
 
@@ -362,16 +399,19 @@ class TagihanController extends Controller
             'Tagihan baru dibuat untuk ' . $user->name
         );
 
+        $this->clearDashboardCache($tagihan->user_id);
+
         return redirect()->route('tagihan.admin')->with('success', 'Tagihan berhasil dibuat.');
     }
 
     public function edit(Tagihan $tagihan): View
     {
         abort_unless($tagihan->isVisibleTo(Auth::user()), 404);
+        abort_unless($tagihan->canEditDetails(), 403, 'Tagihan yang sedang diproses atau sudah tercatat dalam kas tidak dapat diedit.');
 
         $users = User::whereRelation('role', 'name', 'warga')
             ->visibleTo(Auth::user())
-            ->where('is_kepala_keluarga', true)
+            ->whereHas('warga', fn ($query) => $query->where('status_dalam_kk', 'kepala_keluarga'))
             ->orderBy('name')
             ->get();
         $bulanList = [];
@@ -392,19 +432,28 @@ class TagihanController extends Controller
             'note' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $oldValues = $tagihan->getOriginal();
+        DB::transaction(function () use ($request, $tagihan) {
+            $tagihan = Tagihan::visibleTo($request->user())->lockForUpdate()->findOrFail($tagihan->id);
+            if (! $tagihan->canEditDetails()) {
+                throw ValidationException::withMessages([
+                    'total' => 'Tagihan yang sedang diproses atau sudah tercatat dalam kas tidak dapat diedit.',
+                ]);
+            }
 
-        $tagihan->fill([
-            'total' => $request->total,
-            'note' => $request->note,
-        ]);
+            $oldValues = $tagihan->getOriginal();
+            $tagihan->fill([
+                'total' => $request->total,
+                'note' => $request->note,
+            ]);
+            $tagihan->saveQuietly();
+            $tagihan->recordAuditWithNote(
+                'tagihan_updated',
+                $oldValues,
+                'Tagihan diperbarui oleh admin'
+            );
+        });
 
-        $tagihan->saveQuietly();
-        $tagihan->recordAuditWithNote(
-            'tagihan_updated',
-            $oldValues,
-            'Tagihan diperbarui oleh admin'
-        );
+        $this->clearDashboardCache($tagihan->user_id);
 
         return redirect()->route('tagihan.admin')->with('success', 'Tagihan berhasil diperbarui.');
     }
@@ -418,6 +467,7 @@ class TagihanController extends Controller
         }
 
         $tagihName = $tagihan->user->name . ' (' . $tagihan->bulan . '/' . $tagihan->tahun . ')';
+        $userId = $tagihan->user_id;
 
         $oldValues = $tagihan->getAttributes();
         $tagihan->deleteQuietly();
@@ -427,7 +477,20 @@ class TagihanController extends Controller
             'Tagihan dihapus untuk ' . $tagihName
         );
 
+        $this->clearDashboardCache($userId);
+
         return redirect()->route('tagihan.admin')->with('success', "Tagihan '$tagihName' berhasil dihapus.");
+    }
+
+    private function clearDashboardCache(?int $userId = null): void
+    {
+        Cache::forget('admin.dashboard.stats');
+        Cache::forget('admin.dashboard.stats.v2');
+        Cache::forget('admin.dashboard.stats.v3');
+        if ($userId) {
+            Cache::forget('dashboard.stats.user.' . $userId);
+            Cache::forget('dashboard.stats.user.v2.' . $userId);
+        }
     }
 
     private function canViewBukti(Tagihan $tagihan): bool

@@ -4,10 +4,10 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
-    <div class="rounded-3xl bg-white shadow-sm p-6">
+    <div class="rounded-3xl bg-white shadow-xs p-6 dark:border dark:border-slate-800">
         <div class="mb-6">
-            <h1 class="text-2xl font-bold text-slate-800">Edit Profil Warga</h1>
-            <p class="mt-2 text-sm text-slate-500">Perbarui data warga, KK, dan rumah/unit hunian untuk dasar tagihan iuran.</p>
+            <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Edit Profil Warga</h1>
+            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Perbarui data warga, KK, dan rumah/unit hunian untuk dasar tagihan iuran.</p>
         </div>
 
         @if($errors->any())
@@ -35,17 +35,19 @@
                     <input type="email" name="email" value="{{ old('email', $user->email) }}" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200" required>
                 </div>
 
-                <div class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
-                    <h2 class="text-sm font-bold text-emerald-900">Data Rumah / Unit Hunian</h2>
-                    <p class="mt-1 text-xs text-emerald-700">Tagihan iuran dibuat per rumah. Gunakan penanggung jawab untuk menentukan akun yang menerima tagihan.</p>
+                <div x-data="{ rtId: @js((string) old('rt_id', $user->rt_id)) }" class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5 dark:border-slate-800 dark:bg-slate-800/40">
+                    <h2 class="text-sm font-bold text-emerald-900 dark:text-emerald-400">Data Rumah / Unit Hunian</h2>
+                    <p class="mt-1 text-xs text-emerald-700 dark:text-slate-400">Tagihan iuran dibuat per rumah. Gunakan penanggung jawab untuk menentukan akun yang menerima tagihan.</p>
+
+                    @include('admin.warga.partials.rt-field')
 
                     <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                         <div>
                             <label class="block text-sm font-medium text-slate-700">Pilih Rumah yang Sudah Ada</label>
-                            <select name="rumah_id" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                            <select name="rumah_id" x-ref="residentHouse" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                                 <option value="">Buat rumah baru / belum ditentukan</option>
                                 @foreach($rumahs as $rumah)
-                                    <option value="{{ $rumah->id }}" {{ old('rumah_id', $user->rumah_id) == $rumah->id ? 'selected' : '' }}>{{ $rumah->label }}</option>
+                                    <option value="{{ $rumah->id }}" x-show="rtId === '{{ $rumah->rt_id }}'" :disabled="rtId !== '{{ $rumah->rt_id }}'" {{ old('rumah_id', $user->rumah_id) == $rumah->id ? 'selected' : '' }}>{{ $rumah->label }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -64,7 +66,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700">No. KK</label>
-                    <input type="text" name="no_kk" value="{{ old('no_kk', $user->no_kk) }}" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" autocomplete="off" placeholder="16 digit angka" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                    <input type="text" name="no_kk" value="{{ old('no_kk', $user->warga?->kartuKeluarga?->no_kk) }}" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" autocomplete="off" placeholder="16 digit angka" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                 </div>
 
                 <div>
@@ -72,38 +74,37 @@
                     <input type="text" name="phone" value="{{ old('phone', $user->phone) }}" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" placeholder="10-13 digit angka" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-slate-700">RT</label>
-                    <input type="text" name="rt" value="{{ old('rt', $user->rt) }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700">RW</label>
-                    <input type="text" name="rw" value="{{ old('rw', $user->rw) }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700">Jumlah Anggota Keluarga</label>
-                    <input type="number" name="jumlah_anggota_keluarga" value="{{ old('jumlah_anggota_keluarga', $user->jumlah_anggota_keluarga) }}" min="1" max="20" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                <div class="lg:col-span-2">
+                    <label for="nama-kepala-kk" class="block text-sm font-medium text-slate-700">Nama kepala keluarga untuk KK baru</label>
+                    <input id="nama-kepala-kk" type="text" name="nama_kepala_keluarga" value="{{ old('nama_kepala_keluarga') }}" maxlength="255" class="mt-2 block w-full rounded-2xl border border-slate-200 px-4 py-3">
+                    <p class="mt-2 text-xs text-slate-500">Kepala KK saat ini: {{ $user->warga?->kartuKeluarga?->nama_kepala_keluarga ?? 'Belum ditetapkan' }}. Kolom ini hanya dipakai jika membuat KK baru untuk warga yang berstatus anggota.</p>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                        <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('is_kepala_keluarga', $user->is_kepala_keluarga) ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('is_kepala_keluarga', $user->warga?->status_dalam_kk === 'kepala_keluarga') ? 'checked' : '' }} class="h-4 w-4 rounded-sm border-slate-300 text-emerald-600 focus:ring-emerald-500">
                         Kepala Keluarga
                     </label>
                 </div>
 
+                <div class="lg:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/30">
+                    <label class="inline-flex items-start gap-2 text-sm font-medium text-amber-950 dark:text-amber-200">
+                        <input type="checkbox" name="ganti_kepala_keluarga" value="1" @checked(old('ganti_kepala_keluarga')) class="mt-1 rounded-sm border-amber-300 text-emerald-600">
+                        Saya sudah memeriksa dan menyetujui penggantian kepala KK yang sudah terdaftar.
+                    </label>
+                    <p class="mt-2 text-xs text-amber-900 dark:text-amber-300">Gunakan bersama pilihan Kepala Keluarga hanya saat benar-benar mengganti kepala yang lama. Kepala sebelumnya akan menjadi anggota; satu KK hanya memiliki satu kepala keluarga.</p>
+                </div>
+
                 <div class="flex items-center gap-3">
                     <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                        <input type="checkbox" name="is_penanggung_jawab_rumah" value="1" {{ old('is_penanggung_jawab_rumah', $user->is_penanggung_jawab_rumah) ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" name="is_penanggung_jawab_rumah" value="1" {{ old('is_penanggung_jawab_rumah', $user->is_penanggung_jawab_rumah) ? 'checked' : '' }} class="h-4 w-4 rounded-sm border-slate-300 text-emerald-600 focus:ring-emerald-500">
                         Penanggung Jawab Iuran Rumah
                     </label>
                 </div>
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <a href="{{ route('admin.warga.index') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Kembali</a>
+                <a href="{{ route('admin.warga.index') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Kembali</a>
                 <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700">Simpan Perubahan</button>
             </div>
         </form>

@@ -15,7 +15,7 @@
         </a>
     </div>
 
-    <form method="GET" action="{{ route('setoran-sampah.index') }}" class="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="GET" action="{{ route('setoran-sampah.index') }}" class="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         @foreach(['' => 'Semua', 'menunggu' => 'Menunggu', 'diverifikasi' => 'Diverifikasi', 'ditolak' => 'Ditolak'] as $value => $label)
             <button type="submit" name="status" value="{{ $value }}" class="rounded-xl px-4 py-2 text-xs font-bold transition {{ $status === $value ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
                 {{ $label }}
@@ -23,7 +23,7 @@
         @endforeach
     </form>
 
-    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50 text-left text-xs font-bold uppercase tracking-wider text-slate-500">

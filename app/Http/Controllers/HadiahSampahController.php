@@ -22,7 +22,7 @@ class HadiahSampahController extends Controller
         $canManage = $user->hasPermission('manage-bank-sampah');
 
         $hadiahs = HadiahSampah::where('rw_id', $rwId)
-            ->when(! $canManage, fn($query) => $query->where('is_active', true))
+            ->when(! $canManage, fn ($query) => $query->where('is_active', true))
             ->orderByDesc('is_active')
             ->orderBy('nilai_tukar')
             ->get();
@@ -31,7 +31,7 @@ class HadiahSampahController extends Controller
 
         $penukaranMenunggu = $canManage
             ? PenukaranHadiah::with(['warga.rt', 'hadiah'])
-                ->whereHas('hadiah', fn($query) => $query->where('rw_id', $rwId))
+                ->whereHas('hadiah', fn ($query) => $query->where('rw_id', $rwId))
                 ->where('status', 'menunggu')
                 ->latest()
                 ->get()
@@ -151,7 +151,7 @@ class HadiahSampahController extends Controller
     {
         $rwId = $user->rt()->value('rw_id');
 
-        if (! $rwId && ($this->isRwLevelBankSampahOperator($user) || $user->isGlobalOperator())) {
+        if (! $rwId && $user->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
         }
 

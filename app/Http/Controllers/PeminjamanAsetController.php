@@ -24,7 +24,14 @@ class PeminjamanAsetController extends Controller
         $this->authorizePinjamScope($scope, $user);
 
         $query = PeminjamanAset::with(['aset.rt', 'aset.rw', 'pemohon', 'processor'])
-            ->whereHas('aset', fn ($query) => $query->where('scope', $scope))
+            ->whereHas('aset', function ($query) use ($scope, $user) {
+                $query->where('scope', $scope)
+                    ->when(
+                        $scope === 'rw',
+                        fn ($query) => $query->where('rw_id', $this->resolveRwId($user)),
+                        fn ($query) => $query->where('rt_id', $this->resolveRtId($user))
+                    );
+            })
             ->latest();
 
         if ($this->canManageScope($scope, $user)) {
@@ -301,7 +308,9 @@ class PeminjamanAsetController extends Controller
 
     private function resolveRtId(User $user): int
     {
-        abort_unless($user->rt_id, 403, 'Akun belum terhubung ke RT.');
+        abort_unless($user->rt_id, 403, $user->isGlobalOperator()
+            ? "Akun admin belum terhubung ke RT. Hubungkan akun ke sebuah RT (lihat README, bagian 'Admin awal') agar modul ini bisa dibuka."
+            : 'Akun belum terhubung ke RT.');
 
         return (int) $user->rt_id;
     }
@@ -310,7 +319,7 @@ class PeminjamanAsetController extends Controller
     {
         $rwId = $user->rt()->value('rw_id');
 
-        if (! $rwId && ($user->isRwOfficial() || $user->isGlobalOperator())) {
+        if (! $rwId && $user->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
         }
 

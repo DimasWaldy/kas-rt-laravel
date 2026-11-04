@@ -23,7 +23,7 @@ class CheckPermission
         $user = Auth::user();
 
         $allowed = match ($permission) {
-            'admin-only' => $user->isAdmin() || $user->hasPermission('admin-only'),
+            'admin-only' => $user->hasPermission('admin-only'),
             'manage-finance' => $user->canManageFinance(),
             'view-finance' => $user->canViewFinance(),
             'manage-warga' => $user->canManageWarga(),
@@ -42,7 +42,7 @@ class CheckPermission
     {
         return match ($permission) {
             'admin-only' => 'Halaman ini hanya dapat diakses oleh admin.',
-            'manage-finance' => 'Halaman ini hanya dapat diakses oleh admin atau bendahara.',
+            'manage-finance', 'verify-payment' => 'Halaman ini hanya dapat diakses oleh admin atau bendahara.',
             'manage-warga' => 'Halaman ini hanya dapat diakses oleh admin atau sekretaris.',
             'manage-pengaduan' => 'Halaman ini hanya dapat diakses oleh admin atau sekretaris.',
             default => 'Anda tidak memiliki hak akses untuk membuka halaman ini.',

@@ -30,7 +30,7 @@
         </div>
     @endif
 
-    <form method="GET" action="{{ route('surat.index') }}" class="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="GET" action="{{ route('surat.index') }}" class="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         @foreach(['' => 'Semua', 'submitted' => 'Masuk', 'verified_rt' => 'Verifikasi RT', 'approved_rt' => 'Proses RW', 'done' => 'Selesai', 'rejected' => 'Ditolak'] as $value => $label)
             <button
                 type="submit"
@@ -43,7 +43,7 @@
         @endforeach
     </form>
 
-    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs">
         <div class="hidden overflow-x-auto md:block">
             <table class="min-w-full divide-y divide-slate-100 text-sm">
                 <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">

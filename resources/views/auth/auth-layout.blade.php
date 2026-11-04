@@ -1,234 +1,281 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Masuk & Daftar | KAS RT</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    @vite(['resources/css/app.css'])
+    <title>Masuk & Daftar | Smart RW</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        /* Animasi Inti Sliding */
-        .container.active .sign-in { transform: translateX(100%); opacity: 0; }
-        .container.active .sign-up { transform: translateX(100%); opacity: 1; z-index: 5; animation: move 0.6s; }
-        
-        @keyframes move {
+        .auth-card.active .sign-in {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .auth-card.active .sign-up {
+            transform: translateX(100%);
+            opacity: 1;
+            z-index: 5;
+            pointer-events: auto;
+            animation: authMove 0.6s;
+        }
+
+        @keyframes authMove {
             0%, 49.9% { opacity: 0; z-index: 1; }
             50%, 100% { opacity: 1; z-index: 5; }
         }
 
-        .container.active .toggle-container { transform: translateX(-100%); border-radius: 0 150px 100px 0; }
-        .container.active .toggle { transform: translateX(50%); }
-
-        /* Toast & Visual */
-        .toast-animate { animation: slideIn 0.5s ease-out forwards; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        
-        /* Custom Input Glow */
-        input:focus { box-shadow: 0 0 15px rgba(79, 70, 229, 0.1); }
-        /* Tambahan biar teks ga bocor ke tengah */
-    .toggle-panel {
-        position: absolute;
-        width: 50%;
-        h-full;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 0 40px;
-        text-align: center;
-        top: 0;
-        transform: translateX(0);
-        transition: all 0.6s ease-in-out;
-    }
-
-    /* Form kiri (Login) pas posisi default */
-    .toggle-left {
-        transform: translateX(-200%); /* Lempar jauh ke kiri biar ga keliatan */
-    }
-
-    /* Pas form aktif (Geser) */
-    .container.active .toggle-left {
-        transform: translateX(0);
-    }
-
-    .container.active .toggle-right {
-        transform: translateX(200%); /* Lempar jauh ke kanan pas ga dipake */
-    }
-
-    /* Biar form yang di belakang ga bisa diklik */
-    .form-container {
-        transition: all 0.6s ease-in-out;
-    }
-
-    .container.active .sign-in {
-        transform: translateX(100%);
-        opacity: 0;
-        pointer-events: none; /* Biar ga ngeblock form signup */
-    }
-
-    .container.active .sign-up {
-        transform: translateX(100%);
-        opacity: 1;
-        z-index: 5;
-    }
-    </style>
-</head>
-<body class="bg-slate-100 flex items-center justify-center min-h-screen font-sans p-4 overflow-hidden">
-
-    @if(session('success') || session('error'))
-    <div id="toast" class="fixed top-5 right-5 z-[9999] flex items-center p-4 w-full max-w-xs text-white {{ session('success') ? 'bg-emerald-500' : 'bg-rose-500' }} rounded-2xl shadow-2xl toast-animate">
-        <div class="ml-3 text-sm font-bold">{{ session('success') ?? session('error') }}</div>
-        <button type="button" onclick="closeToast()" class="ml-auto p-1.5 hover:bg-white/20 rounded-lg transition-colors">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-    @endif
-
-    <div class="container bg-white rounded-[40px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] relative overflow-hidden w-[900px] max-w-full min-h-[620px] transition-all duration-700 ease-in-out" id="container">
-        
-        <div class="form-container sign-up absolute top-0 h-full transition-all duration-700 ease-in-out left-0 w-1/2 opacity-0 z-1">
-            <form action="{{ route('register') }}" method="POST" class="bg-white flex flex-col items-center justify-center px-12 h-full text-center">
-                @csrf
-                <div class="bg-indigo-100 text-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-sm">
-                    <i class="fa-solid fa-user-plus"></i>
-                </div>
-                <h1 class="text-3xl font-black text-slate-800 mb-1 tracking-tight">Buat Akun</h1>
-                <p class="text-slate-400 text-xs mb-6 font-medium">Lengkapi data diri untuk akses iuran warga</p>
-                
-                <div class="w-full space-y-3">
-                    <div class="relative">
-                        <i class="fa-solid fa-user absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="text" name="name" placeholder="Nama Lengkap" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('name') }}" required>
-                    </div>
-                    <div class="relative">
-                        <i class="fa-solid fa-envelope absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="email" name="email" placeholder="Email Aktif" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('email') }}" required>
-                    </div>
-                    <div class="relative">
-                        <i class="fa-solid fa-id-card absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="text" name="no_kk" placeholder="Nomor Kartu Keluarga (16 digit)" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" autocomplete="off" class="numeric-only w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('no_kk') }}" required>
-                    </div>
-                    <div class="relative">
-                        <i class="fa-solid fa-phone absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="text" name="phone" placeholder="Nomor HP Kepala Keluarga (maks. 13 digit)" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" class="numeric-only w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('phone') }}" required>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <input type="text" name="rt" placeholder="RT" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="numeric-only bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('rt') }}" required>
-                        <input type="text" name="rw" placeholder="RW" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="numeric-only bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('rw') }}" required>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <input type="password" name="password" placeholder="Password" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" required>
-                        <input type="password" name="password_confirmation" placeholder="Konfirmasi" class="bg-slate-50 border-none px-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" required>
-                    </div>
-                    <div class="relative">
-                        <i class="fa-solid fa-users absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="number" min="1" max="20" name="jumlah_anggota_keluarga" placeholder="Jumlah Anggota Keluarga" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-slate-700" value="{{ old('jumlah_anggota_keluarga') ?? 1 }}" required>
-                    </div>
-                    <div class="flex items-center justify-center gap-3 mt-3">
-                        <label class="inline-flex items-center gap-2 text-slate-600 text-sm">
-                            <input type="checkbox" name="is_kepala_keluarga" value="1" class="h-4 w-4 text-green-600 rounded" {{ old('is_kepala_keluarga') ? 'checked' : '' }}>
-                            Saya Kepala Keluarga
-                        </label>
-                    </div>
-                </div>
-
-                @if (isset($errors) && $errors->any() && (old('name') || request()->is('register')))
-                    <p class="text-rose-500 text-[10px] mt-3 font-bold uppercase tracking-wider">{{ $errors->first() }}</p>
-                @endif
-
-                <button type="submit" class="bg-indigo-600 text-white text-xs py-4 px-14 rounded-2xl font-black tracking-[0.15em] uppercase mt-8 hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-200 transition-all active:scale-95">
-                    Daftar Sekarang
-                </button>
-            </form>
-        </div>
-
-        <div class="form-container sign-in absolute top-0 h-full transition-all duration-700 ease-in-out left-0 w-1/2 z-2">
-            <form action="{{ route('login') }}" method="POST" class="bg-white flex flex-col items-center justify-center px-12 h-full text-center">
-                @csrf
-                <div class="bg-blue-100 text-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-sm">
-                    <i class="fa-solid fa-fingerprint"></i>
-                </div>
-                <h1 class="text-3xl font-black text-slate-800 mb-1 tracking-tight">Selamat Datang</h1>
-                <p class="text-slate-400 text-xs mb-8 font-medium">Masuk untuk mengelola keuangan lingkungan</p>
-                
-                <div class="w-full space-y-4">
-                    <div class="relative">
-                        <i class="fa-solid fa-at absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="email" name="email" placeholder="Email" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-green-500 transition-all font-semibold text-slate-700" required>
-                    </div>
-                    <div class="relative">
-                        <i class="fa-solid fa-lock absolute left-4 top-4 text-slate-400 text-xs"></i>
-                        <input type="password" name="password" placeholder="Password" class="w-full bg-slate-50 border-none pl-11 pr-4 py-3.5 text-sm rounded-2xl outline-none focus:ring-2 focus:ring-green-500 transition-all font-semibold text-slate-700" required>
-                    </div>
-                </div>
-
-                @if (isset($errors) && $errors->any() && !old('name') && !request()->is('register'))
-                    <p class="text-rose-500 text-[10px] mt-3 font-bold uppercase tracking-wider">{{ $errors->first() }}</p>
-                @endif
-
-                <div class="w-full text-right mt-3">
-                    <a href="#" class="text-[10px] font-bold text-slate-400 hover:text-green-600 uppercase tracking-widest transition-colors">Lupa Password?</a>
-                </div>
-
-                <button type="submit" id="loginBtn" class="w-full bg-green-600 text-white text-xs py-4 rounded-2xl font-black tracking-[0.15em] uppercase mt-8 hover:bg-green-700 hover:shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
-                    <span id="loginText">Masuk Ke Sistem</span>
-                    <span id="loginLoading" class="hidden"><i class="fa-solid fa-circle-notch animate-spin"></i></span>
-                </button>
-            </form>
-        </div>
-
-        <div class="toggle-container absolute top-0 left-1/2 w-1/2 h-full overflow-hidden transition-all duration-700 ease-in-out z-[100] rounded-l-[150px]">
-<div class="toggle bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-400 text-white relative -left-full h-full w-[200%] transform transition-all duration-700 ease-in-out">
-        
-        <div class="toggle-panel toggle-left absolute w-1/2 h-full flex flex-col items-center justify-center px-12 text-center top-0 transition-all duration-700 ease-in-out">
-            <h1 class="text-3xl font-black mb-4 tracking-tighter uppercase">Sudah Terdaftar?</h1>
-            <p class="text-sm leading-relaxed mb-8 opacity-80">Kembali masuk untuk memantau saldo kas.</p>
-            <button class="bg-transparent border-2 border-white/50 text-white text-xs py-3 px-12 rounded-2xl font-black uppercase hover:bg-white hover:text-emerald-600 transition-all" id="login">Login Disini</button>
-        </div>
-
-        <div class="toggle-panel toggle-right absolute w-1/2 h-full flex flex-col items-center justify-center px-12 text-center top-0 right-0 transition-all duration-700 ease-in-out">
-            <h1 class="text-3xl font-black mb-4 tracking-tighter uppercase">Belum Gabung?</h1>
-            <p class="text-sm leading-relaxed mb-8 opacity-80">Daftar sekarang untuk akses penuh laporan keuangan.</p>
-            <button class="bg-transparent border-2 border-white/50 text-white text-xs py-3 px-12 rounded-2xl font-black uppercase hover:bg-white hover:text-blue-600 transition-all" id="register">Daftar Warga</button>
-        </div>
-
-    </div>
-</div>
-    </div>
-
-    <script>
-        const container = document.getElementById('container');
-        const registerBtn = document.getElementById('register');
-        const loginBtn = document.getElementById('login');
-
-        // Initial State Check
-        if (window.location.pathname.includes('register')) {
-            container.classList.add("active");
+        .auth-card.active .toggle-container {
+            transform: translateX(-100%);
+            border-radius: 0 150px 100px 0;
         }
 
-        registerBtn.addEventListener('click', () => {
-            container.classList.add("active");
-            window.history.pushState({}, '', '/register'); 
-        });
+        .auth-card.active .toggle {
+            transform: translateX(50%);
+        }
 
-        loginBtn.addEventListener('click', () => {
-            container.classList.remove("active");
-            window.history.pushState({}, '', '/login');
+        .toggle-panel {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 42px;
+            text-align: center;
+            transition: all 0.6s ease-in-out;
+        }
+
+        .toggle-left { transform: translateX(-200%); }
+        .auth-card.active .toggle-left { transform: translateX(0); }
+        .auth-card.active .toggle-right { transform: translateX(200%); }
+
+        .auth-input:focus {
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+        }
+
+        .toast-animate {
+            animation: slideIn 0.45s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .auth-card {
+                min-height: 480px !important;
+                border-radius: 28px !important;
+                display: grid;
+                overflow: hidden;
+            }
+
+            .form-container {
+                grid-area: 1 / 1;
+                position: relative !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                min-height: 100% !important;
+                transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.55s !important;
+                backface-visibility: hidden;
+                will-change: transform, opacity;
+            }
+
+            .sign-in {
+                transform: translateX(0) !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                visibility: visible !important;
+            }
+
+            .sign-up {
+                transform: translateX(100%) !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                visibility: hidden !important;
+                animation: none !important;
+            }
+
+            .auth-card.active .sign-in {
+                transform: translateX(-100%) !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                visibility: hidden !important;
+            }
+
+            .auth-card.active .sign-up {
+                transform: translateX(0) !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                visibility: visible !important;
+                animation: none !important;
+            }
+
+            .toggle-container { display: none; }
+        }
+    </style>
+</head>
+<body class="min-h-screen overflow-x-hidden bg-slate-100 p-4 font-sans text-slate-900">
+    <main class="flex min-h-[calc(100vh-2rem)] items-center justify-center">
+        @if(session('success') || session('error') || session('status'))
+            <div id="toast" class="toast-animate fixed right-5 top-5 z-[9999] flex w-full max-w-xs items-center rounded-2xl p-4 text-white shadow-2xl {{ session('error') ? 'bg-rose-500' : 'bg-emerald-500' }}">
+                <div class="ml-3 text-sm font-bold">{{ session('success') ?? session('status') ?? session('error') }}</div>
+                <button type="button" onclick="closeToast()" class="ml-auto rounded-lg p-1.5 transition-colors hover:bg-white/20">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        @endif
+
+        <div id="authCard" class="auth-card relative min-h-[640px] w-[920px] max-w-full overflow-hidden rounded-[40px] bg-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.22)] transition-all duration-700 ease-in-out">
+            <div class="form-container sign-up pointer-events-none absolute left-0 top-0 h-full w-1/2 opacity-0 transition-all duration-700 ease-in-out">
+                <form action="{{ route('register') }}" method="POST" class="flex h-full flex-col items-center justify-center bg-white px-8 py-10 text-center sm:px-12">
+                    @csrf
+
+                    <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 text-3xl text-indigo-600 shadow-xs">
+                        <i class="fa-solid fa-user-plus"></i>
+                    </div>
+                    <h1 class="mb-1 text-3xl font-black tracking-tight text-slate-800">Buat Akun</h1>
+                    <p class="mb-6 text-xs font-medium text-slate-400">Daftar sebagai warga Smart RW</p>
+
+                    <div class="w-full space-y-3">
+                        <div class="relative">
+                            <i class="fa-solid fa-user absolute left-4 top-4 text-xs text-slate-400"></i>
+                            <input type="text" name="name" placeholder="Nama Lengkap" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" value="{{ old('name') }}" required autocomplete="name">
+                        </div>
+                        <div class="relative">
+                            <i class="fa-solid fa-envelope absolute left-4 top-4 text-xs text-slate-400"></i>
+                            <input type="email" name="email" placeholder="Email Aktif" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" value="{{ old('email') }}" required autocomplete="email">
+                        </div>
+                        <div class="relative">
+                            <i class="fa-solid fa-phone absolute left-4 top-4 text-xs text-slate-400"></i>
+                            <input type="text" name="phone" placeholder="Nomor HP" inputmode="numeric" pattern="[0-9]{10,13}" maxlength="13" autocomplete="tel" class="numeric-only auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" value="{{ old('phone') }}" required>
+                        </div>
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <input type="password" name="password" placeholder="Password" class="auth-input rounded-2xl border-none bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" required autocomplete="new-password">
+                            <input type="password" name="password_confirmation" placeholder="Konfirmasi" class="auth-input rounded-2xl border-none bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-indigo-500" required autocomplete="new-password">
+                        </div>
+                    </div>
+
+                    @if (isset($errors) && $errors->any() && (old('name') || request()->is('register')))
+                        <p class="mt-3 text-[10px] font-bold uppercase tracking-wider text-rose-500">{{ $errors->first() }}</p>
+                    @endif
+
+                    <p class="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-left text-xs font-semibold leading-5 text-blue-800">
+                        <i class="fa-solid fa-circle-info mr-1"></i>
+                        Daftar tanpa memilih rumah. Masuk untuk memantau verifikasi pengurus, lalu ajukan domisili setelah disetujui. Tidak perlu verifikasi email.
+                    </p>
+
+                    <button type="submit" class="mt-6 rounded-2xl bg-indigo-600 px-12 py-4 text-xs font-black uppercase tracking-[0.15em] text-white transition-all hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-200 active:scale-95">
+                        Daftar Sekarang
+                    </button>
+
+                    <button type="button" class="mt-4 text-[11px] font-black uppercase tracking-widest text-emerald-600 md:hidden" data-auth-switch="login">
+                        Sudah punya akun? Login
+                    </button>
+                </form>
+            </div>
+
+            <div class="form-container sign-in absolute left-0 top-0 z-[2] h-full w-1/2 transition-all duration-700 ease-in-out">
+                <form action="{{ route('login') }}" method="POST" class="flex h-full flex-col items-center justify-center bg-white px-8 py-10 text-center sm:px-12">
+                    @csrf
+
+                    <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-3xl text-emerald-600 shadow-xs">
+                        <i class="fa-solid fa-fingerprint"></i>
+                    </div>
+                    <h1 class="mb-1 text-3xl font-black tracking-tight text-slate-800">Selamat Datang</h1>
+                    <p class="mb-4 text-xs font-medium text-slate-500">Masuk untuk layanan Smart RW atau cek status pendaftaran. Jika ditolak, perbaiki lewat akun yang sama.</p>
+
+                    <div class="w-full space-y-4">
+                        <div class="relative">
+                            <i class="fa-solid fa-at absolute left-4 top-4 text-xs text-slate-400"></i>
+                            <input type="email" name="email" placeholder="Email" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-emerald-500" value="{{ old('email') }}" required autocomplete="username">
+                        </div>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-4 top-4 text-xs text-slate-400"></i>
+                            <input type="password" name="password" placeholder="Password" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-emerald-500" required autocomplete="current-password">
+                        </div>
+                    </div>
+
+                    @if (isset($errors) && $errors->any() && !old('name') && !request()->is('register'))
+                        <p class="mt-3 text-[10px] font-bold uppercase tracking-wider text-rose-500">{{ $errors->first() }}</p>
+                    @endif
+
+                    <div class="mt-3 w-full text-right">
+                        <a href="{{ route('password.request') }}" class="text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-colors hover:text-emerald-600">Lupa Password?</a>
+                    </div>
+
+                    <button type="submit" id="loginBtn" class="mt-8 flex w-full items-center justify-center gap-3 rounded-2xl bg-emerald-600 py-4 text-xs font-black uppercase tracking-[0.15em] text-white transition-all hover:bg-emerald-700 hover:shadow-2xl active:scale-95">
+                        <span id="loginText">Masuk Ke Sistem</span>
+                        <span id="loginLoading" class="hidden"><i class="fa-solid fa-circle-notch animate-spin"></i></span>
+                    </button>
+
+                    <button type="button" class="mt-4 text-[11px] font-black uppercase tracking-widest text-indigo-600 md:hidden" data-auth-switch="register">
+                        Belum punya akun? Daftar
+                    </button>
+                </form>
+            </div>
+
+            <div class="toggle-container absolute left-1/2 top-0 z-[100] h-full w-1/2 overflow-hidden rounded-l-[150px] transition-all duration-700 ease-in-out">
+                <div class="toggle relative -left-full h-full w-[200%] bg-linear-to-br/srgb from-emerald-700 via-emerald-500 to-indigo-500 text-white transition-all duration-700 ease-in-out">
+                    <div class="toggle-panel toggle-left">
+                        <h1 class="mb-4 text-3xl font-black uppercase tracking-tighter">Sudah Terdaftar?</h1>
+                        <p class="mb-8 text-sm leading-relaxed opacity-85">Kembali masuk untuk mengelola layanan warga dan memantau aktivitas RW.</p>
+                        <button type="button" class="rounded-2xl border-2 border-white/50 bg-transparent px-12 py-3 text-xs font-black uppercase text-white transition-all hover:bg-white hover:text-emerald-600" data-auth-switch="login">Login Disini</button>
+                    </div>
+
+                    <div class="toggle-panel toggle-right right-0">
+                        <h1 class="mb-4 text-3xl font-black uppercase tracking-tighter">Belum Gabung?</h1>
+                        <p class="mb-8 text-sm leading-relaxed opacity-85">Daftar sebagai warga untuk akses tagihan, surat, koperasi, dan layanan RW.</p>
+                        <button type="button" class="rounded-2xl border-2 border-white/50 bg-transparent px-12 py-3 text-xs font-black uppercase text-white transition-all hover:bg-white hover:text-indigo-600" data-auth-switch="register">Daftar Warga</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const authCard = document.getElementById('authCard');
+        const registerUrl = @js(route('register', absolute: false));
+        const loginUrl = @js(route('login', absolute: false));
+
+        if (window.location.pathname.includes('register')) {
+            authCard.classList.add('active');
+        }
+
+        document.querySelectorAll('[data-auth-switch]').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (button.dataset.authSwitch === 'register') {
+                    authCard.classList.add('active');
+                    window.history.pushState({}, '', registerUrl);
+                    return;
+                }
+
+                authCard.classList.remove('active');
+                window.history.pushState({}, '', loginUrl);
+            });
         });
 
         function closeToast() {
             const toast = document.getElementById('toast');
-            if (toast) {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 500);
+
+            if (! toast) {
+                return;
             }
+
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 500);
         }
 
-        // Loading Effect
-        document.querySelector('.sign-in form').addEventListener('submit', () => {
-            document.getElementById('loginText').innerText = "Memproses...";
+        const loginForm = document.querySelector('.sign-in form');
+        loginForm?.addEventListener('submit', () => {
+            document.getElementById('loginText').innerText = 'Memproses...';
             document.getElementById('loginLoading').classList.remove('hidden');
-            document.getElementById('loginBtn').classList.add('opacity-50', 'pointer-events-none');
+            document.getElementById('loginBtn').classList.add('opacity-60', 'pointer-events-none');
         });
 
         document.querySelectorAll('.numeric-only').forEach((input) => {

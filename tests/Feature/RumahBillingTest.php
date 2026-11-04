@@ -20,16 +20,12 @@ test('monthly bills are generated once per rumah even when a rumah has multiple 
     $penanggungJawab = User::factory()->create([
         'role_id' => $role->id,
         'rumah_id' => $rumah->id,
-        'no_kk' => 'KK-001',
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => true,
     ]);
 
     User::factory()->create([
         'role_id' => $role->id,
         'rumah_id' => $rumah->id,
-        'no_kk' => 'KK-002',
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => false,
     ]);
 
@@ -62,7 +58,6 @@ test('additional iuran creates separate bill except kebersihan and keamanan are 
     $penanggungJawab = User::factory()->create([
         'role_id' => $role->id,
         'rumah_id' => $rumah->id,
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => true,
     ]);
 
@@ -139,14 +134,12 @@ test('regenerating bills does not reset paid or pending bills', function () {
     $paidUser = User::factory()->create([
         'role_id' => $role->id,
         'rumah_id' => $paidHouse->id,
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => true,
     ]);
 
     $pendingUser = User::factory()->create([
         'role_id' => $role->id,
         'rumah_id' => $pendingHouse->id,
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => true,
     ]);
 
@@ -210,7 +203,6 @@ test('regenerating bills keeps rejected proof reason until resident resubmits', 
     $penanggungJawab = User::factory()->create([
         'role_id' => $role->id,
         'rumah_id' => $rumah->id,
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => true,
     ]);
 
@@ -267,14 +259,12 @@ test('non penanggung jawab rumah cannot submit payment for rumah bill', function
     $penanggungJawab = User::factory()->create([
         'role_id' => $role->id,
         'rumah_id' => $rumah->id,
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => true,
     ]);
 
     $anggotaRumah = User::factory()->create([
         'role_id' => $role->id,
         'rumah_id' => $rumah->id,
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => false,
     ]);
 
@@ -314,7 +304,6 @@ test('monthly bill command is idempotent and reports created skipped and updated
     $penanggungJawab = User::factory()->create([
         'role_id' => $role->id,
         'rumah_id' => $rumah->id,
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => true,
     ]);
 

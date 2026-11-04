@@ -10,7 +10,7 @@
         <p class="text-sm text-slate-500">Catat jadwal piket keamanan RW.</p>
     </div>
 
-    <form method="POST" action="{{ route('keamanan.shift.store') }}" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form method="POST" action="{{ route('keamanan.shift.store') }}" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         @csrf
         <div>
             <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Nama Satpam</label>

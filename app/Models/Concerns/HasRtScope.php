@@ -16,8 +16,20 @@ trait HasRtScope
 
     public function scopeVisibleTo(Builder $query, User $actor): Builder
     {
-        if ($actor->canAccessAllRts()) {
+        if ($actor->isGlobalOperator()) {
             return $query;
+        }
+
+        if ($actor->isRwOfficial()) {
+            $rwId = $actor->rt()->value('rw_id');
+
+            return $rwId
+                ? $query->whereHas('rt', fn (Builder $rt) => $rt->where('rw_id', $rwId))
+                : $query->whereRaw('1 = 0');
+        }
+
+        if (! $actor->rt_id) {
+            return $query->whereRaw('1 = 0');
         }
 
         return $query->where($query->getModel()->qualifyColumn('rt_id'), $actor->rt_id);
@@ -25,6 +37,16 @@ trait HasRtScope
 
     public function isVisibleTo(User $actor): bool
     {
-        return $actor->canAccessAllRts() || $this->rt_id === $actor->rt_id;
+        if ($actor->isGlobalOperator()) {
+            return true;
+        }
+
+        if ($actor->isRwOfficial()) {
+            $rwId = $actor->rt()->value('rw_id');
+
+            return (bool) ($rwId && $this->rt()->where('rw_id', $rwId)->exists());
+        }
+
+        return (bool) ($actor->rt_id && $this->rt_id === $actor->rt_id);
     }
 }

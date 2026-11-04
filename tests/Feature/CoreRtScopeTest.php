@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\KasKeluar;
 use App\Models\KasMasuk;
 use App\Models\Role;
@@ -39,13 +40,11 @@ beforeEach(function () {
     $this->wargaRtSatu = User::factory()->create([
         'role_id' => $wargaRoleId,
         'rt_id' => $this->rtSatu->id,
-        'is_kepala_keluarga' => true,
     ]);
 
     $this->wargaRtDua = User::factory()->create([
         'role_id' => $wargaRoleId,
         'rt_id' => $this->rtDua->id,
-        'is_kepala_keluarga' => true,
     ]);
 });
 
@@ -142,6 +141,94 @@ test('bendahara rt cash report excludes transactions from other rt', function ()
         ->assertDontSee('Kas Keluar RT Dua');
 });
 
+test('warga only sees incoming cash from their own rt', function () {
+    KasMasuk::create([
+        'rt_id' => $this->rtSatu->id,
+        'keterangan' => 'Kas Masuk Warga RT Satu',
+        'jumlah' => 125000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    KasMasuk::create([
+        'rt_id' => $this->rtDua->id,
+        'keterangan' => 'Kas Masuk Warga RT Dua',
+        'jumlah' => 875000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    $this->actingAs($this->wargaRtSatu)
+        ->get(route('kas-masuk.index'))
+        ->assertOk()
+        ->assertSee('Kas Masuk Warga RT Satu')
+        ->assertDontSee('Kas Masuk Warga RT Dua');
+});
+
+test('warga without rt sees no incoming cash', function () {
+    $wargaTanpaRt = User::factory()->create([
+        'role_id' => Role::where('name', 'warga')->value('id'),
+        'rt_id' => null,
+    ]);
+
+    KasMasuk::create([
+        'rt_id' => $this->rtSatu->id,
+        'keterangan' => 'Kas Masuk Tanpa RT',
+        'jumlah' => 125000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    $this->actingAs($wargaTanpaRt)
+        ->get(route('kas-masuk.index'))
+        ->assertOk()
+        ->assertDontSee('Kas Masuk Tanpa RT');
+});
+
+test('warga only sees outgoing cash from their own rt', function () {
+    KasKeluar::create([
+        'rt_id' => $this->rtSatu->id,
+        'keterangan' => 'Kas Keluar Warga RT Satu',
+        'jumlah' => 45000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    KasKeluar::create([
+        'rt_id' => $this->rtDua->id,
+        'keterangan' => 'Kas Keluar Warga RT Dua',
+        'jumlah' => 95000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    $this->actingAs($this->wargaRtSatu)
+        ->get(route('kas-keluar.index'))
+        ->assertOk()
+        ->assertSee('Kas Keluar Warga RT Satu')
+        ->assertDontSee('Kas Keluar Warga RT Dua');
+});
+
+test('non-warga user sees role banner on personal tagihan page', function () {
+    $this->actingAs($this->bendaharaRtSatu)
+        ->get(route('tagihan.index'))
+        ->assertOk()
+        ->assertSee('Informasi Khusus Pengurus / Non-Warga')
+        ->assertSee('Kelola Tagihan Warga');
+
+    $this->actingAs($this->wargaRtSatu)
+        ->get(route('tagihan.index'))
+        ->assertOk()
+        ->assertDontSee('Informasi Khusus Pengurus / Non-Warga');
+});
+
+test('ketua rt can access iuran bulanan page and menu', function () {
+    $ketuaRt = User::factory()->create([
+        'role_id' => Role::where('name', 'ketua_rt')->value('id') ?? Role::where('name', 'rt')->value('id'),
+        'rt_id' => $this->rtSatu->id,
+    ]);
+
+    $this->actingAs($ketuaRt)
+        ->get(route('iuran-bulanan.index'))
+        ->assertOk()
+        ->assertSee('Iuran Bulanan');
+});
+
 test('bendahara rt dashboard totals only include their own rt', function () {
     KasMasuk::create([
         'rt_id' => $this->rtSatu->id,
@@ -176,4 +263,108 @@ test('bendahara rt dashboard totals only include their own rt', function () {
         ->assertOk()
         ->assertViewHas('kasMasuk', 125000)
         ->assertViewHas('kasKeluar', 20000);
+});
+
+test('dashboard audit logs only include actors from the same rw', function () {
+    $rwLain = Rw::create(['name' => 'RW Audit Lain', 'is_active' => true]);
+    $rtLain = Rt::create(['rw_id' => $rwLain->id, 'name' => 'RT Audit Lain', 'is_active' => true]);
+    $ketuaRw = User::factory()->create([
+        'role_id' => Role::where('name', 'ketua_rw')->value('id'),
+        'rt_id' => $this->rtSatu->id,
+    ]);
+    $wargaLain = User::factory()->create([
+        'role_id' => Role::where('name', 'warga')->value('id'),
+        'rt_id' => $rtLain->id,
+    ]);
+
+    AuditLog::create([
+        'user_id' => $this->wargaRtSatu->id,
+        'auditable_type' => User::class,
+        'auditable_id' => $this->wargaRtSatu->id,
+        'event' => 'created',
+        'notes' => 'Audit dalam RW',
+    ]);
+    AuditLog::create([
+        'user_id' => $wargaLain->id,
+        'auditable_type' => User::class,
+        'auditable_id' => $wargaLain->id,
+        'event' => 'created',
+        'notes' => 'Audit luar RW',
+    ]);
+
+    $this->actingAs($ketuaRw)->get(route('dashboard'))->assertOk()
+        ->assertViewHas('recentAuditLogs', fn (array $logs) => collect($logs)->pluck('notes')->all() === ['Audit dalam RW']);
+
+    $ketuaRw->update(['rt_id' => null]);
+    $this->actingAs($ketuaRw->fresh())->get(route('dashboard'))->assertOk()
+        ->assertViewHas('recentAuditLogs', []);
+});
+
+test('rw officials cannot view or access data from another rw', function () {
+    $rwDua = Rw::create([
+        'name' => 'RW Dua Luar',
+        'is_active' => true,
+    ]);
+
+    $rtTigaRwDua = Rt::create([
+        'rw_id' => $rwDua->id,
+        'name' => 'RT 03 RW 02',
+        'is_active' => true,
+    ]);
+
+    $bendaharaRwSatu = User::factory()->create([
+        'role_id' => Role::where('name', 'bendahara_rw')->value('id'),
+        'rt_id' => $this->rtSatu->id,
+    ]);
+
+    $kasMasukRwSatu = KasMasuk::create([
+        'rt_id' => $this->rtSatu->id,
+        'keterangan' => 'Kas RW 01 Internal',
+        'jumlah' => 150000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    $kasMasukRwDua = KasMasuk::create([
+        'rt_id' => $rtTigaRwDua->id,
+        'keterangan' => 'Kas RW 02 Luar',
+        'jumlah' => 750000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    // HasRtScope isolation across RW boundaries
+    $visibleKas = KasMasuk::visibleTo($bendaharaRwSatu)->pluck('id');
+    expect($visibleKas)->toContain($kasMasukRwSatu->id)
+        ->not->toContain($kasMasukRwDua->id);
+
+    expect($kasMasukRwSatu->isVisibleTo($bendaharaRwSatu))->toBeTrue();
+    expect($kasMasukRwDua->isVisibleTo($bendaharaRwSatu))->toBeFalse();
+
+    // User scope isolation across RW boundaries
+    $wargaRwDua = User::factory()->create([
+        'role_id' => Role::where('name', 'warga')->value('id'),
+        'rt_id' => $rtTigaRwDua->id,
+    ]);
+
+    $visibleUsers = User::visibleTo($bendaharaRwSatu)->pluck('id');
+    expect($visibleUsers)->toContain($this->wargaRtSatu->id)
+        ->toContain($this->wargaRtDua->id)
+        ->not->toContain($wargaRwDua->id);
+});
+
+test('rw officials without assigned rt cannot access rt scoped data fail-closed', function () {
+    $bendaharaRwTanpaRt = User::factory()->create([
+        'role_id' => Role::where('name', 'bendahara_rw')->value('id'),
+        'rt_id' => null,
+    ]);
+
+    $kasMasuk = KasMasuk::create([
+        'rt_id' => $this->rtSatu->id,
+        'keterangan' => 'Kas RT Satu',
+        'jumlah' => 150000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    expect(KasMasuk::visibleTo($bendaharaRwTanpaRt)->pluck('id'))->toBeEmpty();
+    expect($kasMasuk->isVisibleTo($bendaharaRwTanpaRt))->toBeFalse();
+    expect(User::visibleTo($bendaharaRwTanpaRt)->pluck('id'))->toBeEmpty();
 });

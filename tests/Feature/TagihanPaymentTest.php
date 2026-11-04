@@ -6,10 +6,29 @@ use App\Models\Rumah;
 use App\Models\User;
 use App\Models\Tagihan;
 use App\Models\KasMasuk;
+use App\Models\Warga;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Database\Seeders\RoleAndPermissionSeeder;
+
+function buatWargaTagihan(array $attributes): User
+{
+    $user = User::factory()->create($attributes);
+
+    Warga::create([
+        'user_id' => $user->id,
+        'nama_lengkap' => $user->name,
+        'status_dalam_kk' => 'kepala_keluarga',
+        'status_verifikasi' => 'terverifikasi',
+        'diverifikasi_at' => now(),
+    ]);
+
+    return $user;
+}
 
 beforeEach(function () {
+    $this->seed(RoleAndPermissionSeeder::class);
+
     // Gunakan firstOrCreate agar tidak duplikat antar test case
     $this->wargaRole = Role::firstOrCreate(
         ['name' => 'warga'],
@@ -25,10 +44,8 @@ beforeEach(function () {
 test('resident can pay bill using bank transfer with valid file', function () {
     Storage::fake('local');
 
-    $resident = User::factory()->create([
+    $resident = buatWargaTagihan([
         'role_id'           => $this->wargaRole->id,
-        'is_kepala_keluarga' => true,
-        'no_kk'             => '1234567890123456',
     ]);
 
     $tagihan = Tagihan::create([
@@ -76,10 +93,8 @@ test('resident can pay bill using bank transfer with valid file', function () {
         ->get(route('tagihan.bukti', $tagihan))
         ->assertOk();
 
-    $otherResident = User::factory()->create([
+    $otherResident = buatWargaTagihan([
         'role_id' => $this->wargaRole->id,
-        'is_kepala_keluarga' => true,
-        'no_kk' => '9876543210987654',
     ]);
 
     $this->actingAs($otherResident)
@@ -88,10 +103,8 @@ test('resident can pay bill using bank transfer with valid file', function () {
 });
 
 test('transfer payment fails validation when file is missing, invalid type, or too large', function () {
-    $resident = User::factory()->create([
+    $resident = buatWargaTagihan([
         'role_id'           => $this->wargaRole->id,
-        'is_kepala_keluarga' => true,
-        'no_kk'             => '1234567890123456',
     ]);
 
     $tagihan = Tagihan::create([
@@ -138,10 +151,8 @@ test('transfer payment fails validation when file is missing, invalid type, or t
 });
 
 test('resident can pay offline with a valid note', function () {
-    $resident = User::factory()->create([
+    $resident = buatWargaTagihan([
         'role_id'           => $this->wargaRole->id,
-        'is_kepala_keluarga' => true,
-        'no_kk'             => '1234567890123456',
     ]);
 
     $tagihan = Tagihan::create([
@@ -174,10 +185,8 @@ test('resident can pay offline with a valid note', function () {
 });
 
 test('offline payment fails validation when note is missing or too short', function () {
-    $resident = User::factory()->create([
+    $resident = buatWargaTagihan([
         'role_id'           => $this->wargaRole->id,
-        'is_kepala_keluarga' => true,
-        'no_kk'             => '1234567890123456',
     ]);
 
     $tagihan = Tagihan::create([
@@ -211,10 +220,8 @@ test('offline payment fails validation when note is missing or too short', funct
 });
 
 test('resident cannot resubmit payment while bill is already pending', function () {
-    $resident = User::factory()->create([
+    $resident = buatWargaTagihan([
         'role_id' => $this->wargaRole->id,
-        'is_kepala_keluarga' => true,
-        'no_kk' => '1234567890123456',
     ]);
 
     $tagihan = Tagihan::create([
@@ -246,10 +253,8 @@ test('cash income is created only after verification and removed when bill is re
         'role_id' => $this->adminRole->id,
     ]);
 
-    $resident = User::factory()->create([
+    $resident = buatWargaTagihan([
         'role_id' => $this->wargaRole->id,
-        'is_kepala_keluarga' => true,
-        'no_kk' => '1234567890123456',
     ]);
 
     $tagihan = Tagihan::create([
@@ -306,10 +311,8 @@ test('admin can reject payment proof with reason and resident can resubmit', fun
         'role_id' => $this->adminRole->id,
     ]);
 
-    $resident = User::factory()->create([
+    $resident = buatWargaTagihan([
         'role_id' => $this->wargaRole->id,
-        'is_kepala_keluarga' => true,
-        'no_kk' => '1234567890123456',
     ]);
 
     $tagihan = Tagihan::create([
@@ -367,10 +370,8 @@ test('admin can confirm bill through ajax and receives json payload', function (
         'role_id' => $this->adminRole->id,
     ]);
 
-    $resident = User::factory()->create([
+    $resident = buatWargaTagihan([
         'role_id' => $this->wargaRole->id,
-        'is_kepala_keluarga' => true,
-        'no_kk' => '1234567890123456',
     ]);
 
     $tagihan = Tagihan::create([
@@ -410,10 +411,8 @@ test('manual bill uses deterministic billing group and rejects duplicate manual 
         'role_id' => $this->adminRole->id,
     ]);
 
-    $resident = User::factory()->create([
+    $resident = buatWargaTagihan([
         'role_id' => $this->wargaRole->id,
-        'is_kepala_keluarga' => true,
-        'no_kk' => '1234567890123456',
     ]);
 
     Tagihan::create([
@@ -473,20 +472,16 @@ test('manual bill duplicate check uses rumah when resident has rumah', function 
         'status' => 'aktif',
     ]);
 
-    $head = User::factory()->create([
+    $head = buatWargaTagihan([
         'role_id' => $this->wargaRole->id,
         'rumah_id' => $rumah->id,
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => true,
-        'no_kk' => '1234567890123456',
     ]);
 
-    $otherHeadInSameHouse = User::factory()->create([
+    $otherHeadInSameHouse = buatWargaTagihan([
         'role_id' => $this->wargaRole->id,
         'rumah_id' => $rumah->id,
-        'is_kepala_keluarga' => true,
         'is_penanggung_jawab_rumah' => false,
-        'no_kk' => '6543210987654321',
     ]);
 
     $rumah->update(['penanggung_jawab_id' => $head->id]);
@@ -530,10 +525,8 @@ test('admin bill page paginates and filters by month and year', function () {
     ]);
 
     for ($i = 1; $i <= 25; $i++) {
-        $resident = User::factory()->create([
+        $resident = buatWargaTagihan([
             'role_id' => $this->wargaRole->id,
-            'is_kepala_keluarga' => true,
-            'no_kk' => '3174' . str_pad((string) $i, 12, '0', STR_PAD_LEFT),
         ]);
 
         Tagihan::create([
@@ -547,10 +540,8 @@ test('admin bill page paginates and filters by month and year', function () {
         ]);
     }
 
-    $otherResident = User::factory()->create([
+    $otherResident = buatWargaTagihan([
         'role_id' => $this->wargaRole->id,
-        'is_kepala_keluarga' => true,
-        'no_kk' => '3174999999999999',
     ]);
 
     Tagihan::create([
@@ -576,5 +567,66 @@ test('admin bill page paginates and filters by month and year', function () {
             && $tagihans->total() === 25
             && $tagihans->count() === 20
             && $tagihans->every(fn (Tagihan $tagihan) => $tagihan->bulan === 6 && $tagihan->tahun === 2026);
+    });
+});
+
+test('admin can filter bills by status including menunggu konfirmasi and view accurate summary', function () {
+    $admin = User::factory()->create([
+        'role_id' => $this->adminRole->id,
+    ]);
+
+    $resident = buatWargaTagihan([
+        'role_id' => $this->wargaRole->id,
+    ]);
+
+    Tagihan::create([
+        'user_id' => $resident->id,
+        'bulan' => 1,
+        'tahun' => 2026,
+        'total' => 25000,
+        'status' => 'pending_transfer',
+        'verification_status' => 'menunggu',
+    ]);
+
+    Tagihan::create([
+        'user_id' => $resident->id,
+        'bulan' => 2,
+        'tahun' => 2026,
+        'total' => 30000,
+        'status' => 'pending_offline',
+        'verification_status' => 'menunggu',
+    ]);
+
+    Tagihan::create([
+        'user_id' => $resident->id,
+        'bulan' => 3,
+        'tahun' => 2026,
+        'total' => 45000,
+        'status' => 'belum_bayar',
+    ]);
+
+    Tagihan::create([
+        'user_id' => $resident->id,
+        'bulan' => 4,
+        'tahun' => 2026,
+        'total' => 50000,
+        'status' => 'lunas',
+    ]);
+
+    // Test filter menunggu_konfirmasi
+    $response = $this->actingAs($admin)->get(route('tagihan.admin', [
+        'status' => 'menunggu_konfirmasi',
+    ]));
+
+    $response->assertOk();
+    $response->assertViewHas('tagihans', function ($tagihans) {
+        return $tagihans->count() === 2
+            && $tagihans->every(fn (Tagihan $t) => in_array($t->status, ['pending_transfer', 'pending_offline'], true));
+    });
+
+    // Test summary nominal calculation
+    $response->assertViewHas('summaryTunggakan', function ($summary) {
+        return $summary['total_nominal'] === (25000 + 30000 + 45000)
+            && $summary['total_tagihan'] === 3;
     });
 });

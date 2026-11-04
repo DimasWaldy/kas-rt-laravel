@@ -27,8 +27,7 @@ class PengaduanController extends Controller
                 $query->where('status', $filter);
             }
         } else {
-            // Warga melihat semua pengaduan di RT (untuk transparansi), 
-            // atau bisa memfilter pengaduan miliknya sendiri.
+            // Warga hanya melihat pengaduan dalam RT sendiri; filter default tetap transparan.
             if ($filter === 'saya') {
                 $query->where('user_id', $user->id);
             } elseif (in_array($filter, ['pending', 'proses', 'selesai', 'ditolak'])) {

@@ -15,7 +15,7 @@
             <form action="{{ route('pengaduan.destroy', $pengaduan) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengaduan ini?')">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-4 py-2.5 rounded-xl border border-red-100 transition shadow-sm">
+                <button type="submit" class="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-4 py-2.5 rounded-xl border border-red-100 transition shadow-xs">
                     <i class="fa-solid fa-trash-can text-xs"></i>
                     Hapus Pengaduan
                 </button>
@@ -27,7 +27,7 @@
 
         {{-- Kolom Kiri: Detail Pengaduan --}}
         <div class="lg:col-span-2 space-y-6">
-            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs">
                 {{-- Kategori & Status --}}
                 <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
                     @php
@@ -67,7 +67,7 @@
 
                 {{-- Waktu & Pelapor --}}
                 <div class="flex items-center gap-3 bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
-                    <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
                         {{ substr($pengaduan->user->name, 0, 1) }}
                     </div>
                     <div class="min-w-0">
@@ -94,7 +94,7 @@
 
             {{-- Tanggapan Admin --}}
             @if($pengaduan->tanggapan)
-                <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-3xl p-6 shadow-sm">
+                <div class="bg-linear-to-br/srgb from-emerald-50 to-teal-50 border border-emerald-100 rounded-3xl p-6 shadow-xs">
                     <div class="flex items-center justify-between gap-3 mb-4">
                         <div class="flex items-center gap-2">
                             <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-sm">
@@ -109,7 +109,7 @@
                             {{ $pengaduan->tanggapan_at ? $pengaduan->tanggapan_at->diffForHumans() : '' }}
                         </span>
                     </div>
-                    <div class="text-sm text-slate-700 leading-relaxed whitespace-pre-line bg-white rounded-2xl p-4 border border-emerald-100/50 shadow-sm">
+                    <div class="text-sm text-slate-700 leading-relaxed whitespace-pre-line bg-white rounded-2xl p-4 border border-emerald-100/50 shadow-xs">
                         {{ $pengaduan->tanggapan }}
                     </div>
                 </div>
@@ -117,7 +117,7 @@
 
             {{-- Formulir Tanggapan Khusus Admin --}}
             @if(auth()->user()->canManagePengaduan())
-                <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs">
                     <h2 class="text-base font-bold text-slate-800 mb-2">Tanggapan & Solusi Pengurus RT</h2>
                     <p class="text-xs text-slate-400 mb-6">Berikan tanggapan, update penanganan, atau tindak lanjut atas pengaduan warga.</p>
 
@@ -129,7 +129,7 @@
                             <div>
                                 <label for="status" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Update Status Laporan</label>
                                 <select name="status" id="status" required
-                                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all bg-white">
+                                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all bg-white">
                                     <option value="pending" {{ $pengaduan->status === 'pending' ? 'selected' : '' }}>Menunggu Verifikasi</option>
                                     <option value="proses" {{ $pengaduan->status === 'proses' ? 'selected' : '' }}>Diproses / Investigasi</option>
                                     <option value="selesai" {{ $pengaduan->status === 'selesai' ? 'selected' : '' }}>Selesai / Teratasi</option>
@@ -141,7 +141,7 @@
                         <div class="mb-5">
                             <label for="tanggapan" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Tanggapan / Catatan Penanganan</label>
                             <textarea name="tanggapan" id="tanggapan" rows="4" required
-                                      class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all leading-relaxed"
+                                      class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all leading-relaxed"
                                       placeholder="Tuliskan respon resmi pengurus RT (contoh: Laporan diterima. Tim kebersihan akan dikerahkan sore ini untuk membersihkan jalan...)">{{ old('tanggapan', $pengaduan->tanggapan) }}</textarea>
                             @error('tanggapan')
                                 <p class="text-xs text-red-500 mt-1 font-semibold">{{ $message }}</p>
@@ -150,7 +150,7 @@
 
                         <div class="flex justify-end">
                             <button type="submit" 
-                                    class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition transform hover:-translate-y-0.5">
+                                    class="bg-linear-to-r/srgb from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition transform hover:-translate-y-0.5">
                                 Simpan Tanggapan & Perbarui Status
                             </button>
                         </div>
@@ -161,7 +161,7 @@
 
         {{-- Kolom Kanan: Linimasa Perkembangan --}}
         <div>
-            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm sticky top-6">
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs sticky top-6">
                 <h3 class="text-sm font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3">Linimasa Penanganan</h3>
 
                 <div class="flow-root">

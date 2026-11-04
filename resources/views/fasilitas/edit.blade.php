@@ -10,7 +10,7 @@
         <p class="text-sm text-slate-500">Perbarui data fasilitas dan kondisi terbarunya.</p>
     </div>
 
-    <form method="POST" action="{{ route('fasilitas.update', $fasilitas) }}" enctype="multipart/form-data" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form method="POST" action="{{ route('fasilitas.update', $fasilitas) }}" enctype="multipart/form-data" class="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         @csrf
         @method('PUT')
         @include('fasilitas.partials.form', ['submitLabel' => 'Update Fasilitas'])

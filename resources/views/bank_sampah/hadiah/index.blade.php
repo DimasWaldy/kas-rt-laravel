@@ -38,7 +38,7 @@
 
     <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         @forelse($hadiahs as $hadiah)
-            <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" x-data="{ open: false }">
+            <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs" x-data="{ open: false }">
                 <div class="relative h-48 bg-slate-100">
                     @if($hadiah->foto)
                         <img src="{{ route('hadiah-sampah.foto', $hadiah) }}" alt="Foto {{ $hadiah->nama }}" class="h-full w-full object-cover">

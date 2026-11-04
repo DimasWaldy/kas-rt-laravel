@@ -6,6 +6,7 @@ use App\Models\Concerns\HasRtScope;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 use App\Models\IuranBulanan;
@@ -56,6 +57,19 @@ class Tagihan extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function cashEntries(): HasMany
+    {
+        return $this->hasMany(KasMasuk::class)->withTrashed();
+    }
+
+    public function canEditDetails(): bool
+    {
+        return in_array($this->status, ['belum_bayar', 'failed'], true)
+            && ! $this->paid_at
+            && ! in_array($this->verification_status, ['menunggu', 'valid'], true)
+            && ! ($this->cash_entries_exists ?? $this->cashEntries()->exists());
     }
 
     public function rumah(): BelongsTo

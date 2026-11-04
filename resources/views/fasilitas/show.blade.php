@@ -26,7 +26,7 @@
     </div>
 
     <div class="grid gap-6 lg:grid-cols-3">
-        <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:col-span-2">
+        <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs lg:col-span-2">
             <div class="h-72 bg-slate-100">
                 @if($fasilitas->foto)
                     <img src="{{ route('fasilitas.foto', $fasilitas) }}" alt="Foto {{ $fasilitas->nama }}" class="h-full w-full object-cover">
@@ -52,7 +52,7 @@
         </section>
 
         <aside class="space-y-4">
-            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
                 <h2 class="font-black text-slate-900">Info Scope</h2>
                 <dl class="mt-4 space-y-3 text-sm">
                     <div><dt class="font-bold text-slate-400">RW</dt><dd class="text-slate-700">{{ $fasilitas->rw?->name ?? '-' }}</dd></div>
@@ -72,7 +72,7 @@
         </aside>
     </div>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
         <h2 class="font-black text-slate-900">Riwayat Pengaduan Fasilitas</h2>
         <div class="mt-4 space-y-3">
             @forelse($fasilitas->pengaduanFasilitas as $pengaduan)

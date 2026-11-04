@@ -43,7 +43,7 @@ beforeEach(function () {
 
     $this->ketuaRw = User::factory()->create([
         'role_id' => $roleId('ketua_rw'),
-        'rt_id' => null,
+        'rt_id' => $this->rtSatu->id,
     ]);
 
     $this->warga = User::factory()->create([

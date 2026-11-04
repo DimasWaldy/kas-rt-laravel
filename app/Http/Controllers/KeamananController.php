@@ -28,7 +28,7 @@ class KeamananController extends Controller
             ->get();
 
         $logs = LogPatroli::with(['jadwalShift', 'pencatat'])
-            ->whereHas('jadwalShift', fn($query) => $query->where('rw_id', $rwId))
+            ->whereHas('jadwalShift', fn ($query) => $query->where('rw_id', $rwId))
             ->whereBetween('waktu_patroli', [$tanggalMulai->startOfDay(), $tanggalSelesai->endOfDay()])
             ->latest('waktu_patroli')
             ->get();
@@ -115,7 +115,7 @@ class KeamananController extends Controller
     {
         $rwId = $user->rt()->value('rw_id');
 
-        if (! $rwId && ($user->isRwOfficial() || $user->isGlobalOperator())) {
+        if (! $rwId && $user->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
         }
 

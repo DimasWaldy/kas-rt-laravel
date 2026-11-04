@@ -4,18 +4,19 @@
 
 @section('content')
 <div class="mx-auto max-w-4xl space-y-6">
-    <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+    <div class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
         <h1 class="text-2xl font-black text-slate-900">Edit Rumah / Unit Hunian</h1>
         <p class="mt-2 text-sm text-slate-500">Atur alamat, status rumah, dan penanggung jawab iuran dengan jelas.</p>
     </div>
 
+    <x-billing-contact-warning :rumah="$rumah" />
     @if($errors->any())
         <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
             {{ $errors->first() }}
         </div>
     @endif
 
-    <form method="POST" action="{{ route('admin.rumah.update', $rumah) }}" class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+    <form method="POST" action="{{ route('admin.rumah.update', $rumah) }}" class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
         @csrf
         @method('PATCH')
 
@@ -48,13 +49,14 @@
                 <label class="block text-sm font-bold text-slate-700">Penanggung Jawab Iuran</label>
                 <select name="penanggung_jawab_id" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                     <option value="">Belum ditentukan</option>
-                    @foreach($rumah->warga as $warga)
+                    @foreach($eligiblePjs as $warga)
                         <option value="{{ $warga->id }}" {{ old('penanggung_jawab_id', $rumah->penanggung_jawab_id) == $warga->id ? 'selected' : '' }}>
                             {{ $warga->name }}{{ $warga->is_kepala_keluarga ? ' - Kepala KK' : '' }}
                         </option>
                     @endforeach
                 </select>
-                <p class="mt-2 text-xs text-slate-500">Jika status rumah dibuat kosong/nonaktif, PJ iuran otomatis dikosongkan.</p>
+                <p class="mt-2 text-xs text-slate-500">Pilih akun aktif yang tinggal di rumah dan RT ini. Jika status rumah dibuat kosong/nonaktif, PJ iuran otomatis dikosongkan. Menyimpan PJ tidak langsung membuat tagihan; generate ulang periode yang diperlukan setelah selesai.</p>
+                @if($eligiblePjs->isEmpty())<p class="mt-2 text-sm font-semibold text-amber-900">Belum ada penghuni aktif yang dapat dipilih. Selesaikan penetapan warga ke rumah ini terlebih dahulu.</p>@endif
             </div>
         </div>
 

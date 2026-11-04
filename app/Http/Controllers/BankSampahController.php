@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\PenarikanSampah;
 use App\Models\PenjualanSampah;
-use App\Models\SaldoSampah;
 use App\Models\Rw;
+use App\Models\SaldoSampah;
 use App\Models\SetoranSampah;
 use App\Models\TransaksiSampah;
 use App\Models\User;
@@ -68,7 +68,7 @@ class BankSampahController extends Controller
     {
         $rwId = $user->rt()->value('rw_id');
 
-        if (! $rwId && ($this->isRwLevelBankSampahOperator($user) || $user->isGlobalOperator())) {
+        if (! $rwId && $user->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
         }
 

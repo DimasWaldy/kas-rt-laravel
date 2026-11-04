@@ -18,7 +18,7 @@
         @endif
     </div>
 
-    <form method="GET" action="{{ route('kegiatan.index') }}" class="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="GET" action="{{ route('kegiatan.index') }}" class="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         @foreach(['' => 'Semua', 'akan_datang' => 'Akan Datang', 'berlangsung' => 'Berlangsung', 'selesai' => 'Selesai', 'dibatalkan' => 'Dibatalkan'] as $value => $label)
             <button type="submit" name="status" value="{{ $value }}" class="rounded-xl px-4 py-2 text-xs font-bold transition {{ $status === $value ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
                 {{ $label }}
@@ -39,7 +39,7 @@
                     $gunakanDokumentasi = $kegiatan->foto_dokumentasi
                         && in_array($kegiatan->effective_status, ['berlangsung', 'selesai'], true);
                 @endphp
-                <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs transition hover:-translate-y-0.5 hover:shadow-lg">
                     <div class="relative h-48 bg-slate-100">
                         @if($gunakanDokumentasi)
                             <img src="{{ route('kegiatan.dokumentasi', $kegiatan) }}" alt="Dokumentasi {{ $kegiatan->nama }}" class="h-full w-full object-cover">

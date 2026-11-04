@@ -204,6 +204,7 @@ class AsetController extends Controller
 
         if ($aset->isRwAsset()) {
             abort_unless($aset->rw_id === $this->resolveRwId($user), 403);
+
             return;
         }
 
@@ -251,7 +252,9 @@ class AsetController extends Controller
 
     private function resolveRtId(User $user): int
     {
-        abort_unless($user->rt_id, 403, 'Akun belum terhubung ke RT.');
+        abort_unless($user->rt_id, 403, $user->isGlobalOperator()
+            ? "Akun admin belum terhubung ke RT. Hubungkan akun ke sebuah RT (lihat README, bagian 'Admin awal') agar modul ini bisa dibuka."
+            : 'Akun belum terhubung ke RT.');
 
         return (int) $user->rt_id;
     }
@@ -260,7 +263,7 @@ class AsetController extends Controller
     {
         $rwId = $user->rt()->value('rw_id');
 
-        if (! $rwId && ($user->isRwOfficial() || $user->isGlobalOperator())) {
+        if (! $rwId && $user->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
         }
 

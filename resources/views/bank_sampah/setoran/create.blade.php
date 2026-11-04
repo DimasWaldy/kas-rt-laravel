@@ -20,7 +20,7 @@
         </ul>
     </section>
 
-    <form method="POST" action="{{ route('setoran-sampah.store') }}" enctype="multipart/form-data" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm" x-data="{
+    <form method="POST" action="{{ route('setoran-sampah.store') }}" enctype="multipart/form-data" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs" x-data="{
         selected: '',
         berat: '{{ old('estimasi_berat', '') }}',
         metode: '{{ old('metode_setor', 'langsung_petugas') }}',

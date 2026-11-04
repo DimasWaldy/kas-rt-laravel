@@ -2,6 +2,11 @@
 
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\RoleAndPermissionSeeder;
+
+beforeEach(function () {
+    $this->seed(RoleAndPermissionSeeder::class);
+});
 
 function validationUserWithRole(string $role): User
 {
@@ -15,25 +20,17 @@ function validationUserWithRole(string $role): User
     ]);
 }
 
-test('profile rejects invalid citizen identity numbers', function () {
+test('profile rejects invalid phone number', function () {
     $warga = validationUserWithRole('warga');
 
     $response = $this->actingAs($warga)->patch(route('profile.update'), [
         'name' => $warga->name,
         'email' => $warga->email,
-        'no_kk' => '12345abc',
         'phone' => '0812abc',
-        'rt' => 'A01',
-        'rw' => '01B',
-        'jumlah_anggota_keluarga' => 0,
     ]);
 
     $response->assertSessionHasErrors([
-        'no_kk',
         'phone',
-        'rt',
-        'rw',
-        'jumlah_anggota_keluarga',
     ]);
 });
 
@@ -45,18 +42,14 @@ test('admin warga form uses the same numeric validation rules', function () {
         'email' => 'warga-baru@example.com',
         'password' => 'password',
         'no_kk' => '123456789012345',
+        'nik' => '123456789012345',
         'phone' => '08123nomor',
-        'rt' => 'RT',
-        'rw' => 'RW',
-        'jumlah_anggota_keluarga' => 0,
     ]);
 
     $response->assertSessionHasErrors([
         'no_kk',
+        'nik',
         'phone',
-        'rt',
-        'rw',
-        'jumlah_anggota_keluarga',
     ]);
 });
 

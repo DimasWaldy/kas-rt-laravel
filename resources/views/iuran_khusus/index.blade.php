@@ -4,19 +4,19 @@
 
 @section('content')
 <div class="mx-auto max-w-6xl space-y-6">
-    <header class="flex flex-col gap-4 rounded-3xl bg-gradient-to-r from-emerald-800 to-green-600 p-6 text-white shadow-lg sm:flex-row sm:items-end sm:justify-between">
+    <header class="flex flex-col gap-4 rounded-3xl bg-linear-to-r/srgb from-emerald-800 to-green-600 p-6 text-white shadow-lg sm:flex-row sm:items-end sm:justify-between">
         <div>
             <p class="text-xs font-bold uppercase tracking-[0.22em] text-emerald-100">Dana insidental RT</p>
             <h1 class="mt-2 text-2xl font-black sm:text-3xl">Iuran Khusus / Insidental</h1>
             <p class="mt-2 max-w-2xl text-sm text-emerald-50">Kelola iuran sosial, kematian, pembangunan, dan kebutuhan khusus lainnya tanpa mengubah iuran rutin.</p>
         </div>
-        <a href="{{ route('iuran-khusus.create') }}" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-sm hover:bg-emerald-50">
+        <a href="{{ route('iuran-khusus.create') }}" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-xs hover:bg-emerald-50">
             <i class="fa-solid fa-plus"></i> Buat Iuran Khusus
         </a>
     </header>
 
     @if($iuranKhusus->isEmpty())
-        <section class="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
+        <section class="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-xs">
             <span class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600"><i class="fa-solid fa-hand-holding-heart"></i></span>
             <h2 class="mt-4 text-lg font-black text-slate-800">Belum ada iuran khusus</h2>
             <p class="mt-1 text-sm text-slate-500">Buat batch pertama ketika RT memiliki kebutuhan insidental.</p>
@@ -29,7 +29,7 @@
                         ? min(100, round(($item->total_lunas / $item->total_tagihan) * 100))
                         : 0;
                 @endphp
-                <article class="flex flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                <article class="flex flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-xs transition hover:-translate-y-0.5 hover:shadow-lg">
                     <div class="flex items-start justify-between gap-3">
                         <span class="inline-flex rounded-full border px-3 py-1 text-xs font-bold {{ $item->jenis_color }}">{{ $item->jenis_label }}</span>
                         <span class="text-xs text-slate-400">{{ $item->created_at->translatedFormat('d M Y') }}</span>

@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
-    <div class="rounded-3xl bg-white shadow-sm p-6">
+    <div class="rounded-3xl bg-white shadow-xs p-6">
         <div class="mb-6">
             <h1 class="text-2xl font-bold text-slate-800">Tambah Warga Baru</h1>
             <p class="mt-2 text-sm text-slate-500">Isi form di bawah untuk menambahkan warga baru ke sistem.</p>
@@ -48,17 +48,19 @@
                     @enderror
                 </div>
 
-                <div class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
-                    <h2 class="text-sm font-bold text-emerald-900">Data Rumah / Unit Hunian</h2>
-                    <p class="mt-1 text-xs text-emerald-700">Tagihan iuran dibuat per rumah. Satu rumah bisa punya lebih dari satu KK.</p>
+                <div x-data="{ rtId: @js((string) old('rt_id', auth()->user()->canAccessAllRts() ? '' : auth()->user()->rt_id)) }" class="lg:col-span-2 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5 dark:border-slate-800 dark:bg-slate-800/40">
+                    <h2 class="text-sm font-bold text-emerald-900 dark:text-emerald-400">Data Rumah / Unit Hunian</h2>
+                    <p class="mt-1 text-xs text-emerald-700 dark:text-slate-400">Tagihan iuran dibuat per rumah. Satu rumah bisa punya lebih dari satu KK.</p>
+
+                    @include('admin.warga.partials.rt-field', ['user' => null])
 
                     <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                         <div>
                             <label class="block text-sm font-medium text-slate-700">Pilih Rumah yang Sudah Ada</label>
-                            <select name="rumah_id" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
+                            <select name="rumah_id" x-ref="residentHouse" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
                                 <option value="">Buat rumah baru / belum ditentukan</option>
                                 @foreach($rumahs as $rumah)
-                                    <option value="{{ $rumah->id }}" {{ old('rumah_id') == $rumah->id ? 'selected' : '' }}>{{ $rumah->label }}</option>
+                                    <option value="{{ $rumah->id }}" x-show="rtId === '{{ $rumah->rt_id }}'" :disabled="rtId !== '{{ $rumah->rt_id }}'" {{ old('rumah_id') == $rumah->id ? 'selected' : '' }}>{{ $rumah->label }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -91,40 +93,30 @@
                     @enderror
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-slate-700">RT</label>
-                    <input type="text" name="rt" value="{{ old('rt') }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
-                    @error('rt')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700">RW</label>
-                    <input type="text" name="rw" value="{{ old('rw') }}" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
-                    @error('rw')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700">Jumlah Anggota Keluarga</label>
-                    <input type="number" name="jumlah_anggota_keluarga" value="{{ old('jumlah_anggota_keluarga') }}" min="1" max="20" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 focus:border-emerald-500 focus:ring-emerald-200">
-                    @error('jumlah_anggota_keluarga')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
+                <div class="lg:col-span-2">
+                    <label for="nama-kepala-kk" class="block text-sm font-medium text-slate-700">Nama kepala keluarga untuk KK baru</label>
+                    <input id="nama-kepala-kk" type="text" name="nama_kepala_keluarga" value="{{ old('nama_kepala_keluarga') }}" maxlength="255" class="mt-2 block w-full rounded-2xl border border-slate-200 px-4 py-3">
+                    <p class="mt-2 text-xs text-slate-500">Wajib jika membuat KK baru untuk warga yang berstatus anggota. Jika warga adalah kepala keluarga, nama akun digunakan. Nama kepala KK yang sudah terdaftar tetap dipertahankan.</p>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                        <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('is_kepala_keluarga') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" name="is_kepala_keluarga" value="1" {{ old('is_kepala_keluarga') ? 'checked' : '' }} class="h-4 w-4 rounded-sm border-slate-300 text-emerald-600 focus:ring-emerald-500">
                         Kepala Keluarga
                     </label>
                 </div>
 
+                <div class="lg:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/30">
+                    <label class="inline-flex items-start gap-2 text-sm font-medium text-amber-950 dark:text-amber-200">
+                        <input type="checkbox" name="ganti_kepala_keluarga" value="1" @checked(old('ganti_kepala_keluarga')) class="mt-1 rounded-sm border-amber-300 text-emerald-600">
+                        Saya sudah memeriksa dan menyetujui penggantian kepala KK yang sudah terdaftar.
+                    </label>
+                    <p class="mt-2 text-xs text-amber-900 dark:text-amber-300">Gunakan bersama pilihan Kepala Keluarga hanya saat benar-benar mengganti kepala yang lama. Kepala sebelumnya akan menjadi anggota; satu KK hanya memiliki satu kepala keluarga.</p>
+                </div>
+
                 <div class="flex items-center gap-3">
                     <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                        <input type="checkbox" name="is_penanggung_jawab_rumah" value="1" {{ old('is_penanggung_jawab_rumah') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" name="is_penanggung_jawab_rumah" value="1" {{ old('is_penanggung_jawab_rumah') ? 'checked' : '' }} class="h-4 w-4 rounded-sm border-slate-300 text-emerald-600 focus:ring-emerald-500">
                         Penanggung Jawab Iuran Rumah
                     </label>
                 </div>

@@ -22,6 +22,7 @@ test('profile information can be updated', function () {
         ->patch('/profile', [
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'phone' => '081234567890',
             '_token' => csrf_token(),
         ]);
 
@@ -46,6 +47,7 @@ test('email verification status is unchanged when the email address is unchanged
         ->patch('/profile', [
             'name' => 'Test User',
             'email' => $user->email,
+            'phone' => '081234567890',
             '_token' => csrf_token(),
         ]);
 
@@ -65,6 +67,7 @@ test('user can delete their account', function () {
         ->actingAs($user)
         ->delete('/profile', [
             'password' => 'password',
+            'confirmation' => 'konfirmasi',
             '_token' => csrf_token(),
         ]);
 
@@ -86,11 +89,33 @@ test('correct password must be provided to delete account', function () {
         ->from('/profile')
         ->delete('/profile', [
             'password' => 'wrong-password',
+            'confirmation' => 'konfirmasi',
             '_token' => csrf_token(),
         ]);
 
     $response
         ->assertSessionHasErrorsIn('userDeletion', 'password')
+        ->assertRedirect('/profile');
+
+    $this->assertNotNull($user->fresh());
+});
+
+test('exact confirmation text must be provided to delete account', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->get('/profile');
+
+    $response = $this
+        ->actingAs($user)
+        ->from('/profile')
+        ->delete('/profile', [
+            'password' => 'password',
+            'confirmation' => 'salah',
+            '_token' => csrf_token(),
+        ]);
+
+    $response
+        ->assertSessionHasErrorsIn('userDeletion', 'confirmation')
         ->assertRedirect('/profile');
 
     $this->assertNotNull($user->fresh());
