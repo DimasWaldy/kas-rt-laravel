@@ -29,6 +29,19 @@ class TagihanService
 
         $result['has_iuran'] = $groups->isNotEmpty();
 
+        $activeGroups = $groups->keys()->all();
+        $orphanedBills = Tagihan::forMonth($bulan, $tahun)
+            ->whereNotNull('billing_group')
+            ->whereNotIn('billing_group', $activeGroups ?: ['__no_active_groups__'])
+            ->whereIn('status', ['belum_bayar', 'failed'])
+            ->whereNotIn('verification_status', ['menunggu', 'valid']);
+
+        if ($actor && ! $actor->isGlobalOperator()) {
+            $orphanedBills->whereHas('rumah', fn ($query) => $query->billingVisibleTo($actor));
+        }
+
+        $orphanedBills->delete();
+
         Rumah::with('penanggungJawab')
             ->billingVisibleTo($actor)
             ->where('status', 'aktif')
@@ -110,7 +123,7 @@ class TagihanService
                         $tagihan->recordAuditWithNote(
                             'tagihan_generated',
                             $wasNew ? [] : $oldValues,
-                            'Tagihan ' . $tagihan->display_title . ' otomatis dibuat untuk bulan ' . $bulan . ' tahun ' . $tahun
+                            'Tagihan '.$tagihan->display_title.' otomatis dibuat untuk bulan '.$bulan.' tahun '.$tahun
                         );
                     }
 

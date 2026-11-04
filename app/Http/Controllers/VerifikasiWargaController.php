@@ -121,7 +121,13 @@ class VerifikasiWargaController extends Controller
             ]);
 
             if ($lockedWarga->kartu_keluarga_id && $lockedWarga->kartuKeluarga) {
-                $lockedWarga->kartuKeluarga->update(['rumah_id' => $rumah->id]);
+                $kartuKeluarga = $lockedWarga->kartuKeluarga;
+                if ($kartuKeluarga->rumah_id && (int) $kartuKeluarga->rumah_id !== (int) $rumah->id) {
+                    throw ValidationException::withMessages([
+                        'domisili' => 'KK warga sudah terhubung ke rumah lain. Periksa penempatan KK sebelum menyetujui domisili.',
+                    ]);
+                }
+                $kartuKeluarga->update(['rumah_id' => $rumah->id]);
             }
 
             if ($lockedWarga->ajukan_pj_iuran && ! $rumah->penanggung_jawab_id) {
@@ -302,7 +308,13 @@ class VerifikasiWargaController extends Controller
                         $lockedWarga->domisili_diproses_at = now();
 
                         if ($lockedWarga->kartu_keluarga_id && $lockedWarga->kartuKeluarga) {
-                            $lockedWarga->kartuKeluarga->update(['rumah_id' => $rumah->id]);
+                            $kartuKeluarga = $lockedWarga->kartuKeluarga;
+                            if ($kartuKeluarga->rumah_id && (int) $kartuKeluarga->rumah_id !== (int) $rumah->id) {
+                                throw ValidationException::withMessages([
+                                    'domisili' => 'KK warga sudah terhubung ke rumah lain. Periksa penempatan KK sebelum menyetujui domisili.',
+                                ]);
+                            }
+                            $kartuKeluarga->update(['rumah_id' => $rumah->id]);
                         }
 
                         // Auto-assign PJ iuran jika warga mengajukan dan rumah belum punya PJ

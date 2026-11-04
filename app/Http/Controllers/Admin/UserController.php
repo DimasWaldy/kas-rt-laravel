@@ -3,19 +3,20 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\KartuKeluarga;
 use App\Models\AuditLog;
-use App\Models\Rumah;
+use App\Models\KartuKeluarga;
 use App\Models\Role;
 use App\Models\Rt;
+use App\Models\Rumah;
 use App\Models\User;
 use App\Models\Warga;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class UserController extends Controller
 {
@@ -84,6 +85,7 @@ class UserController extends Controller
 
         DB::transaction(function () use ($request, $user, $validated, $statusDalamKk) {
             $user = $this->residentsVisibleTo($request->user())->whereRelation('role', 'name', 'warga')->lockForUpdate()->findOrFail($user->id);
+            $oldRumahId = $user->rumah_id;
             [$validated['rumah_id'], $validated['rt_id']] = $this->resolvePlacement($validated, $request->user(), $user->rt_id);
             unset($validated['rumah_kode'], $validated['rumah_alamat']);
             $user->fill(collect($validated)->only([
@@ -97,7 +99,7 @@ class UserController extends Controller
             $user->save();
 
             $this->syncDataWarga($user, $validated, $statusDalamKk);
-            $this->syncPenanggungJawabRumah($user);
+            $this->syncPenanggungJawabRumah($user, $oldRumahId);
         }, 3);
 
         return redirect()->route('admin.warga.index')->with('success', 'Data warga berhasil diperbarui.');
@@ -131,7 +133,7 @@ class UserController extends Controller
                 'name', 'email', 'password', 'phone', 'role_id', 'rumah_id', 'rt_id', 'is_penanggung_jawab_rumah',
             ])->all() + ['status_akun' => 'aktif']);
             $this->syncDataWarga($user, $validated, $statusDalamKk);
-            $this->syncPenanggungJawabRumah($user);
+            $this->syncPenanggungJawabRumah($user, null);
         }, 3);
 
         return redirect()->route('admin.warga.index')->with('success', 'Warga baru berhasil ditambahkan.');
@@ -146,13 +148,14 @@ class UserController extends Controller
             $name = $resident->name;
             // The User deletion event also guards retained financial history.
             $resident->delete();
+
             return $name;
         });
 
         return redirect()->route('admin.warga.index')->with('success', "Warga '{$userName}' berhasil dihapus.");
     }
 
-    private function residentsVisibleTo(User $actor): \Illuminate\Database\Eloquent\Builder
+    private function residentsVisibleTo(User $actor): Builder
     {
         if ($actor->isGlobalOperator()) {
             return User::query();
@@ -166,7 +169,7 @@ class UserController extends Controller
         return $actor->rt_id ? User::where('rt_id', $actor->rt_id) : User::whereRaw('1 = 0');
     }
 
-    private function availableRts(User $actor): \Illuminate\Database\Eloquent\Builder
+    private function availableRts(User $actor): Builder
     {
         $query = Rt::where('is_active', true)->whereHas('rw', fn ($rw) => $rw->where('is_active', true));
         if ($actor->isGlobalOperator()) {
@@ -224,14 +227,14 @@ class UserController extends Controller
 
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email' . ($userId ? ',' . $userId : '')],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'.($userId ? ','.$userId : '')],
             'password' => [$user ? 'sometimes' : 'required', 'string', 'min:8'],
             'rumah_id' => ['nullable', 'integer', 'exists:rumahs,id'],
             'rt_id' => ['nullable', 'integer'],
             'rumah_kode' => ['nullable', 'string', 'max:50'],
             'rumah_alamat' => ['nullable', 'string', 'max:500'],
             'no_kk' => ['nullable', 'digits:16'],
-            'nik' => ['nullable', 'digits:16', 'unique:wargas,nik' . ($user?->warga ? ',' . $user->warga->id : '')],
+            'nik' => ['nullable', 'digits:16', 'unique:wargas,nik'.($user?->warga ? ','.$user->warga->id : '')],
             'nama_lengkap' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'regex:/^[0-9]{10,13}$/'],
             'is_kepala_keluarga' => ['nullable', 'boolean'],
@@ -254,8 +257,15 @@ class UserController extends Controller
         ];
     }
 
-    private function syncPenanggungJawabRumah(User $user): void
+    private function syncPenanggungJawabRumah(User $user, ?int $oldRumahId = null): void
     {
+        $oldRumahId = $oldRumahId ?? $user->getOriginal('rumah_id');
+        if ($oldRumahId && (int) $oldRumahId !== (int) $user->rumah_id) {
+            Rumah::whereKey($oldRumahId)
+                ->where('penanggung_jawab_id', $user->id)
+                ->update(['penanggung_jawab_id' => null]);
+        }
+
         if (! $user->rumah_id) {
             return;
         }

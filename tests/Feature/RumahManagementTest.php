@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Role;
+use App\Models\Rt;
 use App\Models\Rumah;
+use App\Models\Rw;
 use App\Models\User;
 use Database\Seeders\RoleAndPermissionSeeder;
 
@@ -114,6 +116,25 @@ test('admin can move warga to another active rumah and make them penanggung jawa
     expect($warga->fresh()->rumah_id)->toBe($target->id);
     expect($warga->fresh()->is_penanggung_jawab_rumah)->toBeTrue();
     expect($oldTargetHead->fresh()->is_penanggung_jawab_rumah)->toBeFalse();
+});
+
+test('admin edit warga clears pj pointer from old rumah after moving resident', function () {
+    $admin = adminForRumahManagement();
+    $role = wargaRoleForRumahManagement();
+    $rw = Rw::create(['name' => 'RW Move']);
+    $rt = Rt::create(['name' => 'RT Move', 'rw_id' => $rw->id]);
+    $origin = Rumah::create(['kode_rumah' => 'R-OLD', 'rt_id' => $rt->id, 'status' => 'aktif']);
+    $target = Rumah::create(['kode_rumah' => 'R-NEW', 'rt_id' => $rt->id, 'status' => 'aktif']);
+    $warga = User::factory()->create(['role_id' => $role->id, 'rumah_id' => $origin->id, 'is_penanggung_jawab_rumah' => true]);
+    $origin->update(['penanggung_jawab_id' => $warga->id]);
+
+    $this->actingAs($admin)->patch(route('admin.warga.update', $warga), [
+        'name' => $warga->name, 'email' => $warga->email, 'rumah_id' => $target->id,
+        'rt_id' => $rt->id, 'is_kepala_keluarga' => false, 'is_penanggung_jawab_rumah' => false,
+    ])->assertSessionHasNoErrors();
+
+    expect($origin->fresh()->penanggung_jawab_id)->toBeNull()
+        ->and($target->fresh()->penanggung_jawab_id)->toBeNull();
 });
 
 test('admin cannot move warga to non active rumah', function () {
