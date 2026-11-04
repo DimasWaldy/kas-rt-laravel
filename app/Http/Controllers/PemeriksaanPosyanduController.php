@@ -15,9 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 class PemeriksaanPosyanduController extends Controller
 {
-    public function __construct(private readonly WeightForAgeCalculator $calculator)
-    {
-    }
+    public function __construct(private readonly WeightForAgeCalculator $calculator) {}
 
     public function store(Request $request, Balita $balita)
     {

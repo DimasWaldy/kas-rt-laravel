@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\KartuKeluarga;
 use App\Models\AuditLog;
-use App\Models\Rumah;
+use App\Models\KartuKeluarga;
 use App\Models\Rt;
+use App\Models\Rumah;
+use App\Models\Rw;
 use App\Models\User;
 use App\Models\Warga;
-use App\Models\Rw;
 use App\Notifications\WargaTerverifikasi;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -48,17 +48,17 @@ class VerifikasiWargaController extends Controller
                 ?? $warga->rumah_diajukan
                 ?? ($warga->user?->onboarding_domisili ? 'Diisi warga setelah verifikasi akun' : 'Belum menentukan rumah'),
         ])
-        ->concat(collect($domisilis)->map(fn (Warga $warga) => (object) [
-            'id' => $warga->id,
-            'jenis' => 'domisili',
-            'warga' => $warga,
-            'tanggal' => $warga->domisili_diajukan_at ?? $warga->updated_at,
-            'email' => $warga->user?->email,
-            'rt' => $warga->user?->rt?->name,
-            'label' => $warga->rumahDiajukan?->label ?? $warga->alamat_domisili,
-        ]))
-        ->sortBy(fn ($item) => $item->tanggal?->timestamp ?? 0)
-        ->values();
+            ->concat(collect($domisilis)->map(fn (Warga $warga) => (object) [
+                'id' => $warga->id,
+                'jenis' => 'domisili',
+                'warga' => $warga,
+                'tanggal' => $warga->domisili_diajukan_at ?? $warga->updated_at,
+                'email' => $warga->user?->email,
+                'rt' => $warga->user?->rt?->name,
+                'label' => $warga->rumahDiajukan?->label ?? $warga->alamat_domisili,
+            ]))
+            ->sortBy(fn ($item) => $item->tanggal?->timestamp ?? 0)
+            ->values();
 
         $pjHouse = session('domisili_rumah_id') ? Rumah::billingVisibleTo($actor)->whereKey(session('domisili_rumah_id'))->needsBillingContact()->first() : null;
 
@@ -331,7 +331,7 @@ class VerifikasiWargaController extends Controller
             return $user;
         });
 
-        $user->notify(new WargaTerverifikasi());
+        $user->notify(new WargaTerverifikasi);
 
         return redirect()
             ->route('verifikasi-warga.index')

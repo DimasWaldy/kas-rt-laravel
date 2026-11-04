@@ -28,7 +28,7 @@ class KeamananController extends Controller
             ->get();
 
         $logs = LogPatroli::with(['jadwalShift', 'pencatat'])
-            ->whereHas('jadwalShift', fn($query) => $query->where('rw_id', $rwId))
+            ->whereHas('jadwalShift', fn ($query) => $query->where('rw_id', $rwId))
             ->whereBetween('waktu_patroli', [$tanggalMulai->startOfDay(), $tanggalSelesai->endOfDay()])
             ->latest('waktu_patroli')
             ->get();

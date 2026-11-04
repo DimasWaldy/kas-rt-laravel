@@ -285,7 +285,7 @@ class KoperasiController extends Controller
         abort_unless($disk, 404);
 
         return response()->file(Storage::disk($disk)->path($path), [
-            'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
+            'Content-Disposition' => 'inline; filename="'.basename($path).'"',
         ]);
     }
 

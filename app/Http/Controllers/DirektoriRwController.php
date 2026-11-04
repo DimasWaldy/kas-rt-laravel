@@ -25,9 +25,9 @@ class DirektoriRwController extends Controller
         }
 
         $rts = Rt::withCount([
-                'users as warga_count' => fn (Builder $query) => $query->whereRelation('role', 'name', 'warga'),
-                'rumahs as rumah_count',
-            ])
+            'users as warga_count' => fn (Builder $query) => $query->whereRelation('role', 'name', 'warga'),
+            'rumahs as rumah_count',
+        ])
             ->with(['rw'])
             ->whereIn('id', $rtIds)
             ->orderBy('name')

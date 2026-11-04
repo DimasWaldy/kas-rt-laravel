@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
-use App\Models\KasMasuk;
-use App\Models\KasKeluar;
 use App\Models\KartuKeluarga;
+use App\Models\KasKeluar;
+use App\Models\KasMasuk;
 use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
@@ -18,7 +18,7 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $cacheKey = 'dashboard.stats.user.v2.' . $user->id . '.' . ($user->role_id ?? 'none') . '.' . ($user->rt_id ?? 'none');
+        $cacheKey = 'dashboard.stats.user.v2.'.$user->id.'.'.($user->role_id ?? 'none').'.'.($user->rt_id ?? 'none');
 
         $stats = Cache::remember($cacheKey, 300, function () use ($user) {
             $canViewGlobalFinance = $user->hasPermission('view-finance') || $user->hasPermission('manage-finance');
@@ -120,7 +120,7 @@ class DashboardController extends Controller
 
             $dueSoon = $dueSoonQuery
                 ->get()
-                ->filter(fn($tagihan) => $tagihan->isDueSoon())
+                ->filter(fn ($tagihan) => $tagihan->isDueSoon())
                 ->count();
 
             $overdueQuery = $canViewGlobalFinance
@@ -129,7 +129,7 @@ class DashboardController extends Controller
 
             $overdueCount = $overdueQuery
                 ->get()
-                ->filter(fn($tagihan) => $tagihan->isOverdue())
+                ->filter(fn ($tagihan) => $tagihan->isOverdue())
                 ->count();
 
             $totalPaidTagihan = $canViewGlobalFinance ? Tagihan::visibleTo($user)->where('status', 'lunas')->count() : 0;

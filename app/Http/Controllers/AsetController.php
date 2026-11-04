@@ -204,6 +204,7 @@ class AsetController extends Controller
 
         if ($aset->isRwAsset()) {
             abort_unless($aset->rw_id === $this->resolveRwId($user), 403);
+
             return;
         }
 
