@@ -4,21 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PayTagihanRequest;
 use App\Http\Requests\StoreTagihanRequest;
-use App\Models\Tagihan;
 use App\Models\IuranBulanan;
 use App\Models\KasMasuk;
-use Illuminate\Http\Request;
+use App\Models\Rumah;
+use App\Models\Tagihan;
+use App\Models\User;
+use App\Notifications\PaymentReceived;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
-use App\Models\User;
-use App\Models\Warga;
-use App\Notifications\PaymentReceived;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class TagihanController extends Controller
 {
@@ -71,7 +72,7 @@ class TagihanController extends Controller
 
         // Optimasi: Ambil semua iuran bulanan yang relevan untuk breakdown tanpa N+1 query.
         // Filter manual agar kompatibel SQLite maupun MySQL (CONCAT tidak ada di SQLite).
-        $periodes = $tagihan->map(fn($t) => $t->bulan . '-' . $t->tahun)->unique()->filter();
+        $periodes = $tagihan->map(fn ($t) => $t->bulan.'-'.$t->tahun)->unique()->filter();
         $allIuranItems = IuranBulanan::query()
             ->when($periodes->isNotEmpty(), function ($query) use ($periodes) {
                 $query->where(function ($query) use ($periodes) {
@@ -113,8 +114,8 @@ class TagihanController extends Controller
 
         return DB::transaction(function () use ($request, $validated, $paymentMethod, $user) {
             $tagihan = Tagihan::where('id', $validated['tagihan_id'])
-                ->when($user->rumah_id, fn($query) => $query->where('rumah_id', $user->rumah_id))
-                ->when(! $user->rumah_id, fn($query) => $query->where('user_id', $user->id))
+                ->when($user->rumah_id, fn ($query) => $query->where('rumah_id', $user->rumah_id))
+                ->when(! $user->rumah_id, fn ($query) => $query->where('user_id', $user->id))
                 ->lockForUpdate()
                 ->firstOrFail();
 
@@ -155,7 +156,7 @@ class TagihanController extends Controller
             $tagihan->recordAuditWithNote(
                 'payment_submitted',
                 $oldValues,
-                'Pembayaran diajukan via ' . $tagihan->payment_method
+                'Pembayaran diajukan via '.$tagihan->payment_method
             );
 
             $financeManagers = User::whereHas('role.permissions', fn ($query) => $query->where('name', 'manage-finance'))
@@ -184,7 +185,7 @@ class TagihanController extends Controller
         abort_unless(Storage::disk($disk)->exists($tagihan->bukti), 404);
 
         return response()->file(Storage::disk($disk)->path($tagihan->bukti), [
-            'Content-Disposition' => 'inline; filename="' . basename($tagihan->bukti) . '"',
+            'Content-Disposition' => 'inline; filename="'.basename($tagihan->bukti).'"',
         ]);
     }
 
@@ -220,7 +221,7 @@ class TagihanController extends Controller
             'total_rumah' => (int) (clone $tunggakanSummaryQuery)->whereNotNull('rumah_id')->distinct('rumah_id')->count('rumah_id'),
         ];
 
-        $rumahList = \App\Models\Rumah::visibleTo($request->user())
+        $rumahList = Rumah::visibleTo($request->user())
             ->orderBy('kode_rumah')
             ->get(['id', 'kode_rumah', 'alamat']);
 
@@ -232,7 +233,7 @@ class TagihanController extends Controller
             ->get();
         $bulanList = [];
         for ($i = 1; $i <= 12; $i++) {
-            $bulanList[$i] = \Carbon\Carbon::create(null, $i)->translatedFormat('F');
+            $bulanList[$i] = Carbon::create(null, $i)->translatedFormat('F');
         }
         $tahunList = range(now()->year - 2, now()->year + 1);
 
@@ -296,7 +297,7 @@ class TagihanController extends Controller
             $tagihan->recordAuditWithNote(
                 'tagihan_status_updated',
                 $oldValues,
-                'Status tagihan diubah menjadi ' . $tagihan->status . ' dengan status bukti ' . $tagihan->verification_status
+                'Status tagihan diubah menjadi '.$tagihan->status.' dengan status bukti '.$tagihan->verification_status
             );
 
             // Jika lunas, baru buat entri di KasMasuk
@@ -306,7 +307,7 @@ class TagihanController extends Controller
                     [
                         'user_id' => $tagihan->user_id,
                         'rt_id' => $tagihan->rt_id,
-                        'keterangan' => "Pembayaran " . $tagihan->display_title . " " . \Carbon\Carbon::create(null, $tagihan->bulan)->translatedFormat('F') . " " . $tagihan->tahun,
+                        'keterangan' => 'Pembayaran '.$tagihan->display_title.' '.Carbon::create(null, $tagihan->bulan)->translatedFormat('F').' '.$tagihan->tahun,
                         'jumlah' => $tagihan->total,
                         'tanggal' => now(),
                         'bukti' => $tagihan->bukti,
@@ -346,7 +347,7 @@ class TagihanController extends Controller
             ->get();
         $bulanList = [];
         for ($i = 1; $i <= 12; $i++) {
-            $bulanList[$i] = \Carbon\Carbon::create(null, $i)->translatedFormat('F');
+            $bulanList[$i] = Carbon::create(null, $i)->translatedFormat('F');
         }
         $tahunList = range(now()->year - 2, now()->year + 1);
 
@@ -396,7 +397,7 @@ class TagihanController extends Controller
         $tagihan->recordAuditWithNote(
             'tagihan_created',
             [],
-            'Tagihan baru dibuat untuk ' . $user->name
+            'Tagihan baru dibuat untuk '.$user->name
         );
 
         $this->clearDashboardCache($tagihan->user_id);
@@ -416,7 +417,7 @@ class TagihanController extends Controller
             ->get();
         $bulanList = [];
         for ($i = 1; $i <= 12; $i++) {
-            $bulanList[$i] = \Carbon\Carbon::create(null, $i)->translatedFormat('F');
+            $bulanList[$i] = Carbon::create(null, $i)->translatedFormat('F');
         }
         $tahunList = range(now()->year - 2, now()->year + 1);
 
@@ -466,7 +467,7 @@ class TagihanController extends Controller
             return redirect()->back()->with('error', 'Tagihan yang sudah lunas tidak dapat dihapus.');
         }
 
-        $tagihName = $tagihan->user->name . ' (' . $tagihan->bulan . '/' . $tagihan->tahun . ')';
+        $tagihName = $tagihan->user->name.' ('.$tagihan->bulan.'/'.$tagihan->tahun.')';
         $userId = $tagihan->user_id;
 
         $oldValues = $tagihan->getAttributes();
@@ -474,7 +475,7 @@ class TagihanController extends Controller
         $tagihan->recordAuditWithNote(
             'tagihan_deleted',
             $oldValues,
-            'Tagihan dihapus untuk ' . $tagihName
+            'Tagihan dihapus untuk '.$tagihName
         );
 
         $this->clearDashboardCache($userId);
@@ -488,8 +489,8 @@ class TagihanController extends Controller
         Cache::forget('admin.dashboard.stats.v2');
         Cache::forget('admin.dashboard.stats.v3');
         if ($userId) {
-            Cache::forget('dashboard.stats.user.' . $userId);
-            Cache::forget('dashboard.stats.user.v2.' . $userId);
+            Cache::forget('dashboard.stats.user.'.$userId);
+            Cache::forget('dashboard.stats.user.v2.'.$userId);
         }
     }
 
@@ -506,10 +507,6 @@ class TagihanController extends Controller
         }
 
         if ($tagihan->user_id === $user->id) {
-            return true;
-        }
-
-        if ($tagihan->rumah_id && $user->rumah_id === $tagihan->rumah_id) {
             return true;
         }
 

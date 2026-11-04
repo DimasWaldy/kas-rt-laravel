@@ -6,6 +6,7 @@ use App\Models\KoperasiAngsuran;
 use App\Models\KoperasiMember;
 use App\Models\KoperasiPinjam;
 use App\Models\KoperasiSimpanan;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,8 @@ class KoperasiWargaController extends Controller
         $memberStatus = $user->koperasiMember->status ?? null;
 
         if (! $isMember) {
+            abort_unless($user->hasPermission('submit-koperasi'), 403);
+
             return view('koperasi.warga.daftar');
         }
 
@@ -62,18 +65,28 @@ class KoperasiWargaController extends Controller
         $user = $request->user();
         abort_unless($user->hasPermission('submit-koperasi'), 403);
 
-        if ($user->koperasiMember) {
+        $created = DB::transaction(function () use ($user) {
+            User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+
+            if (KoperasiMember::where('user_id', $user->id)->exists()) {
+                return false;
+            }
+
+            $memberNumber = 'KOP-'.now()->format('Ym').'-'.str_pad((string) $user->id, 4, '0', STR_PAD_LEFT);
+
+            KoperasiMember::create([
+                'user_id' => $user->id,
+                'member_number' => $memberNumber,
+                'joined_at' => now(),
+                'status' => 'pending',
+            ]);
+
+            return true;
+        }, 3);
+
+        if (! $created) {
             return back()->with('error', 'Anda sudah mendaftar sebagai anggota koperasi.');
         }
-
-        $memberNumber = 'KOP-'.now()->format('Ym').'-'.str_pad((string) $user->id, 4, '0', STR_PAD_LEFT);
-
-        KoperasiMember::create([
-            'user_id' => $user->id,
-            'member_number' => $memberNumber,
-            'joined_at' => now(),
-            'status' => 'pending',
-        ]);
 
         return redirect()->route('koperasi.index')->with('success', 'Pendaftaran koperasi berhasil dikirim dan menunggu verifikasi bendahara.');
     }
@@ -123,45 +136,56 @@ class KoperasiWargaController extends Controller
     {
         $this->authorizeMember();
 
-        // Check if there's an active unpaid loan
-        $activeLoan = KoperasiPinjam::where('user_id', Auth::id())
-            ->whereIn('status', ['menunggu_persetujuan', 'disetujui'])
-            ->exists();
-
-        if ($activeLoan) {
-            return back()->with('error', 'Anda masih memiliki pinjaman yang sedang berjalan atau menunggu persetujuan.');
-        }
-
         $validated = $request->validate([
             'amount' => 'required|integer|min:50000',
             'tenor_months' => 'required|integer|min:1|max:24',
         ]);
 
-        $simpananWajibTerverifikasi = $this->simpananWajibTerverifikasi(Auth::id());
+        $result = DB::transaction(function () use ($validated) {
+            User::whereKey(Auth::id())->lockForUpdate()->firstOrFail();
 
-        if (
-            $validated['amount'] >= self::HIGH_LOAN_THRESHOLD
-            && $simpananWajibTerverifikasi < self::MINIMUM_WAJIB_SAVING_FOR_HIGH_LOAN
-        ) {
+            $activeLoan = KoperasiPinjam::where('user_id', Auth::id())
+                ->whereIn('status', ['menunggu_persetujuan', 'disetujui'])
+                ->exists();
+            if ($activeLoan) {
+                return 'active_loan';
+            }
+
+            $simpananWajibTerverifikasi = $this->simpananWajibTerverifikasi(Auth::id());
+            if (
+                $validated['amount'] >= self::HIGH_LOAN_THRESHOLD
+                && $simpananWajibTerverifikasi < self::MINIMUM_WAJIB_SAVING_FOR_HIGH_LOAN
+            ) {
+                return 'insufficient_savings';
+            }
+
+            // E.g. flat rate 2% per month
+            $serviceFeePercentage = 2.0;
+            $serviceFeeAmount = (int) ($validated['amount'] * ($serviceFeePercentage / 100) * $validated['tenor_months']);
+            $remainingAmount = $validated['amount'] + $serviceFeeAmount;
+
+            KoperasiPinjam::create([
+                'user_id' => Auth::id(),
+                'amount' => $validated['amount'],
+                'tenor_months' => $validated['tenor_months'],
+                'service_fee_percentage' => $serviceFeePercentage,
+                'service_fee_amount' => $serviceFeeAmount,
+                'remaining_amount' => $remainingAmount,
+                'status' => 'menunggu_persetujuan',
+            ]);
+
+            return 'created';
+        }, 3);
+
+        if ($result === 'active_loan') {
+            return back()->with('error', 'Anda masih memiliki pinjaman yang sedang berjalan atau menunggu persetujuan.');
+        }
+
+        if ($result === 'insufficient_savings') {
             return back()
                 ->withInput()
                 ->with('error', 'Pinjaman Rp 1.000.000 atau lebih hanya bisa diajukan jika simpanan wajib terverifikasi minimal Rp 50.000.');
         }
-
-        // E.g. flat rate 2% per month
-        $serviceFeePercentage = 2.0;
-        $serviceFeeAmount = (int) ($validated['amount'] * ($serviceFeePercentage / 100) * $validated['tenor_months']);
-        $remainingAmount = $validated['amount'] + $serviceFeeAmount;
-
-        KoperasiPinjam::create([
-            'user_id' => Auth::id(),
-            'amount' => $validated['amount'],
-            'tenor_months' => $validated['tenor_months'],
-            'service_fee_percentage' => $serviceFeePercentage,
-            'service_fee_amount' => $serviceFeeAmount,
-            'remaining_amount' => $remainingAmount,
-            'status' => 'menunggu_persetujuan',
-        ]);
 
         return redirect()->route('koperasi.index')->with('success', 'Pengajuan pinjaman berhasil dibuat, menunggu persetujuan pengurus.');
     }

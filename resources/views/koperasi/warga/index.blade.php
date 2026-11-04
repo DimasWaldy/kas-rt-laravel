@@ -10,7 +10,7 @@
             <h1 class="text-2xl font-black text-slate-900">Koperasi Saya</h1>
             <p class="mt-1 text-sm text-slate-500">Pantau simpanan, pinjaman aktif, sisa pinjaman, dan riwayat angsuran.</p>
         </div>
-        @if($memberStatus === 'aktif')
+        @if($memberStatus === 'aktif' && auth()->user()->hasPermission('submit-koperasi'))
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('koperasi.simpan') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800">
                     <i class="fa-solid fa-piggy-bank"></i> Tambah Simpanan
@@ -50,14 +50,16 @@
             <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
                 <p class="text-sm font-bold text-slate-500">Status Anggota</p>
                 <p class="mt-2 text-2xl font-black text-emerald-700">Aktif</p>
-                <p class="mt-2 text-sm text-slate-500">Anda bisa menambah simpanan dan mengajukan pinjaman.</p>
+                @if(auth()->user()->hasPermission('submit-koperasi'))
+                    <p class="mt-2 text-sm text-slate-500">Anda bisa menambah simpanan dan mengajukan pinjaman.</p>
+                @endif
             </section>
         </div>
 
         <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
             <div class="mb-4 flex items-center justify-between">
                 <h2 class="text-lg font-black text-slate-900">Pinjaman Aktif</h2>
-                @if($pinjamanAktif->count() === 0)
+                @if($pinjamanAktif->count() === 0 && auth()->user()->hasPermission('submit-koperasi'))
                     <a href="{{ route('koperasi.pinjam') }}" class="text-sm font-bold text-indigo-700 hover:text-indigo-900">Ajukan pinjaman</a>
                 @endif
             </div>
@@ -90,7 +92,7 @@
                                     </div>
                                 </div>
                             </div>
-                            @if($pinjam->status === 'disetujui')
+                            @if($pinjam->status === 'disetujui' && auth()->user()->hasPermission('submit-koperasi'))
                                 <a href="{{ route('koperasi.angsuran', $pinjam) }}" class="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">Bayar</a>
                             @endif
                         </div>

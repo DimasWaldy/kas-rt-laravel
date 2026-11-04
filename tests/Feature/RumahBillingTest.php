@@ -3,7 +3,9 @@
 use App\Models\IuranBulanan;
 use App\Models\KasMasuk;
 use App\Models\Role;
+use App\Models\Rt;
 use App\Models\Rumah;
+use App\Models\Rw;
 use App\Models\Tagihan;
 use App\Models\User;
 
@@ -103,7 +105,7 @@ test('additional iuran creates separate bill except kebersihan and keamanan are 
 
     $routineBill = $routineBill->fresh();
     $maulidBill = Tagihan::where('rumah_id', $rumah->id)
-        ->where('billing_group', 'iuran_' . $maulid->id)
+        ->where('billing_group', 'iuran_'.$maulid->id)
         ->firstOrFail();
 
     expect(Tagihan::where('rumah_id', $rumah->id)->count())->toBe(2);
@@ -188,6 +190,40 @@ test('regenerating bills does not reset paid or pending bills', function () {
     expect($pendingBill->fresh()->status)->toBe('pending_offline');
     expect($pendingBill->fresh()->total)->toBe(20000);
     expect($pendingBill->fresh()->note)->toBe('Menunggu dicek bendahara');
+});
+
+test('regenerating bills preserves paid bill ownership and cash record after household changes', function () {
+    $rw = Rw::create(['name' => 'RW Paid Bill']);
+    $originalRt = Rt::create(['name' => 'RT Paid Bill', 'rw_id' => $rw->id]);
+    $newRt = Rt::create(['name' => 'RT New Paid Bill', 'rw_id' => $rw->id]);
+    $house = Rumah::create(['kode_rumah' => 'PAID-01', 'rt_id' => $originalRt->id, 'status' => 'aktif']);
+    $originalPayer = User::factory()->create(['rt_id' => $originalRt->id, 'rumah_id' => $house->id, 'is_penanggung_jawab_rumah' => true]);
+    $newPayer = User::factory()->create(['rt_id' => $newRt->id, 'rumah_id' => $house->id, 'is_penanggung_jawab_rumah' => true]);
+    $house->update(['penanggung_jawab_id' => $originalPayer->id]);
+
+    $iuran = IuranBulanan::create(['nama' => 'Iuran Lingkungan', 'jumlah' => 20000, 'bulan' => 8, 'tahun' => 2026, 'is_wajib' => false]);
+    Tagihan::generate(8, 2026);
+    $bill = Tagihan::where('rumah_id', $house->id)->firstOrFail();
+    $bill->update(['status' => 'lunas', 'verification_status' => 'valid']);
+    $cash = KasMasuk::create([
+        'tagihan_id' => $bill->id, 'user_id' => $originalPayer->id,
+        'rt_id' => $originalRt->id, 'keterangan' => 'Pembayaran sebelum pergantian PJ',
+        'jumlah' => 20000, 'tanggal' => now()->toDateString(),
+    ]);
+
+    $house->update(['rt_id' => $newRt->id, 'penanggung_jawab_id' => $newPayer->id]);
+    $iuran->update(['nama' => 'Iuran Lingkungan Baru', 'jumlah' => 25000]);
+    $result = Tagihan::generate(8, 2026);
+
+    expect($bill->fresh()->user_id)->toBe($originalPayer->id)
+        ->and($bill->rt_id)->toBe($originalRt->id)
+        ->and($bill->judul)->toBe('Iuran Lingkungan')
+        ->and($bill->total)->toBe(20000)
+        ->and($bill->status)->toBe('lunas')
+        ->and($cash->fresh()->user_id)->toBe($originalPayer->id)
+        ->and($cash->rt_id)->toBe($originalRt->id)
+        ->and($result['skipped'])->toBe(1)
+        ->and($result['updated'])->toBe(0);
 });
 
 test('regenerating bills keeps rejected proof reason until resident resubmits', function () {
@@ -318,7 +354,7 @@ test('monthly bill command is idempotent and reports created skipped and updated
     ]);
 
     $this->artisan('bills:generate')
-        ->expectsOutput('Mengecek iuran untuk periode ' . now()->month . '/' . now()->year . '...')
+        ->expectsOutput('Mengecek iuran untuk periode '.now()->month.'/'.now()->year.'...')
         ->expectsOutput('Selesai! Tagihan keluarga telah diproses.')
         ->expectsOutput('Tagihan baru dibuat: 1')
         ->expectsOutput('Tagihan dilewati karena sudah ada: 0')
@@ -331,7 +367,7 @@ test('monthly bill command is idempotent and reports created skipped and updated
         ->count())->toBe(1);
 
     $this->artisan('bills:generate')
-        ->expectsOutput('Mengecek iuran untuk periode ' . now()->month . '/' . now()->year . '...')
+        ->expectsOutput('Mengecek iuran untuk periode '.now()->month.'/'.now()->year.'...')
         ->expectsOutput('Selesai! Tagihan keluarga telah diproses.')
         ->expectsOutput('Tagihan baru dibuat: 0')
         ->expectsOutput('Tagihan dilewati karena sudah ada: 1')

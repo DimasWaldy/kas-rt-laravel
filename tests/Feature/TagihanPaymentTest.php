@@ -1,15 +1,17 @@
 <?php
 
 use App\Models\AuditLog;
-use App\Models\Role;
-use App\Models\Rumah;
-use App\Models\User;
-use App\Models\Tagihan;
 use App\Models\KasMasuk;
+use App\Models\Role;
+use App\Models\Rt;
+use App\Models\Rumah;
+use App\Models\Rw;
+use App\Models\Tagihan;
+use App\Models\User;
 use App\Models\Warga;
+use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Database\Seeders\RoleAndPermissionSeeder;
 
 function buatWargaTagihan(array $attributes): User
 {
@@ -45,15 +47,15 @@ test('resident can pay bill using bank transfer with valid file', function () {
     Storage::fake('local');
 
     $resident = buatWargaTagihan([
-        'role_id'           => $this->wargaRole->id,
+        'role_id' => $this->wargaRole->id,
     ]);
 
     $tagihan = Tagihan::create([
         'user_id' => $resident->id,
-        'bulan'   => 5,
-        'tahun'   => 2026,
-        'total'   => 50000,
-        'status'  => 'belum_bayar',
+        'bulan' => 5,
+        'tahun' => 2026,
+        'total' => 50000,
+        'status' => 'belum_bayar',
     ]);
 
     $bukti = UploadedFile::fake()->image('payment_proof.jpg');
@@ -61,11 +63,11 @@ test('resident can pay bill using bank transfer with valid file', function () {
     $this->actingAs($resident)->get(route('tagihan.index'));
 
     $response = $this->post(route('tagihan.pay'), [
-        '_token'         => csrf_token(),
-        'tagihan_id'     => $tagihan->id,
+        '_token' => csrf_token(),
+        'tagihan_id' => $tagihan->id,
         'payment_method' => 'transfer',
-        'bukti'          => $bukti,
-        'note'           => 'Paid via Mobile Banking',
+        'bukti' => $bukti,
+        'note' => 'Paid via Mobile Banking',
     ]);
 
     $response->assertSessionHasNoErrors();
@@ -102,24 +104,51 @@ test('resident can pay bill using bank transfer with valid file', function () {
         ->assertForbidden();
 });
 
+test('another resident in the same house cannot view payment proof, but its payer and finance manager can', function () {
+    Storage::fake('local');
+
+    $rw = Rw::create(['name' => 'RW Bukti']);
+    $rt = Rt::create(['name' => 'RT Bukti', 'rw_id' => $rw->id]);
+    $house = Rumah::create(['kode_rumah' => 'BUKTI-01', 'rt_id' => $rt->id]);
+    $payer = buatWargaTagihan(['role_id' => $this->wargaRole->id, 'rt_id' => $rt->id, 'rumah_id' => $house->id]);
+    $housemate = buatWargaTagihan(['role_id' => $this->wargaRole->id, 'rt_id' => $rt->id, 'rumah_id' => $house->id]);
+    $financeManager = User::factory()->create(['role_id' => Role::where('name', 'bendahara_rt')->firstOrFail()->id, 'rt_id' => $rt->id]);
+    $bill = Tagihan::create([
+        'user_id' => $payer->id, 'rumah_id' => $house->id, 'rt_id' => $rt->id,
+        'bulan' => 6, 'tahun' => 2026, 'total' => 50000, 'status' => 'pending_transfer',
+        'bukti' => 'tagihan-bukti/private-house.jpg',
+    ]);
+    Storage::disk('local')->put($bill->bukti, 'private proof');
+
+    $this->actingAs($housemate)->get(route('tagihan.index'))
+        ->assertOk()
+        ->assertDontSee(route('tagihan.bukti', $bill));
+    $this->get(route('tagihan.bukti', $bill))->assertForbidden();
+    $this->actingAs($payer)->get(route('tagihan.index'))
+        ->assertOk()
+        ->assertSee(route('tagihan.bukti', $bill));
+    $this->get(route('tagihan.bukti', $bill))->assertOk();
+    $this->actingAs($financeManager)->get(route('tagihan.bukti', $bill))->assertOk();
+});
+
 test('transfer payment fails validation when file is missing, invalid type, or too large', function () {
     $resident = buatWargaTagihan([
-        'role_id'           => $this->wargaRole->id,
+        'role_id' => $this->wargaRole->id,
     ]);
 
     $tagihan = Tagihan::create([
         'user_id' => $resident->id,
-        'bulan'   => 5,
-        'tahun'   => 2026,
-        'total'   => 50000,
-        'status'  => 'belum_bayar',
+        'bulan' => 5,
+        'tahun' => 2026,
+        'total' => 50000,
+        'status' => 'belum_bayar',
     ]);
 
     // Case 1: Missing file
     $this->actingAs($resident)->get(route('tagihan.index'));
     $response = $this->post(route('tagihan.pay'), [
-        '_token'         => csrf_token(),
-        'tagihan_id'     => $tagihan->id,
+        '_token' => csrf_token(),
+        'tagihan_id' => $tagihan->id,
         'payment_method' => 'transfer',
     ]);
 
@@ -129,10 +158,10 @@ test('transfer payment fails validation when file is missing, invalid type, or t
     $invalidFile = UploadedFile::fake()->create('proof.txt', 100);
     $this->actingAs($resident)->get(route('tagihan.index'));
     $response = $this->post(route('tagihan.pay'), [
-        '_token'         => csrf_token(),
-        'tagihan_id'     => $tagihan->id,
+        '_token' => csrf_token(),
+        'tagihan_id' => $tagihan->id,
         'payment_method' => 'transfer',
-        'bukti'          => $invalidFile,
+        'bukti' => $invalidFile,
     ]);
 
     $response->assertSessionHasErrors(['bukti' => 'Format bukti pembayaran harus berupa gambar JPG/PNG atau PDF.']);
@@ -141,10 +170,10 @@ test('transfer payment fails validation when file is missing, invalid type, or t
     $largeFile = UploadedFile::fake()->image('proof.jpg')->size(3000);
     $this->actingAs($resident)->get(route('tagihan.index'));
     $response = $this->post(route('tagihan.pay'), [
-        '_token'         => csrf_token(),
-        'tagihan_id'     => $tagihan->id,
+        '_token' => csrf_token(),
+        'tagihan_id' => $tagihan->id,
         'payment_method' => 'transfer',
-        'bukti'          => $largeFile,
+        'bukti' => $largeFile,
     ]);
 
     $response->assertSessionHasErrors(['bukti' => 'Ukuran berkas bukti pembayaran maksimal adalah 2 MB (2048 KB).']);
@@ -152,24 +181,24 @@ test('transfer payment fails validation when file is missing, invalid type, or t
 
 test('resident can pay offline with a valid note', function () {
     $resident = buatWargaTagihan([
-        'role_id'           => $this->wargaRole->id,
+        'role_id' => $this->wargaRole->id,
     ]);
 
     $tagihan = Tagihan::create([
         'user_id' => $resident->id,
-        'bulan'   => 5,
-        'tahun'   => 2026,
-        'total'   => 50000,
-        'status'  => 'belum_bayar',
+        'bulan' => 5,
+        'tahun' => 2026,
+        'total' => 50000,
+        'status' => 'belum_bayar',
     ]);
 
     $this->actingAs($resident)->get(route('tagihan.index'));
 
     $response = $this->post(route('tagihan.pay'), [
-        '_token'         => csrf_token(),
-        'tagihan_id'     => $tagihan->id,
+        '_token' => csrf_token(),
+        'tagihan_id' => $tagihan->id,
         'payment_method' => 'offline',
-        'note'           => 'Diserahkan langsung ke Pak RT',
+        'note' => 'Diserahkan langsung ke Pak RT',
     ]);
 
     $response->assertSessionHasNoErrors();
@@ -186,22 +215,22 @@ test('resident can pay offline with a valid note', function () {
 
 test('offline payment fails validation when note is missing or too short', function () {
     $resident = buatWargaTagihan([
-        'role_id'           => $this->wargaRole->id,
+        'role_id' => $this->wargaRole->id,
     ]);
 
     $tagihan = Tagihan::create([
         'user_id' => $resident->id,
-        'bulan'   => 5,
-        'tahun'   => 2026,
-        'total'   => 50000,
-        'status'  => 'belum_bayar',
+        'bulan' => 5,
+        'tahun' => 2026,
+        'total' => 50000,
+        'status' => 'belum_bayar',
     ]);
 
     // Case 1: Missing note
     $this->actingAs($resident)->get(route('tagihan.index'));
     $response = $this->post(route('tagihan.pay'), [
-        '_token'         => csrf_token(),
-        'tagihan_id'     => $tagihan->id,
+        '_token' => csrf_token(),
+        'tagihan_id' => $tagihan->id,
         'payment_method' => 'offline',
     ]);
 
@@ -210,10 +239,10 @@ test('offline payment fails validation when note is missing or too short', funct
     // Case 2: Note is too short (under 5 chars)
     $this->actingAs($resident)->get(route('tagihan.index'));
     $response = $this->post(route('tagihan.pay'), [
-        '_token'         => csrf_token(),
-        'tagihan_id'     => $tagihan->id,
+        '_token' => csrf_token(),
+        'tagihan_id' => $tagihan->id,
         'payment_method' => 'offline',
-        'note'           => 'RT',
+        'note' => 'RT',
     ]);
 
     $response->assertSessionHasErrors(['note' => 'Catatan pembayaran offline minimal harus terdiri dari 5 karakter.']);

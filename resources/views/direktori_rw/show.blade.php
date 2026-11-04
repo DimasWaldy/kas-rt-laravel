@@ -43,9 +43,7 @@
                     <h3 class="mt-1 font-black text-slate-900">{{ $pengurusRt->name }}</h3>
                     <p class="mt-1 text-sm text-slate-500">{{ $pengurusRt->email }}</p>
                     @if($pengurusRt->phone)
-                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $pengurusRt->phone) }}" target="_blank" class="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100">
-                            <i class="fa-brands fa-whatsapp"></i> {{ $pengurusRt->phone }}
-                        </a>
+                        <p class="mt-3 text-xs font-bold text-emerald-700">Kontak: {{ \App\Support\Mask::phone($pengurusRt->phone) }}</p>
                     @else
                         <p class="mt-3 text-xs text-slate-400">Nomor HP belum diisi.</p>
                     @endif
@@ -101,10 +99,10 @@
                                 <p class="max-w-xs text-xs text-slate-500">{{ $warga->rumah?->alamat ?? 'Alamat belum diisi' }}</p>
                             </td>
                             <td class="px-4 py-3">
-                                <p class="font-semibold text-slate-800">{{ $warga->phone ?: '-' }}</p>
+                                <p class="font-semibold text-slate-800">{{ \App\Support\Mask::phone($warga->phone) }}</p>
                             </td>
                             <td class="px-4 py-3">
-                                <p class="font-semibold text-slate-800">{{ $warga->warga?->kartuKeluarga?->no_kk ?? '-' }}</p>
+                                <p class="font-semibold text-slate-800">{{ \App\Support\Mask::nik($warga->warga?->kartuKeluarga?->no_kk) }}</p>
                                 <p class="text-xs text-slate-500">{{ $warga->warga?->status_dalam_kk ? str($warga->warga->status_dalam_kk)->replace('_', ' ')->headline() : '-' }}</p>
                             </td>
                             <td class="px-4 py-3">

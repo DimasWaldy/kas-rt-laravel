@@ -115,7 +115,7 @@
                                     @endif
                                 </div>
                             @endif
-                            @if($item->bukti)
+                            @if($item->bukti && ($item->user_id === auth()->id() || (auth()->user()->canManageFinance() && $item->isVisibleTo(auth()->user()))))
                                 <p class="text-sm text-slate-600 mt-2">Bukti: <a href="{{ route('tagihan.bukti', $item) }}" target="_blank" class="text-blue-600 hover:underline">Lihat</a></p>
                             @endif
                         </div>

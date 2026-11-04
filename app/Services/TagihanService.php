@@ -7,11 +7,22 @@ use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
 use App\Notifications\TagihanCreated;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 class TagihanService
 {
     public function generateForMonth(int $bulan, int $tahun, ?User $actor = null): array
+    {
+        return DB::transaction(function () use ($bulan, $tahun, $actor) {
+            IuranBulanan::query()->where('bulan', $bulan)->where('tahun', $tahun)
+                ->orderBy('id')->lockForUpdate()->get();
+
+            return $this->generateLockedMonth($bulan, $tahun, $actor);
+        }, 3);
+    }
+
+    private function generateLockedMonth(int $bulan, int $tahun, ?User $actor): array
     {
         $result = [
             'created' => 0,
@@ -60,16 +71,25 @@ class TagihanService
                 }
 
                 $groups->each(function ($items, string $group) use ($rumah, $user, $bulan, $tahun, &$result) {
-                    $tagihan = Tagihan::firstOrNew([
-                        'rumah_id' => $rumah->id,
-                        'bulan' => $bulan,
-                        'tahun' => $tahun,
-                        'billing_group' => $group,
-                    ]);
+                    $tagihan = Tagihan::query()
+                        ->where('rumah_id', $rumah->id)
+                        ->where('bulan', $bulan)
+                        ->where('tahun', $tahun)
+                        ->where('billing_group', $group)
+                        ->lockForUpdate()
+                        ->first() ?? new Tagihan([
+                            'rumah_id' => $rumah->id,
+                            'bulan' => $bulan,
+                            'tahun' => $tahun,
+                            'billing_group' => $group,
+                        ]);
 
                     $wasNew = ! $tagihan->exists;
                     if (! $wasNew) {
                         $result['skipped']++;
+                        if (! in_array($tagihan->status, ['belum_bayar', 'failed'], true)) {
+                            return;
+                        }
                     }
 
                     $oldValues = $tagihan->getOriginal();

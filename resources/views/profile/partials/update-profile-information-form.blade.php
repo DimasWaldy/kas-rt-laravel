@@ -1,6 +1,6 @@
 @php
     $isOnboardingDomisili = $user->role_name === 'warga' && $user->onboarding_domisili && ! $user->rumah_id;
-    $initialRtId = old('rt_id', $user->rt_id ?? ($rts->first()?->id ?? ''));
+    $initialRtId = $user->rt_id ?? '';
     $initialMode = old('mode', $wargaDomisili?->mode_domisili ?? ($rumahsDomisili->isEmpty() ? 'new' : 'existing'));
     $initialRumahs = $rumahsDomisili->map(fn($r) => ['id' => $r->id, 'kode_rumah' => $r->kode_rumah, 'alamat' => $r->alamat])->values();
     $selectedRumahId = old('rumah_id', $wargaDomisili?->rumah_diajukan_id ?? '');
@@ -145,14 +145,13 @@
                         <div role="alert" class="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
                             <p class="font-bold">Perbaiki pengajuan domisili</p>
                             <p class="mt-1">{{ $wargaDomisili->catatan_domisili }}</p>
-                            <p class="mt-2 text-xs">Perbaiki RT atau alamat di bawah, lalu klik Simpan Profil.</p>
+                            <p class="mt-2 text-xs">Perbaiki rumah atau alamat di bawah, lalu klik Simpan Profil. Hubungi pengurus jika RT perlu diubah.</p>
                         </div>
                     @endif
 
                     <div>
-                        <x-input-label for="rt_id" value="Pilih RT Domisili" />
-                        <select id="rt_id" name="rt_id" x-model="rtId" @change="onRtChange($event.target.value)" required class="mt-1 block w-full rounded-xl border-slate-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
-                            <option value="">Pilih RT</option>
+                        <x-input-label for="rt_id" value="RT Hasil Verifikasi" />
+                        <select id="rt_id" name="rt_id" x-model="rtId" required class="mt-1 block w-full rounded-xl border-slate-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
                             @foreach($rts as $rtItem)
                                 <option value="{{ $rtItem->id }}">
                                     {{ $rtItem->name }} ({{ $rtItem->rw?->name ?? 'RW' }})

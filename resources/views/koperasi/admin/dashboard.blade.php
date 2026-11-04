@@ -84,6 +84,7 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex justify-end gap-2">
+                                        @if(auth()->user()->hasPermission('approve-koperasi'))
                                         @if(in_array($member->status, ['pending', 'nonaktif'], true))
                                             <form method="POST" action="{{ route('admin.koperasi.approve-member', $member) }}">
                                                 @csrf @method('PATCH')
@@ -112,6 +113,7 @@
                                                 <button class="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-100">Buka kembali (pending)</button>
                                             </form>
                                         @endif
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -136,6 +138,7 @@
                                     <a href="{{ route('admin.koperasi.simpanan-bukti', $simpanan) }}" target="_blank" class="mt-1 inline-block text-sm font-bold text-indigo-700">Lihat bukti transfer</a>
                                 @endif
                             </div>
+                            @if(auth()->user()->hasPermission('approve-koperasi'))
                             <div class="flex flex-wrap gap-2">
                                 <form method="POST" action="{{ route('admin.koperasi.approve-simpanan', $simpanan) }}">
                                     @csrf @method('PATCH')
@@ -149,6 +152,7 @@
                                     <button class="rounded-xl bg-red-50 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-100">Tolak</button>
                                 </form>
                             </div>
+                            @endif
                         </div>
                     </div>
                 @empty
@@ -168,6 +172,7 @@
                                 <p class="text-sm text-slate-500">Pokok Rp {{ number_format($pinjaman->amount, 0, ',', '.') }} · Jasa Rp {{ number_format($pinjaman->service_fee_amount, 0, ',', '.') }} · {{ $pinjaman->tenor_months }} bulan</p>
                                 <p class="mt-1 text-sm font-bold text-amber-700">Total pengembalian Rp {{ number_format($pinjaman->remaining_amount, 0, ',', '.') }}</p>
                             </div>
+                            @if(auth()->user()->hasPermission('approve-koperasi'))
                             <div class="flex flex-wrap gap-2">
                                 <form method="POST" action="{{ route('admin.koperasi.approve-pinjaman', $pinjaman) }}" enctype="multipart/form-data" class="flex flex-col gap-2 sm:flex-row">
                                     @csrf @method('PATCH')
@@ -182,6 +187,7 @@
                                     <button class="rounded-xl bg-red-50 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-100">Tolak</button>
                                 </form>
                             </div>
+                            @endif
                         </div>
                     </div>
                 @empty
@@ -203,6 +209,7 @@
                                     <a href="{{ route('admin.koperasi.angsuran-bukti', $angsuran) }}" target="_blank" class="mt-1 inline-block text-sm font-bold text-indigo-700">Lihat bukti angsuran</a>
                                 @endif
                             </div>
+                            @if(auth()->user()->hasPermission('approve-koperasi'))
                             <div class="flex flex-wrap gap-2">
                                 <form method="POST" action="{{ route('admin.koperasi.approve-angsuran', $angsuran) }}">
                                     @csrf @method('PATCH')
@@ -216,6 +223,7 @@
                                     <button class="rounded-xl bg-red-50 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-100">Tolak</button>
                                 </form>
                             </div>
+                            @endif
                         </div>
                     </div>
                 @empty

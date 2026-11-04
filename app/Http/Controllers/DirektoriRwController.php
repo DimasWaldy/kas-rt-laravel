@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Rt;
 use App\Models\Rumah;
-use App\Models\Rw;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -152,12 +151,12 @@ class DirektoriRwController extends Controller
 
     private function visibleRtIds(User $actor)
     {
-        if ($actor->canAccessAllRts()) {
-            $rwId = $actor->rt()->value('rw_id');
+        if ($actor->isGlobalOperator()) {
+            return Rt::whereHas('rw', fn (Builder $query) => $query->where('is_active', true))->pluck('id');
+        }
 
-            if (! $rwId && $actor->isGlobalOperator()) {
-                $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
-            }
+        if ($actor->isRwOfficial()) {
+            $rwId = $actor->rt()->value('rw_id');
 
             abort_unless($rwId, 403, 'Akun belum terhubung ke wilayah.');
 

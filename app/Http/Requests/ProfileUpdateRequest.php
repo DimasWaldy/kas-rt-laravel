@@ -69,8 +69,9 @@ class ProfileUpdateRequest extends FormRequest
 
         if ($isOnboardingDomisili && $warga?->status_domisili !== 'pending') {
             $rules['rt_id'] = [
-                'nullable',
+                'required',
                 'integer',
+                $this->unchangedAssignment('rt_id'),
                 Rule::exists('rts', 'id')->where('is_active', true),
             ];
             $rules['mode'] = ['nullable', 'in:existing,new'];
