@@ -26,7 +26,28 @@ beforeEach(function () {
     $this->ketuaRt = $makeUser('ketua_rt', $this->rtSatu->id);
     $this->wargaSatu = $makeUser('warga', $this->rtSatu->id);
     $this->wargaDua = $makeUser('warga', $this->rtDua->id);
-    $this->petugas = $makeUser('petugas_posyandu');
+    $this->petugas = $makeUser('petugas_posyandu', $this->rtSatu->id);
+});
+
+test('petugas posyandu tanpa penugasan tidak membaca atau mencatat pemeriksaan', function () {
+    $balita = Balita::create([
+        'rw_id' => $this->rw->id,
+        'rt_id' => $this->rtDua->id,
+        'orang_tua_id' => $this->wargaDua->id,
+        'nama' => 'Balita Privat',
+        'jenis_kelamin' => 'laki_laki',
+        'tanggal_lahir' => '2025-06-24',
+        'is_active' => true,
+    ]);
+    $this->petugas->update(['rt_id' => null]);
+
+    $this->actingAs($this->petugas->fresh())->get(route('posyandu.index'))->assertForbidden();
+    $this->actingAs($this->petugas->fresh())->post(route('posyandu.pemeriksaan.store', $balita), [
+        'tanggal_pemeriksaan' => '2026-06-24',
+        'berat_kg' => 10,
+        'panjang_tinggi_cm' => 75,
+        'metode_ukur_tinggi' => 'terlentang',
+    ])->assertForbidden();
 });
 
 test('pengurus RT membuat balita hanya di RT sendiri', function () {

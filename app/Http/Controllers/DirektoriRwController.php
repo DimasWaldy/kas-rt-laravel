@@ -153,8 +153,11 @@ class DirektoriRwController extends Controller
     private function visibleRtIds(User $actor)
     {
         if ($actor->canAccessAllRts()) {
-            $rwId = $actor->rt()->value('rw_id')
-                ?: Rw::where('is_active', true)->orderBy('id')->value('id');
+            $rwId = $actor->rt()->value('rw_id');
+
+            if (! $rwId && $actor->isGlobalOperator()) {
+                $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
+            }
 
             abort_unless($rwId, 403, 'Akun belum terhubung ke wilayah.');
 

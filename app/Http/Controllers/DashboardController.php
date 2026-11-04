@@ -17,8 +17,10 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $stats = Cache::remember('dashboard.stats.user.v2.' . Auth::id(), 300, function () {
-            $user = Auth::user();
+        $user = Auth::user();
+        $cacheKey = 'dashboard.stats.user.v2.' . $user->id . '.' . ($user->role_id ?? 'none') . '.' . ($user->rt_id ?? 'none');
+
+        $stats = Cache::remember($cacheKey, 300, function () use ($user) {
             $canViewGlobalFinance = $user->hasPermission('view-finance') || $user->hasPermission('manage-finance');
 
             $kasMasuk = $canViewGlobalFinance ? KasMasuk::visibleTo($user)->sum('jumlah') : null;
@@ -163,7 +165,7 @@ class DashboardController extends Controller
                 ->all() : [];
 
             $recentAuditLogs = $user->role_name !== 'warga' ? AuditLog::with('user')
-                ->when(! $user->canAccessAllRts(), fn ($query) => $query->whereHas('user', fn ($userQuery) => $userQuery->where('rt_id', $user->rt_id)))
+                ->when(! $user->isGlobalOperator(), fn ($query) => $query->whereHas('user', fn ($userQuery) => $userQuery->visibleTo($user)))
                 ->latest()
                 ->limit(5)
                 ->get()

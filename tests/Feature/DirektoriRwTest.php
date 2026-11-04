@@ -78,7 +78,7 @@ test('pengurus rt hanya melihat direktori rt sendiri', function () {
         ->assertNotFound();
 });
 
-test('pengurus rw melihat semua rt dalam rw aktif', function () {
+test('pengurus rw melihat semua rt dalam rw yang ditugaskan', function () {
     $rw = Rw::create(['name' => 'RW Aktif Direktori', 'is_active' => true]);
     $rtSatu = Rt::create(['rw_id' => $rw->id, 'name' => 'RT 01']);
     $rtDua = Rt::create(['rw_id' => $rw->id, 'name' => 'RT 02']);
@@ -88,7 +88,7 @@ test('pengurus rw melihat semua rt dalam rw aktif', function () {
 
     $ketuaRw = User::factory()->create([
         'role_id' => roleDirektori('ketua_rw')->id,
-        'rt_id' => null,
+        'rt_id' => $rtSatu->id,
     ]);
 
     $this->actingAs($ketuaRw)
@@ -98,6 +98,20 @@ test('pengurus rw melihat semua rt dalam rw aktif', function () {
         ->assertSee('RT 02')
         ->assertSee('Dede RT Satu')
         ->assertSee('Euis RT Dua');
+});
+
+test('pengurus rw tanpa penugasan tidak dapat membuka direktori wilayah', function () {
+    $rw = Rw::create(['name' => 'RW Privat', 'is_active' => true]);
+    $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT Privat']);
+    wargaDirektori('Warga Privat', $rt, 'privat@example.test', '085555555555', 'P-01', '3273000000000199', '3273000000000299');
+
+    $ketuaRw = User::factory()->create([
+        'role_id' => roleDirektori('ketua_rw')->id,
+        'rt_id' => null,
+    ]);
+
+    $this->actingAs($ketuaRw)->get(route('direktori-rw.index'))->assertForbidden();
+    $this->actingAs($ketuaRw)->get(route('direktori-rw.rt.show', $rt))->assertForbidden();
 });
 
 test('warga biasa tidak dapat mengakses direktori rw', function () {

@@ -340,7 +340,7 @@ class UmkmController extends Controller
     {
         $rwId = $user->rt()->value('rw_id');
 
-        if (! $rwId && ($user->isRwOfficial() || $user->isGlobalOperator())) {
+        if (! $rwId && $user->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
         }
 

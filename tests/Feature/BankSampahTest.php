@@ -51,7 +51,7 @@ beforeEach(function () {
 
     $this->petugas = User::factory()->create([
         'role_id' => $roleId('ketua_rw'),
-        'rt_id' => null,
+        'rt_id' => $this->rt->id,
     ]);
 
     $this->warga = User::factory()->create([
@@ -114,6 +114,15 @@ beforeEach(function () {
 
 afterEach(function () {
     Carbon::setTestNow();
+});
+
+test('petugas bank sampah tanpa rt tidak mendapat akses rw pertama', function () {
+    $tanpaRt = User::factory()->create([
+        'role_id' => Role::where('name', 'petugas_bank_sampah')->value('id'),
+        'rt_id' => null,
+    ]);
+
+    $this->actingAs($tanpaRt)->get(route('bank-sampah.index'))->assertForbidden();
 });
 
 test('warga dapat mengajukan setoran sampah dan saldo belum berubah', function () {
@@ -385,7 +394,7 @@ test('role petugas bank sampah dapat mengelola operasional bank sampah', functio
     $role = Role::where('name', 'petugas_bank_sampah')->firstOrFail();
     $petugasBankSampah = User::factory()->create([
         'role_id' => $role->id,
-        'rt_id' => null,
+        'rt_id' => $this->rt->id,
     ]);
     $setoran = ($this->buatSetoran)();
 
@@ -414,7 +423,7 @@ test('petugas bank sampah dapat mencatat penjualan sampah ke pengepul', function
     $role = Role::where('name', 'petugas_bank_sampah')->firstOrFail();
     $petugasBankSampah = User::factory()->create([
         'role_id' => $role->id,
-        'rt_id' => null,
+        'rt_id' => $this->rt->id,
     ]);
 
     $this->actingAs($petugasBankSampah)

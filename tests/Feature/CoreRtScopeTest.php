@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\KasKeluar;
 use App\Models\KasMasuk;
 use App\Models\Role;
@@ -262,6 +263,41 @@ test('bendahara rt dashboard totals only include their own rt', function () {
         ->assertOk()
         ->assertViewHas('kasMasuk', 125000)
         ->assertViewHas('kasKeluar', 20000);
+});
+
+test('dashboard audit logs only include actors from the same rw', function () {
+    $rwLain = Rw::create(['name' => 'RW Audit Lain', 'is_active' => true]);
+    $rtLain = Rt::create(['rw_id' => $rwLain->id, 'name' => 'RT Audit Lain', 'is_active' => true]);
+    $ketuaRw = User::factory()->create([
+        'role_id' => Role::where('name', 'ketua_rw')->value('id'),
+        'rt_id' => $this->rtSatu->id,
+    ]);
+    $wargaLain = User::factory()->create([
+        'role_id' => Role::where('name', 'warga')->value('id'),
+        'rt_id' => $rtLain->id,
+    ]);
+
+    AuditLog::create([
+        'user_id' => $this->wargaRtSatu->id,
+        'auditable_type' => User::class,
+        'auditable_id' => $this->wargaRtSatu->id,
+        'event' => 'created',
+        'notes' => 'Audit dalam RW',
+    ]);
+    AuditLog::create([
+        'user_id' => $wargaLain->id,
+        'auditable_type' => User::class,
+        'auditable_id' => $wargaLain->id,
+        'event' => 'created',
+        'notes' => 'Audit luar RW',
+    ]);
+
+    $this->actingAs($ketuaRw)->get(route('dashboard'))->assertOk()
+        ->assertViewHas('recentAuditLogs', fn (array $logs) => collect($logs)->pluck('notes')->all() === ['Audit dalam RW']);
+
+    $ketuaRw->update(['rt_id' => null]);
+    $this->actingAs($ketuaRw->fresh())->get(route('dashboard'))->assertOk()
+        ->assertViewHas('recentAuditLogs', []);
 });
 
 test('rw officials cannot view or access data from another rw', function () {
