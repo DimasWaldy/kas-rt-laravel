@@ -50,8 +50,7 @@ class Pengaduan extends Model
         }
 
         if ($actor->isRwOfficial()) {
-            $rwId = $actor->rt()->value('rw_id')
-                ?: \App\Models\Rw::where('is_active', true)->orderBy('id')->value('id');
+            $rwId = $actor->rt()->value('rw_id');
 
             return $rwId
                 ? $query->where(function (Builder $subQuery) use ($actor, $rwId) {
@@ -78,8 +77,7 @@ class Pengaduan extends Model
         }
 
         if ($actor->isRwOfficial()) {
-            $rwId = $actor->rt()->value('rw_id')
-                ?: \App\Models\Rw::where('is_active', true)->orderBy('id')->value('id');
+            $rwId = $actor->rt()->value('rw_id');
 
             return (bool) ($rwId && $this->user()->whereHas('rt', fn (Builder $rt) => $rt->where('rw_id', $rwId))->exists());
         }

@@ -37,8 +37,7 @@ class DashboardController extends Controller
             $totalKK = match (true) {
                 $user->isGlobalOperator() => KartuKeluarga::count(),
                 $user->isRwOfficial() => KartuKeluarga::whereHas('rumah.rt', function ($query) use ($user) {
-                    $rwId = $user->rt()->value('rw_id')
-                        ?: \App\Models\Rw::where('is_active', true)->orderBy('id')->value('id');
+                    $rwId = $user->rt()->value('rw_id');
                     $rwId ? $query->where('rw_id', $rwId) : $query->whereRaw('1 = 0');
                 })->count(),
                 default => KartuKeluarga::whereHas('rumah', fn ($query) => $query->where('rt_id', $user->rt_id))->count(),

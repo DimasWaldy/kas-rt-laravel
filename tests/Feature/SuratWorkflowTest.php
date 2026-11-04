@@ -32,8 +32,8 @@ beforeEach(function () {
     $this->wargaTwo = $user('warga', $this->rtTwo);
     $this->sekretarisRt = $user('sekretaris_rt', $this->rtOne);
     $this->ketuaRt = $user('ketua_rt', $this->rtOne);
-    $this->sekretarisRw = $user('sekretaris_rw');
-    $this->ketuaRw = $user('ketua_rw');
+    $this->sekretarisRw = $user('sekretaris_rw', $this->rtOne);
+    $this->ketuaRw = $user('ketua_rw', $this->rtOne);
 });
 
 test('warga can submit a letter with private supporting document', function () {

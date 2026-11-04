@@ -209,3 +209,46 @@ test('rw officials cannot view or respond to complaints from another rw', functi
     expect($visibleIds)->toContain($pengaduanRwSatu->id)
         ->not->toContain($pengaduanRwLain->id);
 });
+
+test('unassigned users cannot enumerate each other or each other complaints', function () {
+    $wargaTanpaRt = User::factory()->create([
+        'role_id' => Role::where('name', 'warga')->value('id'),
+        'rt_id' => null,
+    ]);
+
+    $wargaTanpaRtLain = User::factory()->create([
+        'role_id' => Role::where('name', 'warga')->value('id'),
+        'rt_id' => null,
+    ]);
+
+    $pengaduanSendiri = Pengaduan::create([
+        'user_id' => $wargaTanpaRt->id,
+        'judul' => 'Aduan Akun Belum Terhubung',
+        'kategori' => 'Lainnya',
+        'deskripsi' => 'Aduan pribadi akun yang belum terhubung RT.',
+        'status' => 'pending',
+    ]);
+
+    $pengaduanLain = Pengaduan::create([
+        'user_id' => $wargaTanpaRtLain->id,
+        'judul' => 'Aduan Akun Lain',
+        'kategori' => 'Lainnya',
+        'deskripsi' => 'Aduan milik akun tanpa RT lain.',
+        'status' => 'pending',
+    ]);
+
+    expect(User::visibleTo($wargaTanpaRt)->pluck('id'))->toBeEmpty();
+    expect(Pengaduan::visibleTo($wargaTanpaRt)->pluck('id'))
+        ->toContain($pengaduanSendiri->id)
+        ->not->toContain($pengaduanLain->id);
+
+    $this->actingAs($wargaTanpaRt)
+        ->get(route('pengaduan.index'))
+        ->assertOk()
+        ->assertSee('Aduan Akun Belum Terhubung')
+        ->assertDontSee('Aduan Akun Lain');
+
+    $this->actingAs($wargaTanpaRt)
+        ->get(route('pengaduan.show', $pengaduanLain))
+        ->assertNotFound();
+});

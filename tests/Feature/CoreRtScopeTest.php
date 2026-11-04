@@ -314,3 +314,21 @@ test('rw officials cannot view or access data from another rw', function () {
         ->toContain($this->wargaRtDua->id)
         ->not->toContain($wargaRwDua->id);
 });
+
+test('rw officials without assigned rt cannot access rt scoped data fail-closed', function () {
+    $bendaharaRwTanpaRt = User::factory()->create([
+        'role_id' => Role::where('name', 'bendahara_rw')->value('id'),
+        'rt_id' => null,
+    ]);
+
+    $kasMasuk = KasMasuk::create([
+        'rt_id' => $this->rtSatu->id,
+        'keterangan' => 'Kas RT Satu',
+        'jumlah' => 150000,
+        'tanggal' => now()->toDateString(),
+    ]);
+
+    expect(KasMasuk::visibleTo($bendaharaRwTanpaRt)->pluck('id'))->toBeEmpty();
+    expect($kasMasuk->isVisibleTo($bendaharaRwTanpaRt))->toBeFalse();
+    expect(User::visibleTo($bendaharaRwTanpaRt)->pluck('id'))->toBeEmpty();
+});

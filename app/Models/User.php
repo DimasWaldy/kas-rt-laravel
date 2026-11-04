@@ -122,8 +122,7 @@ class User extends Authenticatable
         }
 
         if ($actor->isRwOfficial()) {
-            $rwId = $actor->rt()->value('rw_id')
-                ?: \App\Models\Rw::where('is_active', true)->orderBy('id')->value('id');
+            $rwId = $actor->rt()->value('rw_id');
 
             return $rwId
                 ? $query->whereHas('rt', fn (Builder $rt) => $rt->where('rw_id', $rwId))
