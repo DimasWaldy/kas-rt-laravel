@@ -9,6 +9,7 @@ use App\Models\Rw;
 use App\Models\Tagihan;
 use App\Models\User;
 use App\Models\Warga;
+use App\Notifications\TagihanCreated;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Support\Facades\Notification;
 
@@ -108,6 +109,56 @@ test('adding iuran also reports houses that cannot be billed', function () {
     expect(Tagihan::count())->toBe(0);
 });
 
+test('rt treasurer cannot modify global monthly contribution components', function () {
+    $iuran = IuranBulanan::firstOrFail();
+
+    $this->actingAs($this->billingTreasurer)
+        ->patch(route('iuran-bulanan.update', $iuran), [
+            'nama' => 'Iuran Diubah', 'jumlah' => 25000, 'keterangan' => null, 'is_wajib' => true,
+        ])->assertForbidden();
+
+    $this->actingAs($this->billingTreasurer)
+        ->delete(route('iuran-bulanan.destroy', $iuran))
+        ->assertForbidden();
+
+    expect($iuran->fresh()->nama)->toBe('Iuran Keamanan');
+});
+
+test('deleting an iuran soft deletes its unpaid generated bills', function () {
+    ($this->makeBillingReady)($this->billingHouse, $this->billingResident);
+    $iuran = IuranBulanan::create([
+        'nama' => 'Dana Sosial', 'jumlah' => 5000, 'bulan' => now()->month, 'tahun' => now()->year, 'is_wajib' => true,
+    ]);
+    Tagihan::generate(now()->month, now()->year, $this->billingTreasurer);
+    $unpaid = Tagihan::where('billing_group', 'iuran_'.$iuran->id)->firstOrFail();
+
+    $admin = User::factory()->create(['role_id' => Role::where('name', 'admin')->value('id')]);
+    $this->actingAs($admin)->delete(route('iuran-bulanan.destroy', $iuran))
+        ->assertRedirect(route('iuran-bulanan.index', ['bulan' => now()->month, 'tahun' => now()->year]));
+
+    expect(Tagihan::withTrashed()->whereKey($unpaid->id)->exists())->toBeTrue()
+        ->and(Tagihan::withTrashed()->whereKey($unpaid->id)->first()->trashed())->toBeTrue();
+});
+
+test('iuran with a paid bill cannot be deleted', function () {
+    ($this->makeBillingReady)($this->billingHouse, $this->billingResident);
+    $iuran = IuranBulanan::create([
+        'nama' => 'Dana Sosial', 'jumlah' => 5000, 'bulan' => now()->month, 'tahun' => now()->year, 'is_wajib' => true,
+    ]);
+    Tagihan::generate(now()->month, now()->year, $this->billingTreasurer);
+    $paid = Tagihan::where('billing_group', 'iuran_'.$iuran->id)->firstOrFail();
+    $paid->update(['status' => 'lunas', 'verification_status' => 'valid']);
+
+    $admin = User::factory()->create(['role_id' => Role::where('name', 'admin')->value('id')]);
+    $this->actingAs($admin)->delete(route('iuran-bulanan.destroy', $iuran))
+        ->assertRedirect(route('iuran-bulanan.index', ['bulan' => now()->month, 'tahun' => now()->year]))
+        ->assertSessionHas('error');
+
+    expect(IuranBulanan::find($iuran->id))->not->toBeNull()
+        ->and(Tagihan::withTrashed()->whereKey($paid->id)->exists())->toBeTrue()
+        ->and(Tagihan::withTrashed()->whereKey($paid->id)->first()->trashed())->toBeFalse();
+});
+
 test('house task filter lists only active houses in scope that need billing contact', function () {
     $ready = Rumah::create(['kode_rumah' => 'READY-HIDDEN', 'rt_id' => $this->billingRt->id]);
     ($this->makeBillingReady)($ready);
@@ -130,7 +181,7 @@ test('assigning pj clears the task and regeneration creates the missing bill onc
     expect($result['created'])->toBe(1)->and($result['unbilled_houses'])->toBe([])
         ->and($repeat['created'])->toBe(0)->and($repeat['skipped'])->toBe(1)->and(Tagihan::count())->toBe(1);
     $this->assertDatabaseHas('audit_logs', ['event' => 'pj_iuran_ditetapkan', 'user_id' => $this->billingManager->id]);
-    Notification::assertSentTo($this->billingResident, \App\Notifications\TagihanCreated::class);
+    Notification::assertSentTo($this->billingResident, TagihanCreated::class);
 });
 
 test('pj assignment rejects an inactive account another house or another rt', function (string $change) {

@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\IuranBulanan;
 use App\Models\Rumah;
 use App\Models\Tagihan;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,7 @@ class IuranBulananController extends Controller
     public function edit(Request $request, IuranBulanan $iuranBulanan)
     {
         $this->authorizeManage($request);
+        $this->authorizeIuranMutation($request, $iuranBulanan);
 
         return view('iuran_bulanan.edit', compact('iuranBulanan'));
     }
@@ -22,12 +24,13 @@ class IuranBulananController extends Controller
     public function update(Request $request, IuranBulanan $iuranBulanan)
     {
         $this->authorizeManage($request);
+        $this->authorizeIuranMutation($request, $iuranBulanan);
 
         $validated = $request->validate([
-            'nama'       => ['required', 'string', 'max:255'],
-            'jumlah'     => ['required', 'integer', 'min:1'],
+            'nama' => ['required', 'string', 'max:255'],
+            'jumlah' => ['required', 'integer', 'min:1'],
             'keterangan' => ['nullable', 'string', 'max:500'],
-            'is_wajib'   => ['required', 'boolean'],
+            'is_wajib' => ['required', 'boolean'],
         ]);
 
         $oldValues = $iuranBulanan->toArray();
@@ -40,7 +43,7 @@ class IuranBulananController extends Controller
             'event' => 'iuran_updated',
             'old_values' => $oldValues,
             'new_values' => $iuranBulanan->fresh()->toArray(),
-            'notes' => 'Komponen iuran diupdate: ' . $iuranBulanan->nama . ' untuk periode ' . \Carbon\Carbon::create(null, $iuranBulanan->bulan)->translatedFormat('F') . ' ' . $iuranBulanan->tahun,
+            'notes' => 'Komponen iuran diupdate: '.$iuranBulanan->nama.' untuk periode '.Carbon::create(null, $iuranBulanan->bulan)->translatedFormat('F').' '.$iuranBulanan->tahun,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
@@ -52,12 +55,13 @@ class IuranBulananController extends Controller
             'bulan' => $iuranBulanan->bulan,
             'tahun' => $iuranBulanan->tahun,
         ])->with('success', 'Komponen iuran berhasil diperbarui dan tagihan belum dibayar telah disinkronkan.')
-          ->with('billing_result', $this->generationSummary($syncResult, (int) $iuranBulanan->bulan, (int) $iuranBulanan->tahun));
+            ->with('billing_result', $this->generationSummary($syncResult, (int) $iuranBulanan->bulan, (int) $iuranBulanan->tahun));
     }
 
     public function destroy(Request $request, IuranBulanan $iuranBulanan)
     {
         $this->authorizeManage($request);
+        $this->authorizeIuranMutation($request, $iuranBulanan);
 
         $bulan = (int) $iuranBulanan->bulan;
         $tahun = (int) $iuranBulanan->tahun;
@@ -66,8 +70,8 @@ class IuranBulananController extends Controller
         $hasPaidOrPending = Tagihan::forMonth($bulan, $tahun)
             ->where(function ($q) {
                 $q->where('status', 'lunas')
-                  ->orWhereIn('status', ['pending_transfer', 'pending_offline'])
-                  ->orWhereIn('verification_status', ['menunggu', 'valid']);
+                    ->orWhereIn('status', ['pending_transfer', 'pending_offline'])
+                    ->orWhereIn('verification_status', ['menunggu', 'valid']);
             })
             ->exists();
 
@@ -89,7 +93,7 @@ class IuranBulananController extends Controller
                 'event' => 'iuran_deleted',
                 'old_values' => $oldValues,
                 'new_values' => [],
-                'notes' => 'Komponen iuran dihapus: ' . $namaKomponen . ' periode ' . \Carbon\Carbon::create(null, $bulan)->translatedFormat('F') . ' ' . $tahun,
+                'notes' => 'Komponen iuran dihapus: '.$namaKomponen.' periode '.Carbon::create(null, $bulan)->translatedFormat('F').' '.$tahun,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -99,7 +103,7 @@ class IuranBulananController extends Controller
         });
 
         return redirect()->route('iuran-bulanan.index', ['bulan' => $bulan, 'tahun' => $tahun])
-            ->with('success', 'Komponen iuran "' . $namaKomponen . '" berhasil dihapus dan tagihan diperbarui.');
+            ->with('success', 'Komponen iuran "'.$namaKomponen.'" berhasil dihapus dan tagihan diperbarui.');
     }
 
     public function syncTagihan(Request $request)
@@ -108,7 +112,7 @@ class IuranBulananController extends Controller
 
         $validated = $request->validate([
             'bulan' => ['required', 'integer', 'between:1,12'],
-            'tahun' => ['required', 'integer', 'min:2024', 'max:' . (now()->year + 5)],
+            'tahun' => ['required', 'integer', 'min:2024', 'max:'.(now()->year + 5)],
         ]);
 
         $bulan = (int) $validated['bulan'];
@@ -123,7 +127,7 @@ class IuranBulananController extends Controller
             'event' => 'tagihan_synced',
             'old_values' => [],
             'new_values' => $result,
-            'notes' => 'Sinkronisasi tagihan manual oleh ' . Auth::user()->name . ' untuk periode ' . \Carbon\Carbon::create(null, $bulan)->translatedFormat('F') . ' ' . $tahun,
+            'notes' => 'Sinkronisasi tagihan manual oleh '.Auth::user()->name.' untuk periode '.Carbon::create(null, $bulan)->translatedFormat('F').' '.$tahun,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
@@ -131,6 +135,11 @@ class IuranBulananController extends Controller
         return redirect()->route('iuran-bulanan.index', ['bulan' => $bulan, 'tahun' => $tahun])
             ->with('success', 'Sinkronisasi tagihan periode ini berhasil dijalankan.')
             ->with('billing_result', $this->generationSummary($result, $bulan, $tahun));
+    }
+
+    private function authorizeIuranMutation(Request $request, ?IuranBulanan $iuranBulanan = null): void
+    {
+        abort_unless($request->user()->isGlobalOperator(), 403, 'Komponen iuran global hanya dapat diubah operator global.');
     }
 
     private function authorizeManage(Request $request): void
@@ -153,7 +162,7 @@ class IuranBulananController extends Controller
         $this->authorizeManage($request);
         $period = $request->validate([
             'bulan' => ['nullable', 'integer', 'between:1,12'],
-            'tahun' => ['nullable', 'integer', 'min:2024', 'max:' . (now()->year + 5)],
+            'tahun' => ['nullable', 'integer', 'min:2024', 'max:'.(now()->year + 5)],
         ]);
         $bulan = (int) ($period['bulan'] ?? now()->month);
         $tahun = (int) ($period['tahun'] ?? now()->year);
@@ -172,6 +181,7 @@ class IuranBulananController extends Controller
     public function create(Request $request)
     {
         $this->authorizeManage($request);
+
         return view('iuran_bulanan.create');
     }
 
@@ -183,7 +193,7 @@ class IuranBulananController extends Controller
             'keterangan' => ['nullable', 'string', 'max:500'],
             'jumlah' => ['required', 'integer', 'min:1'],
             'bulan' => ['required', 'integer', 'between:1,12'],
-            'tahun' => ['required', 'integer', 'min:2024', 'max:' . (now()->year + 5)],
+            'tahun' => ['required', 'integer', 'min:2024', 'max:'.(now()->year + 5)],
             'is_wajib' => ['required', 'boolean'], // 1 untuk Wajib, 0 untuk Opsional
         ], [
             'jumlah.min' => 'Nominal iuran harus lebih dari 0.',
@@ -199,7 +209,7 @@ class IuranBulananController extends Controller
             'event' => 'iuran_created',
             'old_values' => [],
             'new_values' => $iuran->toArray(),
-            'notes' => 'Iuran bulanan baru ditambahkan: ' . $iuran->nama . ' untuk periode ' . \Carbon\Carbon::create(null, $iuran->bulan)->translatedFormat('F') . ' ' . $iuran->tahun,
+            'notes' => 'Iuran bulanan baru ditambahkan: '.$iuran->nama.' untuk periode '.Carbon::create(null, $iuran->bulan)->translatedFormat('F').' '.$iuran->tahun,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
@@ -219,7 +229,7 @@ class IuranBulananController extends Controller
         $this->authorizeManage($request);
         $validated = $request->validate([
             'bulan' => ['nullable', 'integer', 'between:1,12'],
-            'tahun' => ['nullable', 'integer', 'min:2024', 'max:' . (now()->year + 5)],
+            'tahun' => ['nullable', 'integer', 'min:2024', 'max:'.(now()->year + 5)],
         ]);
 
         $bulan = (int) ($validated['bulan'] ?? now()->month);
@@ -229,9 +239,9 @@ class IuranBulananController extends Controller
             // 1. Cek apakah sudah ada komponen iuran di bulan ini
             $hasIuran = IuranBulanan::where('bulan', $bulan)->where('tahun', $tahun)->exists();
 
-            if (!$hasIuran) {
+            if (! $hasIuran) {
                 // Jika kosong, coba salin dari bulan sebelumnya
-                $lastMonth = \Carbon\Carbon::create($tahun, $bulan, 1)->subMonth();
+                $lastMonth = Carbon::create($tahun, $bulan, 1)->subMonth();
                 $prevItems = IuranBulanan::where('bulan', $lastMonth->month)->where('tahun', $lastMonth->year)->get();
 
                 if ($prevItems->isNotEmpty()) {
@@ -263,7 +273,7 @@ class IuranBulananController extends Controller
                 'event' => 'mass_tagihan_generated',
                 'old_values' => [],
                 'new_values' => ['bulan' => $bulan, 'tahun' => $tahun, 'result' => $result],
-                'notes' => 'Pembangkitan tagihan massal periode ' . \Carbon\Carbon::create(null, $bulan)->translatedFormat('F') . " $tahun dilakukan melalui Dashboard Web.",
+                'notes' => 'Pembangkitan tagihan massal periode '.Carbon::create(null, $bulan)->translatedFormat('F')." $tahun dilakukan melalui Dashboard Web.",
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -271,7 +281,7 @@ class IuranBulananController extends Controller
             return $result;
         });
 
-        $namaBulan = \Carbon\Carbon::create(null, $bulan)->translatedFormat('F');
+        $namaBulan = Carbon::create(null, $bulan)->translatedFormat('F');
         $flashType = 'success';
         $flashMsg = "Proses tagihan periode {$namaBulan} {$tahun} selesai. Periksa hasil dan rumah yang belum dapat ditagih.";
 

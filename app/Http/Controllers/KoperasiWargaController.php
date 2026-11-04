@@ -23,7 +23,7 @@ class KoperasiWargaController extends Controller
         $isMember = $user->koperasiMember !== null;
         $memberStatus = $user->koperasiMember->status ?? null;
 
-        if (!$isMember) {
+        if (! $isMember) {
             return view('koperasi.warga.daftar');
         }
 
@@ -66,7 +66,7 @@ class KoperasiWargaController extends Controller
             return back()->with('error', 'Anda sudah mendaftar sebagai anggota koperasi.');
         }
 
-        $memberNumber = 'KOP-' . now()->format('Ym') . '-' . str_pad((string) $user->id, 4, '0', STR_PAD_LEFT);
+        $memberNumber = 'KOP-'.now()->format('Ym').'-'.str_pad((string) $user->id, 4, '0', STR_PAD_LEFT);
 
         KoperasiMember::create([
             'user_id' => $user->id,
@@ -81,6 +81,7 @@ class KoperasiWargaController extends Controller
     public function simpan()
     {
         $this->authorizeMember();
+
         return view('koperasi.warga.simpan');
     }
 
@@ -180,8 +181,10 @@ class KoperasiWargaController extends Controller
     {
         $this->authorizeMember();
 
+        $pinjaman->loadMissing('user');
+        $minimumAmount = min(10000, max(1, (int) $pinjaman->remaining_amount));
         $validated = $request->validate([
-            'amount' => 'required|integer|min:10000',
+            'amount' => 'required|integer|min:'.$minimumAmount,
             'paid_at' => 'required|date',
             'proof_file' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
@@ -230,7 +233,7 @@ class KoperasiWargaController extends Controller
     private function authorizeMember()
     {
         $user = Auth::user();
-        if (!$user->koperasiMember || $user->koperasiMember->status !== 'aktif') {
+        if (! $user->koperasiMember || $user->koperasiMember->status !== 'aktif') {
             abort(403, 'Anda belum terdaftar sebagai anggota koperasi yang aktif.');
         }
     }

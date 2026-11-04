@@ -1,18 +1,18 @@
 <?php
 
-use App\Models\User;
 use App\Models\KoperasiAngsuran;
 use App\Models\KoperasiMember;
 use App\Models\KoperasiPinjam;
 use App\Models\KoperasiSimpanan;
+use App\Models\Permission;
+use App\Models\Role;
+use App\Models\User;
+use App\Models\Warga;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use App\Models\Role;
-use App\Models\Permission;
-use App\Models\Warga;
-use Illuminate\Support\Facades\Artisan;
 
-function buatWargaKoperasi() {
+function buatWargaKoperasi()
+{
     $role = Role::firstOrCreate(['name' => 'warga']);
 
     $pView = Permission::firstOrCreate(['name' => 'view-koperasi']);
@@ -23,6 +23,7 @@ function buatWargaKoperasi() {
         'role_id' => $role->id,
         'status_akun' => 'aktif',
     ]);
+
     return Warga::create([
         'user_id' => $user->id,
         'nama_lengkap' => $user->name,
@@ -280,6 +281,24 @@ test('warga tidak bisa mengajukan angsuran untuk pinjaman yang belum disetujui',
         'koperasi_pinjam_id' => $pinjaman->id,
         'amount' => 120000,
     ]);
+});
+
+test('warga dapat mengajukan angsuran terakhir di bawah minimum nominal', function () {
+    Storage::fake('local');
+    KoperasiMember::create(['user_id' => $this->warga->user->id, 'member_number' => 'KOP-LAST', 'joined_at' => now(), 'status' => 'aktif']);
+    $pinjaman = KoperasiPinjam::create([
+        'user_id' => $this->warga->user->id, 'amount' => 50000, 'tenor_months' => 1,
+        'service_fee_percentage' => 2.00, 'service_fee_amount' => 1000,
+        'remaining_amount' => 1000, 'status' => 'disetujui',
+    ]);
+
+    $this->actingAs($this->warga->user)
+        ->post(route('koperasi.store-angsuran', $pinjaman), [
+            'amount' => 1000, 'paid_at' => now()->toDateString(),
+            'proof_file' => UploadedFile::fake()->image('bukti-lunas.jpg'),
+        ])->assertRedirect(route('koperasi.index'))->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('koperasi_angsurans', ['koperasi_pinjam_id' => $pinjaman->id, 'amount' => 1000, 'status' => 'pending']);
 });
 
 test('warga tidak bisa mengajukan angsuran melebihi sisa setelah menghitung angsuran pending', function () {

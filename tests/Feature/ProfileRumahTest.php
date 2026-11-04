@@ -1,11 +1,14 @@
 <?php
 
+use App\Models\KartuKeluarga;
 use App\Models\Role;
 use App\Models\Rt;
 use App\Models\Rumah;
 use App\Models\Rw;
 use App\Models\Tagihan;
 use App\Models\User;
+use App\Models\Warga;
+use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Support\Facades\Storage;
 
 test('profile cannot change domicile to read another household payment proof', function (string $roleName, bool $sameRt) {
@@ -82,7 +85,7 @@ test('onboarding resident can submit rt and domicile proposal together in person
         'onboarding_domisili' => true,
         'status_akun' => 'aktif',
     ]);
-    $warga = \App\Models\Warga::create([
+    $warga = Warga::create([
         'user_id' => $user->id,
         'nama_lengkap' => $user->name,
         'status_verifikasi' => 'terverifikasi',
@@ -109,7 +112,7 @@ test('warga sees updated family card after onboarding profile submission and off
     $rt = Rt::create(['name' => 'RT KK Test', 'rw_id' => $rw->id, 'is_active' => true]);
     $house = Rumah::create(['kode_rumah' => 'KK-01', 'alamat' => 'Jalan KK No 1', 'rt_id' => $rt->id, 'status' => 'aktif']);
 
-    $this->seed(\Database\Seeders\RoleAndPermissionSeeder::class);
+    $this->seed(RoleAndPermissionSeeder::class);
 
     $officer = User::factory()->create([
         'role_id' => Role::where('name', 'super_admin')->firstOrFail()->id,
@@ -124,7 +127,7 @@ test('warga sees updated family card after onboarding profile submission and off
         'onboarding_domisili' => true,
         'status_akun' => 'aktif',
     ]);
-    $warga = \App\Models\Warga::create([
+    $warga = Warga::create([
         'user_id' => $wargaUser->id,
         'nama_lengkap' => $wargaUser->name,
         'status_verifikasi' => 'pending',
@@ -164,8 +167,24 @@ test('warga sees updated family card after onboarding profile submission and off
         ->assertSee('Kepala Keluarga');
 });
 
+test('profile json house list is limited to active users own rt', function () {
+    $this->seed(RoleAndPermissionSeeder::class);
+    $rw = Rw::create(['name' => 'RW Scope', 'is_active' => true]);
+    $rtOwn = Rt::create(['rw_id' => $rw->id, 'name' => 'RT Own', 'is_active' => true]);
+    $rtOther = Rt::create(['rw_id' => $rw->id, 'name' => 'RT Other', 'is_active' => true]);
+    Rumah::create(['rt_id' => $rtOther->id, 'kode_rumah' => 'OTHER', 'alamat' => 'Alamat Rahasia', 'status' => 'aktif']);
+    $user = User::factory()->create([
+        'role_id' => Role::where('name', 'warga')->firstOrFail()->id,
+        'rt_id' => $rtOwn->id,
+        'status_akun' => 'pending_verifikasi',
+        'onboarding_domisili' => true,
+    ]);
+
+    $this->actingAs($user)->getJson('/profile?rt_id='.$rtOther->id)->assertForbidden();
+});
+
 test('profile edit returns json list of houses when requested with json header', function () {
-    $this->seed(\Database\Seeders\RoleAndPermissionSeeder::class);
+    $this->seed(RoleAndPermissionSeeder::class);
     $rw = Rw::create(['name' => 'RW 01', 'is_active' => true]);
     $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT 01', 'is_active' => true]);
     $house = Rumah::create([
@@ -183,15 +202,34 @@ test('profile edit returns json list of houses when requested with json header',
     ]);
 
     $response = $this->actingAs($user)
-        ->getJson('/profile?rt_id=' . $rt->id);
+        ->getJson('/profile?rt_id='.$rt->id);
 
     $response->assertOk()
         ->assertJsonStructure(['rumahs' => [['id', 'rt_id', 'kode_rumah', 'alamat']]])
         ->assertJsonFragment(['id' => $house->id, 'kode_rumah' => $house->kode_rumah]);
 });
 
+test('onboarding cannot attach to an existing family card with another member', function () {
+    $this->seed(RoleAndPermissionSeeder::class);
+    $rw = Rw::create(['name' => 'RW KK Scope', 'is_active' => true]);
+    $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT KK Scope', 'is_active' => true]);
+    $kk = KartuKeluarga::create(['no_kk' => '3201123456789012', 'nama_kepala_keluarga' => 'Kepala Lama']);
+    $owner = User::factory()->create(['role_id' => Role::where('name', 'warga')->firstOrFail()->id, 'rt_id' => $rt->id]);
+    Warga::create(['user_id' => $owner->id, 'kartu_keluarga_id' => $kk->id, 'nama_lengkap' => $owner->name, 'status_dalam_kk' => 'kepala_keluarga']);
+    $user = User::factory()->create(['role_id' => Role::where('name', 'warga')->firstOrFail()->id, 'rt_id' => $rt->id, 'onboarding_domisili' => true]);
+    Warga::create(['user_id' => $user->id, 'nama_lengkap' => $user->name, 'status_verifikasi' => 'pending']);
+
+    $this->actingAs($user)->patch(route('profile.update'), [
+        'name' => $user->name, 'email' => $user->email, 'no_kk' => $kk->no_kk,
+        'status_dalam_kk' => 'anggota', 'rt_id' => $rt->id,
+    ])->assertSessionHasErrors('no_kk');
+
+    expect($user->fresh()->warga->kartu_keluarga_id)->toBeNull()
+        ->and($kk->fresh()->jumlah_anggota)->toBeNull();
+});
+
 test('warga can save profile with no_kk as member without null constraint error', function () {
-    $this->seed(\Database\Seeders\RoleAndPermissionSeeder::class);
+    $this->seed(RoleAndPermissionSeeder::class);
     $rw = Rw::create(['name' => 'RW 01', 'is_active' => true]);
     $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT 09', 'is_active' => true]);
 
@@ -203,7 +241,7 @@ test('warga can save profile with no_kk as member without null constraint error'
         'onboarding_domisili' => true,
     ]);
 
-    $warga = \App\Models\Warga::create([
+    $warga = Warga::create([
         'user_id' => $user->id,
         'rt_id' => $rt->id,
         'nama_lengkap' => 'Warga Anggota',
@@ -229,12 +267,12 @@ test('warga can save profile with no_kk as member without null constraint error'
         'no_kk' => '3201123456789088',
     ]);
 
-    $kk = \App\Models\KartuKeluarga::where('no_kk', '3201123456789088')->first();
+    $kk = KartuKeluarga::where('no_kk', '3201123456789088')->first();
     expect($kk->nama_kepala_keluarga)->not->toBeNull();
 });
 
 test('warga can save optional family count and home occupant count on onboarding profile', function () {
-    $this->seed(\Database\Seeders\RoleAndPermissionSeeder::class);
+    $this->seed(RoleAndPermissionSeeder::class);
     $rw = Rw::create(['name' => 'RW 01', 'is_active' => true]);
     $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT 07', 'is_active' => true]);
 
@@ -246,7 +284,7 @@ test('warga can save optional family count and home occupant count on onboarding
         'onboarding_domisili' => true,
     ]);
 
-    $warga = \App\Models\Warga::create([
+    $warga = Warga::create([
         'user_id' => $user->id,
         'rt_id' => $rt->id,
         'nama_lengkap' => 'Kepala Keluarga Baru',

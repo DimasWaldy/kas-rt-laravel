@@ -28,10 +28,14 @@ class ProfileController extends Controller
         $user = auth()->user();
 
         if ($request->wantsJson()) {
+            abort_unless($user->isAktif(), 403, 'Akun belum aktif.');
+
             $rtId = $request->query('rt_id');
             if (! $rtId) {
                 return response()->json(['rumahs' => []]);
             }
+
+            abort_unless($user->isGlobalOperator() || (int) $user->rt_id === (int) $rtId, 403, 'RT di luar wilayah akun.');
 
             $rumahs = Rumah::where('status', 'aktif')
                 ->where('rt_id', $rtId)
@@ -163,10 +167,22 @@ class ProfileController extends Controller
             $isKepala = ($validated['status_dalam_kk'] ?? null) === 'kepala_keluarga';
             $defaultKepala = $isKepala ? $user->name : ($warga->nama_lengkap ?? $user->name ?? 'Belum ditetapkan');
 
-            $kk = KartuKeluarga::firstOrCreate(
-                ['no_kk' => $noKk],
-                ['nama_kepala_keluarga' => $defaultKepala]
-            );
+            $kk = KartuKeluarga::where('no_kk', $noKk)->first();
+            if ($kk && $kk->wargas()->where('user_id', '!=', $user->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'no_kk' => 'KK tersebut sudah memiliki anggota. Penetapan anggota keluarga harus melalui pengurus.',
+                ]);
+            }
+            if ($kk && $kk->rumah_id && (int) $kk->rumah_id !== (int) ($validated['rumah_id'] ?? 0)) {
+                throw ValidationException::withMessages([
+                    'no_kk' => 'KK tersebut sudah terhubung ke rumah lain. Penetapan KK harus melalui pengurus.',
+                ]);
+            }
+
+            $kk ??= KartuKeluarga::create([
+                'no_kk' => $noKk,
+                'nama_kepala_keluarga' => $defaultKepala,
+            ]);
             $data['kartu_keluarga_id'] = $kk->id;
             $data['status_dalam_kk'] = $validated['status_dalam_kk'] ?? $warga->status_dalam_kk ?? 'anggota';
 

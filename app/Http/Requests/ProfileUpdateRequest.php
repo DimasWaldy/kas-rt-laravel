@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\KartuKeluarga;
 use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -49,7 +50,7 @@ class ProfileUpdateRequest extends FormRequest
             'no_kk' => [
                 'sometimes', 'nullable',
                 'digits:16',
-                $isOnboardingDomisili ? 'nullable' : $this->unchangedFamilyAssignment('no_kk'),
+                $isOnboardingDomisili ? $this->onboardingFamilyCard() : $this->unchangedFamilyAssignment('no_kk'),
             ],
             'status_dalam_kk' => [
                 'sometimes', 'nullable', 'in:kepala_keluarga,anggota',
@@ -135,6 +136,16 @@ class ProfileUpdateRequest extends FormRequest
             $current = $field === 'no_kk' ? $warga?->kartuKeluarga?->no_kk : $warga?->status_dalam_kk;
             if ((string) $value !== (string) $current) {
                 $fail('Penetapan atau perubahan KK dan kepala keluarga harus melalui pengurus.');
+            }
+        };
+    }
+
+    private function onboardingFamilyCard(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) {
+            $existing = KartuKeluarga::where('no_kk', trim((string) $value))->first();
+            if ($existing && $existing->wargas()->where('user_id', '!=', $this->user()->id)->exists()) {
+                $fail('KK tersebut sudah memiliki anggota. Penetapan anggota keluarga harus melalui pengurus.');
             }
         };
     }
