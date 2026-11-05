@@ -50,12 +50,12 @@ class Pengaduan extends Model
         }
 
         if ($actor->isRwOfficial()) {
-            $rwId = $actor->rt()->value('rw_id');
+            $rwId = $actor->assignedRwId();
 
             return $rwId
                 ? $query->where(function (Builder $subQuery) use ($actor, $rwId) {
                     $subQuery->where('user_id', $actor->id)
-                        ->orWhereHas('user.rt', fn (Builder $rt) => $rt->where('rw_id', $rwId));
+                        ->orWhereHas('user', fn (Builder $user) => $user->inRw($rwId));
                 })
                 : $query->where('user_id', $actor->id);
         }
@@ -77,9 +77,9 @@ class Pengaduan extends Model
         }
 
         if ($actor->isRwOfficial()) {
-            $rwId = $actor->rt()->value('rw_id');
+            $rwId = $actor->assignedRwId();
 
-            return (bool) ($rwId && $this->user()->whereHas('rt', fn (Builder $rt) => $rt->where('rw_id', $rwId))->exists());
+            return (bool) ($rwId && $this->user()->inRw($rwId)->exists());
         }
 
         return (bool) ($actor->rt_id && $this->user()->where('rt_id', $actor->rt_id)->exists());

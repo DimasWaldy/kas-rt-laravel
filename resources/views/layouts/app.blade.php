@@ -97,7 +97,7 @@
                     'active' => 'admin/accounts*',
                     'icon' => 'fa-users-gear',
                     'iconClass' => 'text-emerald-600',
-                    'visible' => $user->role_name === 'super_admin' && $user->isAktif() && $user->hasPermission('admin-only'),
+                    'visible' => $user->isGlobalOperator() && $user->isAktif() && $user->hasPermission('admin-only'),
                 ],
                 [
                     'label' => 'Verifikasi Warga',

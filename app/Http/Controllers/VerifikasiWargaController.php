@@ -174,7 +174,7 @@ class VerifikasiWargaController extends Controller
         if ($actor->isRwOfficial()) {
             $rwId = $this->resolveRwId($actor);
 
-            return $query->whereHas('user.rt', fn (Builder $rt) => $rt->where('rw_id', $rwId));
+            return $query->whereHas('user', fn (Builder $user) => $user->inRw($rwId));
         }
         abort_unless($actor->rt_id, 403, 'Akun belum terhubung ke RT.');
 
@@ -442,7 +442,7 @@ class VerifikasiWargaController extends Controller
             $rwId = $this->resolveRwId($actor);
 
             return $query->where(function (Builder $scope) use ($rwId) {
-                $scope->whereHas('user.rt', fn (Builder $rtQuery) => $rtQuery->where('rw_id', $rwId))
+                $scope->whereHas('user', fn (Builder $user) => $user->inRw($rwId))
                     ->orWhereHas('rumahDiajukan.rt', fn (Builder $rtQuery) => $rtQuery->where('rw_id', $rwId));
             });
         }
@@ -490,7 +490,7 @@ class VerifikasiWargaController extends Controller
 
     private function resolveRwId(User $actor): int
     {
-        $rwId = $actor->rt()->value('rw_id');
+        $rwId = $actor->assignedRwId();
 
         if (! $rwId && $actor->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');

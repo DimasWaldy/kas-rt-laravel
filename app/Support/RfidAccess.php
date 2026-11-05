@@ -19,7 +19,7 @@ class RfidAccess
         }
 
         // No fallback to the first RW for an official without a territorial assignment.
-        $rwId = $actor->rt()->value('rw_id');
+        $rwId = $actor->assignedRwId();
         if (! $rwId || (int) $rwId !== (int) $kegiatan->rw_id) {
             return false;
         }
@@ -31,7 +31,7 @@ class RfidAccess
     public static function participants(Kegiatan $kegiatan): Builder
     {
         return User::query()->where('status_akun', 'aktif')
-            ->whereHas('rt', fn (Builder $q) => $q->where('rw_id', $kegiatan->rw_id))
+            ->inRw($kegiatan->rw_id)
             ->when($kegiatan->rt_id, fn (Builder $q) => $q->where('rt_id', $kegiatan->rt_id));
     }
 }

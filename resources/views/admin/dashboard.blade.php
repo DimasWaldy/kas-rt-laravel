@@ -21,7 +21,7 @@
                 <a href="{{ route('pengaduan.index', ['filter' => 'pending']) }}" class="rounded-2xl bg-white/15 px-4 py-3 font-bold text-white backdrop-blur-sm transition hover:bg-white/25">
                     Pengaduan Tambahan
                 </a>
-                @if(auth()->user()->role_name === 'super_admin')
+                @if(auth()->user()->isGlobalOperator() && auth()->user()->isAktif() && auth()->user()->hasPermission('admin-only'))
                     <a href="{{ route('admin.accounts.create') }}" class="rounded-2xl bg-white/15 px-4 py-3 font-bold text-white backdrop-blur-sm transition hover:bg-white/25">
                         Bikin Akun
                     </a>

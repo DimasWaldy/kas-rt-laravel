@@ -261,7 +261,7 @@ class AsetController extends Controller
 
     private function resolveRwId(User $user): int
     {
-        $rwId = $user->rt()->value('rw_id');
+        $rwId = $user->assignedRwId();
 
         if (! $rwId && $user->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');

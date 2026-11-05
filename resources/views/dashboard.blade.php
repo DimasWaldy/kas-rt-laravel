@@ -111,7 +111,7 @@
 </div>
 @endif
 
-@if(auth()->user()->role_name === 'super_admin' && auth()->user()->isAktif() && auth()->user()->hasPermission('admin-only'))
+@if(auth()->user()->isGlobalOperator() && auth()->user()->isAktif() && auth()->user()->hasPermission('admin-only'))
 <div class="mb-8 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-800 dark:bg-emerald-950/40 sm:flex-row sm:items-center sm:justify-between">
     <div>
         <p class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Administrasi Sistem</p>

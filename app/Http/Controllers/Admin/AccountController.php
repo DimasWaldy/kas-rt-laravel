@@ -6,18 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\Rt;
+use App\Models\Rw;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class AccountController extends Controller
 {
-    private const RT_ROLES = ['ketua_rt', 'bendahara_rt', 'sekretaris_rt', 'bendahara', 'sekretaris'];
+    private const RT_ROLES = ['ketua_rt', 'bendahara_rt', 'sekretaris_rt'];
 
     private const RW_ROLES = ['ketua_rw', 'sekretaris_rw', 'bendahara_rw', 'petugas_bank_sampah', 'petugas_posyandu'];
 
@@ -25,48 +25,55 @@ class AccountController extends Controller
 
     public function create(Request $request): View
     {
-        $this->authorizeSuperAdmin($request);
+        $this->authorizeAccountManager($request);
 
         $roles = Role::whereIn('name', self::ALLOWED_ROLES)->orderBy('name')->get();
         $rts = Rt::where('is_active', true)->whereHas('rw', fn ($query) => $query->where('is_active', true))
             ->with('rw:id,name')->orderBy('rw_id')->orderBy('name')->get();
+        $rws = Rw::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.accounts.create', compact('roles', 'rts'));
+        return view('admin.accounts.create', compact('roles', 'rts', 'rws'));
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $this->authorizeSuperAdmin($request);
+        $this->authorizeAccountManager($request);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'phone' => ['nullable', 'regex:/^[0-9]{10,13}$/'],
+            'password' => ['required', 'confirmed', Password::min(8)],
             'role' => ['required', Rule::in(self::ALLOWED_ROLES)],
-            'rt_id' => ['required_unless:role,admin', 'nullable', 'integer', Rule::exists('rts', 'id')->where('is_active', true)],
+            'rt_id' => ['required_if:role,'.implode(',', self::RT_ROLES), 'nullable', 'integer', Rule::exists('rts', 'id')->where('is_active', true)],
+            'rw_id' => ['required_if:role,'.implode(',', self::RW_ROLES), 'nullable', 'integer', Rule::exists('rws', 'id')->where('is_active', true)],
         ]);
 
         $role = Role::where('name', $validated['role'])->firstOrFail();
-        if ($role->name === 'admin' && filled($validated['rt_id'] ?? null)) {
-            return back()->withErrors(['rt_id' => 'Admin memiliki akses global; jangan pilih RT.'])->withInput();
+        $isRtRole = in_array($role->name, self::RT_ROLES, true);
+        $isRwRole = in_array($role->name, self::RW_ROLES, true);
+        if (! $isRtRole && filled($validated['rt_id'] ?? null)) {
+            return back()->withErrors(['rt_id' => 'Role ini tidak boleh memiliki RT penempatan.'])->withInput($request->except('password', 'password_confirmation'));
+        }
+        if (! $isRwRole && filled($validated['rw_id'] ?? null)) {
+            return back()->withErrors(['rw_id' => 'Role ini tidak boleh memiliki RW penempatan.'])->withInput($request->except('password', 'password_confirmation'));
         }
 
-        $rt = null;
-        if ($role->name !== 'admin') {
-            $rt = Rt::with('rw')->findOrFail($validated['rt_id']);
-            if (! $rt->is_active || ! $rt->rw?->is_active) {
-                return back()->withErrors(['rt_id' => 'Pilih RT aktif dalam RW aktif.'])->withInput();
-            }
+        $rt = $isRtRole ? Rt::with('rw')->findOrFail($validated['rt_id']) : null;
+        if ($rt && (! $rt->is_active || ! $rt->rw?->is_active)) {
+            return back()->withErrors(['rt_id' => 'Pilih RT aktif dalam RW aktif.'])->withInput($request->except('password', 'password_confirmation'));
         }
+        $rw = $isRwRole ? Rw::where('is_active', true)->findOrFail($validated['rw_id']) : null;
 
-        $user = DB::transaction(function () use ($request, $validated, $role, $rt) {
+        DB::transaction(function () use ($request, $validated, $role, $rt, $rw) {
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
-                'password' => Str::random(64),
+                'password' => $validated['password'],
                 'role_id' => $role->id,
                 'rt_id' => $rt?->id,
+                'rw_id' => $rw?->id,
                 'status_akun' => 'aktif',
             ]);
 
@@ -76,34 +83,20 @@ class AccountController extends Controller
                 'auditable_id' => $user->id,
                 'event' => 'akun_dibuat',
                 'old_values' => [],
-                'new_values' => ['role' => $role->name, 'rt_id' => $rt?->id],
-                'notes' => 'Akun dibuat oleh super admin.',
+                'new_values' => ['role' => $role->name, 'rt_id' => $rt?->id, 'rw_id' => $rw?->id],
+                'notes' => 'Akun dibuat oleh operator.',
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
-
-            return $user;
         });
 
-        try {
-            $status = Password::sendResetLink(['email' => $user->email]);
-        } catch (\Throwable $exception) {
-            report($exception);
-            $status = null;
-        }
-
-        return redirect()->route('admin.accounts.create')->with(
-            $status === Password::RESET_LINK_SENT ? 'success' : 'warning',
-            $status === Password::RESET_LINK_SENT
-                ? 'Akun berhasil dibuat. Tautan pengaturan password telah dikirim ke email pemilik akun.'
-                : 'Akun berhasil dibuat, tetapi tautan pengaturan password belum terkirim. Periksa layanan email lalu gunakan Lupa Password.'
-        );
+        return redirect()->route('admin.accounts.create')->with('success', 'Akun berhasil dibuat. Pemilik akun dapat mengganti password melalui Edit Profil.');
     }
 
-    private function authorizeSuperAdmin(Request $request): void
+    private function authorizeAccountManager(Request $request): void
     {
         abort_unless($request->user()?->isAktif()
-            && $request->user()->role_name === 'super_admin'
+            && $request->user()->isGlobalOperator()
             && $request->user()->hasPermission('admin-only'), 403);
     }
 }

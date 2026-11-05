@@ -156,7 +156,7 @@ class DirektoriRwController extends Controller
         }
 
         if ($actor->isRwOfficial()) {
-            $rwId = $actor->rt()->value('rw_id');
+            $rwId = $actor->assignedRwId();
 
             abort_unless($rwId, 403, 'Akun belum terhubung ke wilayah.');
 

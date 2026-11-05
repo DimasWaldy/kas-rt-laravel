@@ -152,7 +152,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/rumah/{rumah}/warga/{user}/move', [RumahController::class, 'moveWarga'])->name('admin.rumah.warga.move');
     });
 
-    Route::middleware(['permission:admin-only', 'role:super_admin'])->group(function () {
+    Route::middleware(['permission:admin-only', 'role:super_admin,admin'])->group(function () {
         Route::get('/admin/accounts/create', [AccountController::class, 'create'])->name('admin.accounts.create');
         Route::post('/admin/accounts', [AccountController::class, 'store'])->name('admin.accounts.store');
     });
