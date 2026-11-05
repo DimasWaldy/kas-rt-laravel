@@ -43,6 +43,7 @@ class TagihanService
         $activeGroups = $groups->keys()->all();
         $orphanedBills = Tagihan::forMonth($bulan, $tahun)
             ->whereNotNull('billing_group')
+            ->whereRaw("billing_group NOT LIKE ? ESCAPE '!'", ['insidental!_%'])
             ->whereNotIn('billing_group', $activeGroups ?: ['__no_active_groups__'])
             ->whereIn('status', ['belum_bayar', 'failed'])
             ->whereNotIn('verification_status', ['menunggu', 'valid']);

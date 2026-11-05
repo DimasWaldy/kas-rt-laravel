@@ -92,6 +92,14 @@
                     'visible' => $user->isAdmin(),
                 ],
                 [
+                    'label' => 'Manajemen Akun',
+                    'route' => 'admin.accounts.create',
+                    'active' => 'admin/accounts*',
+                    'icon' => 'fa-users-gear',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->role_name === 'super_admin' && $user->isAktif() && $user->hasPermission('admin-only'),
+                ],
+                [
                     'label' => 'Verifikasi Warga',
                     'route' => 'verifikasi-warga.index',
                     'active' => 'verifikasi-warga*',

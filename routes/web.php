@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\KoperasiController as KoperasiAdminController;
 use App\Http\Controllers\Admin\RumahController;
 use App\Http\Controllers\Admin\UserController;
@@ -149,6 +150,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/rumah/{rumah}/edit', [RumahController::class, 'edit'])->name('admin.rumah.edit');
         Route::patch('/admin/rumah/{rumah}', [RumahController::class, 'update'])->name('admin.rumah.update');
         Route::post('/admin/rumah/{rumah}/warga/{user}/move', [RumahController::class, 'moveWarga'])->name('admin.rumah.warga.move');
+    });
+
+    Route::middleware(['permission:admin-only', 'role:super_admin'])->group(function () {
+        Route::get('/admin/accounts/create', [AccountController::class, 'create'])->name('admin.accounts.create');
+        Route::post('/admin/accounts', [AccountController::class, 'store'])->name('admin.accounts.store');
     });
 
     Route::get('/admin/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])

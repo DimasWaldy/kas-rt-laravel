@@ -121,7 +121,11 @@
                         </div>
 
                         <div class="p-4 rounded-3xl border border-slate-200 bg-white">
-                            @if(in_array($item->status, ['belum_bayar', 'failed'], true))
+                            @if($item->isDikecualikan())
+                                <div class="rounded-3xl bg-slate-50 p-4">
+                                    <p class="text-sm font-semibold text-slate-700">Tagihan ini dikecualikan dari pembayaran.</p>
+                                </div>
+                            @elseif(in_array($item->status, ['belum_bayar', 'failed'], true))
                                 @if($canPayTagihan)
                                 <form action="{{ route('tagihan.pay') }}" method="POST" enctype="multipart/form-data" class="space-y-4" x-data="{ paymentMethod: '{{ old('tagihan_id') == $item->id ? old('payment_method', 'transfer') : 'transfer' }}' }">
                                     @csrf

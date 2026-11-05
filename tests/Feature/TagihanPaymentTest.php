@@ -394,6 +394,53 @@ test('admin can reject payment proof with reason and resident can resubmit', fun
     expect($tagihan->transaction_number)->toBe($firstTransactionNumber);
 });
 
+test('manual settlement remains available but an unpaid or paid bill cannot be rejected as proof', function () {
+    $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+    $resident = buatWargaTagihan(['role_id' => $this->wargaRole->id]);
+    $bill = Tagihan::create([
+        'user_id' => $resident->id, 'bulan' => 5, 'tahun' => 2026,
+        'total' => 50000, 'status' => 'belum_bayar',
+    ]);
+
+    $this->actingAs($admin)->post(route('tagihan.confirm'), [
+        'tagihan_id' => $bill->id, 'status' => 'ditolak', 'rejection_reason' => 'Bukti tidak cocok.',
+    ])->assertSessionHasErrors('status');
+    expect($bill->fresh()->status)->toBe('belum_bayar');
+    expect(KasMasuk::where('tagihan_id', $bill->id)->exists())->toBeFalse();
+
+    $this->post(route('tagihan.confirm'), [
+        'tagihan_id' => $bill->id, 'status' => 'lunas',
+    ])->assertSessionHasNoErrors();
+    $this->post(route('tagihan.confirm'), [
+        'tagihan_id' => $bill->id, 'status' => 'ditolak', 'rejection_reason' => 'Bukti tidak cocok.',
+    ])->assertSessionHasErrors('status');
+    expect($bill->fresh()->status)->toBe('lunas');
+});
+
+test('confirming an already paid bill cannot rewrite its payment date or cash entry', function () {
+    $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+    $resident = buatWargaTagihan(['role_id' => $this->wargaRole->id]);
+    $bill = Tagihan::create([
+        'user_id' => $resident->id, 'bulan' => 5, 'tahun' => 2026,
+        'total' => 50000, 'status' => 'belum_bayar',
+    ]);
+
+    $this->actingAs($admin)->post(route('tagihan.confirm'), [
+        'tagihan_id' => $bill->id, 'status' => 'lunas',
+    ])->assertSessionHasNoErrors();
+    $paidAt = $bill->fresh()->paid_at;
+    $cash = KasMasuk::where('tagihan_id', $bill->id)->firstOrFail();
+    $cashDate = $cash->tanggal;
+
+    $this->travel(1)->days();
+    $this->post(route('tagihan.confirm'), [
+        'tagihan_id' => $bill->id, 'status' => 'lunas',
+    ])->assertSessionHasErrors('status');
+
+    expect($bill->fresh()->paid_at->equalTo($paidAt))->toBeTrue();
+    expect($cash->fresh()->tanggal)->toBe($cashDate);
+});
+
 test('admin can confirm bill through ajax and receives json payload', function () {
     $admin = User::factory()->create([
         'role_id' => $this->adminRole->id,

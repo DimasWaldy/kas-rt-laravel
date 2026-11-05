@@ -119,6 +119,10 @@ class TagihanController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            if ($tagihan->isDikecualikan()) {
+                return redirect()->back()->with('error', 'Tagihan ini telah dikecualikan dari pembayaran.');
+            }
+
             // Pastikan nominal tagihan valid setelah row terkunci.
             if ($tagihan->total <= 0) {
                 return redirect()->back()->with('error', 'Tagihan ini tidak memiliki nominal pembayaran.');
@@ -255,6 +259,25 @@ class TagihanController extends Controller
         $tagihan = DB::transaction(function () use ($request) {
             $tagihan = Tagihan::visibleTo($request->user())
                 ->lockForUpdate()->findOrFail($request->tagihan_id);
+            if ($tagihan->isDikecualikan() && $request->status === 'lunas') {
+                throw ValidationException::withMessages([
+                    'status' => 'Tagihan ini telah dikecualikan dari pembayaran.',
+                ]);
+            }
+
+            if ($request->status === 'ditolak'
+                && ! in_array($tagihan->status, ['pending_transfer', 'pending_offline'], true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya pembayaran yang menunggu verifikasi dapat ditolak.',
+                ]);
+            }
+
+            if ($request->status === 'lunas' && $tagihan->status === 'lunas') {
+                throw ValidationException::withMessages([
+                    'status' => 'Tagihan ini sudah lunas.',
+                ]);
+            }
+
             $oldValues = $tagihan->getOriginal();
             if ($request->status === 'lunas') {
                 $tagihan->status = 'lunas';
