@@ -88,7 +88,7 @@ test('bendahara rt membuat iuran khusus dan tagihan untuk semua target warga rt'
 
     $response->assertRedirect(route('iuran-khusus.show', $iuran));
     expect($iuran->rt_id)->toBe($this->rtSatu->id)
-        ->and($iuran->billing_group)->toBe('insidental_' . $iuran->id)
+        ->and($iuran->billing_group)->toBe('insidental_'.$iuran->id)
         ->and($iuran->total_tagihan)->toBe(2);
 
     $tagihans = Tagihan::where('billing_group', $iuran->billing_group)->get();
@@ -143,6 +143,55 @@ test('tagihan lunas tidak dapat dikecualikan', function () {
     expect($tagihan->fresh()->dikecualikan_at)->toBeNull();
 });
 
+test('excluded incidental bill cannot be paid or approved', function () {
+    Storage::fake('local');
+    $iuran = ($this->buatIuran)();
+    $bill = $iuran->tagihans()->where('user_id', $this->wargaSatu->id)->firstOrFail();
+
+    $this->actingAs($this->bendahara)->patch(route('iuran-khusus.kecualikan', $bill), [
+        'alasan_dikecualikan' => 'Warga dibebaskan dari pembayaran.',
+    ])->assertSessionHas('success');
+
+    $this->actingAs($this->wargaSatu)->from(route('tagihan.index'))->post(route('tagihan.pay'), [
+        'tagihan_id' => $bill->id,
+        'payment_method' => 'transfer',
+        'bukti' => UploadedFile::fake()->image('bukti-iuran-khusus.jpg'),
+    ])->assertRedirect(route('tagihan.index'))
+        ->assertSessionHas('error', 'Tagihan ini telah dikecualikan dari pembayaran.');
+
+    expect($bill->fresh()->status)->toBe('belum_bayar')
+        ->and($bill->fresh()->bukti)->toBeNull();
+
+    $this->actingAs($this->bendahara)->post(route('tagihan.confirm'), [
+        'tagihan_id' => $bill->id,
+        'status' => 'lunas',
+    ])->assertSessionHasErrors('status');
+
+    expect($bill->fresh()->status)->toBe('belum_bayar')
+        ->and($bill->fresh()->paid_at)->toBeNull();
+    $this->assertDatabaseMissing('kas_masuks', ['tagihan_id' => $bill->id]);
+
+    $this->actingAs($this->wargaSatu)->get(route('tagihan.index'))
+        ->assertOk()
+        ->assertSee('Tagihan ini dikecualikan dari pembayaran.')
+        ->assertDontSee('name="tagihan_id" value="'.$bill->id.'"', false);
+
+    $this->actingAs($this->bendahara)->get(route('tagihan.admin'))
+        ->assertOk()
+        ->assertSee('Tagihan ini dikecualikan dari pembayaran.')
+        ->assertDontSee('name="tagihan_id" value="'.$bill->id.'"', false);
+});
+
+test('monthly regeneration never deletes unpaid incidental bills', function () {
+    $iuran = ($this->buatIuran)();
+    $bill = $iuran->tagihans()->where('user_id', $this->wargaSatu->id)->firstOrFail();
+
+    Tagihan::generate((int) $bill->bulan, (int) $bill->tahun);
+
+    expect($bill->fresh())->not->toBeNull()
+        ->and($bill->fresh()->trashed())->toBeFalse();
+});
+
 test('tagihan iuran khusus mengikuti alur pembayaran biasa', function () {
     Storage::fake('local');
 
@@ -193,6 +242,6 @@ test('billing group unik untuk setiap batch iuran khusus', function () {
     ]);
 
     expect($iuranPertama->billing_group)->not->toBe($iuranKedua->billing_group)
-        ->and($iuranPertama->billing_group)->toBe('insidental_' . $iuranPertama->id)
-        ->and($iuranKedua->billing_group)->toBe('insidental_' . $iuranKedua->id);
+        ->and($iuranPertama->billing_group)->toBe('insidental_'.$iuranPertama->id)
+        ->and($iuranKedua->billing_group)->toBe('insidental_'.$iuranKedua->id);
 });

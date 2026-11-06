@@ -26,8 +26,8 @@ class PeminjamanDitolak extends Notification
             'peminjaman_id' => $this->peminjaman->id,
             'aset_nama' => $this->peminjaman->aset->nama,
             'alasan' => $this->peminjaman->catatan_pengurus,
-            'pesan' => 'Peminjaman ' . $this->peminjaman->aset->nama . ' ditolak.',
-            'url' => '/peminjaman-aset/' . $this->peminjaman->id,
+            'pesan' => 'Peminjaman '.$this->peminjaman->aset->nama.' ditolak.',
+            'url' => '/peminjaman-aset/'.$this->peminjaman->id,
         ];
     }
 }

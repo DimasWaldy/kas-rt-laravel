@@ -367,7 +367,7 @@ class RoleAndPermissionSeeder extends Seeder
 
             $role->permissions()->sync(
                 collect($data['permissions'])
-                    ->map(fn(string $permission) => $permissionModels[$permission]->id)
+                    ->map(fn (string $permission) => $permissionModels[$permission]->id)
                     ->all()
             );
         }

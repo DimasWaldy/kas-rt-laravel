@@ -27,6 +27,7 @@ beforeEach(function () {
     $this->pendingResident = function (array $documents = []) {
         $user = User::factory()->create(['role_id' => Role::where('name', 'warga')->value('id'),
             'rt_id' => $this->rtIntegrity->id, 'status_akun' => 'pending_verifikasi', 'onboarding_domisili' => true]);
+
         return Warga::create(['user_id' => $user->id, 'nama_lengkap' => $user->name, 'status_verifikasi' => 'pending'] + $documents);
     };
 });
@@ -59,9 +60,15 @@ test('global creation without house still requires and retains chosen rt', funct
 
 test('invalid inactive rt or inactive parent rw cannot receive a resident or new house', function (string $case) {
     $rtId = $this->rtIntegrity->id;
-    if ($case === 'missing') $rtId = 999999;
-    if ($case === 'rt') $this->rtIntegrity->update(['is_active' => false]);
-    if ($case === 'rw') $this->rtIntegrity->rw->update(['is_active' => false]);
+    if ($case === 'missing') {
+        $rtId = 999999;
+    }
+    if ($case === 'rt') {
+        $this->rtIntegrity->update(['is_active' => false]);
+    }
+    if ($case === 'rw') {
+        $this->rtIntegrity->rw->update(['is_active' => false]);
+    }
     $this->actingAs($this->operator)->post(route('admin.warga.store'), $this->residentData + ['rt_id' => $rtId, 'rumah_kode' => 'INVALID-RT'])
         ->assertSessionHasErrors('rt_id');
     expect(Rumah::count())->toBe(0)->and(User::where('email', $this->residentData['email'])->exists())->toBeFalse();
@@ -81,7 +88,9 @@ test('existing house derives rt but cannot be silently moved by a conflicting se
 test('orphan inactive and inactive territory houses are rejected for new or edited residents', function (string $case) {
     $house = Rumah::create(['kode_rumah' => 'UNSUITABLE', 'rt_id' => $case === 'orphan' ? null : $this->rtIntegrity->id,
         'status' => $case === 'inactive' ? 'nonaktif' : 'aktif']);
-    if ($case === 'territory') $this->rtIntegrity->update(['is_active' => false]);
+    if ($case === 'territory') {
+        $this->rtIntegrity->update(['is_active' => false]);
+    }
     $error = $case === 'territory' ? 'rt_id' : 'rumah_id';
     $this->actingAs($this->operator)->post(route('admin.warga.store'), $this->residentData + ['rumah_id' => $house->id])->assertSessionHasErrors($error);
     $user = User::factory()->create(['role_id' => Role::where('name', 'warga')->value('id'), 'rt_id' => $this->rtSibling->id]);

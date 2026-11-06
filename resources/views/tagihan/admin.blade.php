@@ -189,6 +189,9 @@
                             <p class="mt-1 text-xs font-semibold leading-5 text-slate-500">Pembayaran sudah tercatat ke kas masuk. Nominal tagihan dikunci untuk menjaga kesesuaian catatan kas.</p>
                         </div>
 
+                        @if($tagihan->isDikecualikan())
+                            <p class="mt-4 rounded-2xl bg-white p-4 text-sm font-semibold text-slate-700">Tagihan ini dikecualikan dari pembayaran.</p>
+                        @else
                         <div x-show="status !== 'lunas'">
                             <form action="{{ route('tagihan.confirm') }}" method="POST" class="mt-4 space-y-3" x-on:submit.prevent="submitVerification($event)">
                                 @csrf
@@ -200,7 +203,7 @@
                                 </button>
                             </form>
 
-                            <form action="{{ route('tagihan.confirm') }}" method="POST" class="mt-4 space-y-3 border-t border-emerald-100 pt-4" x-on:submit.prevent="submitVerification($event)">
+                            <form x-show="status === 'pending_transfer' || status === 'pending_offline'" action="{{ route('tagihan.confirm') }}" method="POST" class="mt-4 space-y-3 border-t border-emerald-100 pt-4" x-on:submit.prevent="submitVerification($event)">
                                 @csrf
                                 <input type="hidden" name="tagihan_id" value="{{ $tagihan->id }}">
                                 <input type="hidden" name="status" value="ditolak">
@@ -219,6 +222,7 @@
                                 </button>
                             </form>
                         </div>
+                        @endif
 
                         <div class="mt-4 flex gap-2">
                             @if ($tagihan->canEditDetails())

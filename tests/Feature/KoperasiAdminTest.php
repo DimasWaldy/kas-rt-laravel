@@ -1,27 +1,28 @@
 <?php
 
-use App\Models\User;
-use App\Models\Role;
-use App\Models\KoperasiMember;
-use App\Models\KoperasiSimpanan;
-use App\Models\KoperasiPinjam;
 use App\Models\KoperasiAngsuran;
+use App\Models\KoperasiMember;
+use App\Models\KoperasiPinjam;
+use App\Models\KoperasiSimpanan;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\Rt;
-use App\Models\Rw;
 use App\Models\Rumah;
-
+use App\Models\Rw;
+use App\Models\User;
 use App\Models\Warga;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
-function buatWargaKoperasiAdmin(?Rt $rt = null) {
+function buatWargaKoperasiAdmin(?Rt $rt = null)
+{
     $role = Role::firstOrCreate(['name' => 'warga']);
     $user = User::factory()->create([
         'role_id' => $role->id,
         'rt_id' => $rt?->id,
         'status_akun' => 'aktif',
     ]);
+
     return Warga::create([
         'user_id' => $user->id,
         'nama_lengkap' => $user->name,
@@ -37,8 +38,6 @@ function buatWargaKoperasiAdmin(?Rt $rt = null) {
         'pekerjaan' => 'Swasta',
     ]);
 }
-
-use App\Models\Permission;
 
 beforeEach(function () {
     $rw = Rw::create(['name' => 'RW Test Koperasi']);
@@ -63,6 +62,23 @@ test('admin dapat melihat dashboard koperasi', function () {
         ->get(route('admin.koperasi.index'))
         ->assertOk()
         ->assertSee('Kelola Koperasi');
+});
+
+test('koperasi manager without approve permission cannot change member status', function () {
+    $managerRole = Role::firstOrCreate(['name' => 'koperasi_manager_read_only']);
+    $manage = Permission::firstOrCreate(['name' => 'manage-koperasi']);
+    $managerRole->permissions()->sync([$manage->id]);
+    $manager = User::factory()->create(['role_id' => $managerRole->id, 'rt_id' => $this->admin->rt_id]);
+    $member = KoperasiMember::create([
+        'user_id' => $this->wargaUser->id,
+        'member_number' => 'KOP-MANAGER-NO-APPROVE',
+        'joined_at' => now(),
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($manager)->get(route('admin.koperasi.index'))->assertOk()->assertDontSee('Aktifkan');
+    $this->patch(route('admin.koperasi.approve-member', $member), ['status' => 'aktif'])->assertForbidden();
+    expect($member->fresh()->status)->toBe('pending');
 });
 
 test('admin koperasi hanya dapat menjalankan transisi status anggota yang valid', function () {
@@ -519,7 +535,7 @@ test('admin dapat menyetujui pinjaman', function () {
         'status' => 'menunggu_persetujuan',
     ]);
 
-    $file = \Illuminate\Http\UploadedFile::fake()->image('bukti_transfer.jpg');
+    $file = UploadedFile::fake()->image('bukti_transfer.jpg');
 
     $this->actingAs($this->admin)
         ->patch(route('admin.koperasi.approve-pinjaman', $pinjaman->id), [

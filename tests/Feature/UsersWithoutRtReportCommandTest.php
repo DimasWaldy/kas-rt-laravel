@@ -2,8 +2,8 @@
 
 use App\Models\Role;
 use App\Models\Rt;
-use App\Models\Rw;
 use App\Models\Rumah;
+use App\Models\Rw;
 use App\Models\User;
 use App\Models\Warga;
 use Illuminate\Support\Facades\DB;

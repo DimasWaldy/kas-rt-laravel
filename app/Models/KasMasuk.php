@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class KasMasuk extends Model
 {
     use Auditable, HasRtScope, SoftDeletes;
+
     protected $fillable = [
         'user_id',
         'rt_id',

@@ -33,10 +33,10 @@ class TagihanReminder extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Pengingat Tagihan RT: ' . $this->tagihan->getDueDateAttribute()->translatedFormat('F Y'))
+            ->subject('Pengingat Tagihan RT: '.$this->tagihan->getDueDateAttribute()->translatedFormat('F Y'))
             ->line('Tagihan Anda masih belum dibayar.')
             ->line("Periode: {$this->tagihan->bulan}/{$this->tagihan->tahun}")
-            ->line('Total tagihan: Rp ' . number_format($this->tagihan->total, 0, ',', '.'))
+            ->line('Total tagihan: Rp '.number_format($this->tagihan->total, 0, ',', '.'))
             ->line('Segera lakukan pembayaran sebelum atau sesegera mungkin.');
     }
 
@@ -45,7 +45,7 @@ class TagihanReminder extends Notification
         $statusLabel = $this->tagihan->isOverdue() ? 'TELAT BAYAR' : 'MENDEKATI JATUH TEMPO';
 
         return [
-            'body' => "Halo {$notifiable->name}, pengingat tagihan RT Anda {$statusLabel} untuk periode {$this->tagihan->bulan}/{$this->tagihan->tahun}. Total: Rp " . number_format($this->tagihan->total, 0, ',', '.') . ". Jatuh tempo: " . $this->tagihan->due_date->format('d F Y') . ".",
+            'body' => "Halo {$notifiable->name}, pengingat tagihan RT Anda {$statusLabel} untuk periode {$this->tagihan->bulan}/{$this->tagihan->tahun}. Total: Rp ".number_format($this->tagihan->total, 0, ',', '.').'. Jatuh tempo: '.$this->tagihan->due_date->format('d F Y').'.',
         ];
     }
 

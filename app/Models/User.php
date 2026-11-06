@@ -2,19 +2,20 @@
 
 namespace App\Models;
 
+use App\Support\FinancialHistory;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\Role;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Validation\ValidationException;
 
-#[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'rt_id', 'is_penanggung_jawab_rumah', 'phone', 'status_akun'])]
+#[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'rt_id', 'rw_id', 'is_penanggung_jawab_rumah', 'phone', 'status_akun'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -29,9 +30,9 @@ class User extends Authenticatable
             }
         });
         static::deleting(function (User $user) {
-            if (\App\Support\FinancialHistory::existsForUser($user->id)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'account' => \App\Support\FinancialHistory::DELETION_MESSAGE,
+            if (FinancialHistory::existsForUser($user->id)) {
+                throw ValidationException::withMessages([
+                    'account' => FinancialHistory::DELETION_MESSAGE,
                 ]);
             }
         });
@@ -64,6 +65,7 @@ class User extends Authenticatable
             'role_id' => 'integer',
             'rumah_id' => 'integer',
             'rt_id' => 'integer',
+            'rw_id' => 'integer',
             'onboarding_domisili' => 'boolean',
         ];
     }
@@ -88,6 +90,17 @@ class User extends Authenticatable
         return $this->belongsTo(Rt::class);
     }
 
+    public function rw(): BelongsTo
+    {
+        return $this->belongsTo(Rw::class);
+    }
+
+    public function assignedRwId(): ?int
+    {
+        // RT remains the source for legacy accounts; explicit RW covers officials without an RT.
+        return $this->rt_id ? $this->rt()->value('rw_id') : $this->rw_id;
+    }
+
     public function koperasiMember(): HasOne
     {
         return $this->hasOne(KoperasiMember::class);
@@ -110,8 +123,10 @@ class User extends Authenticatable
 
     public function scopeInRw(Builder $query, int $rwId): Builder
     {
-        return $query->whereHas('rt', function (Builder $query) use ($rwId) {
-            $query->where('rw_id', $rwId);
+        return $query->where(function (Builder $query) use ($rwId) {
+            $query->where(function (Builder $direct) use ($rwId) {
+                $direct->whereNull('rt_id')->where('rw_id', $rwId);
+            })->orWhereHas('rt', fn (Builder $rt) => $rt->where('rw_id', $rwId));
         });
     }
 
@@ -122,11 +137,9 @@ class User extends Authenticatable
         }
 
         if ($actor->isRwOfficial()) {
-            $rwId = $actor->rt()->value('rw_id');
+            $rwId = $actor->assignedRwId();
 
-            return $rwId
-                ? $query->whereHas('rt', fn (Builder $rt) => $rt->where('rw_id', $rwId))
-                : $query->whereRaw('1 = 0');
+            return $rwId ? $query->inRw($rwId) : $query->whereRaw('1 = 0');
         }
 
         if (! $actor->rt_id) {
@@ -234,7 +247,7 @@ class User extends Authenticatable
         return $issues;
     }
 
-    public function pengaduans(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function pengaduans(): HasMany
     {
         return $this->hasMany(Pengaduan::class);
     }

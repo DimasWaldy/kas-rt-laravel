@@ -1,0 +1,9 @@
+{
+    "preset": "laravel",
+    "notPath": [
+        "database/migrations/2026_05_15_031240_create_roles_table.php",
+        "database/migrations/2026_05_15_031241_create_permissions_table.php",
+        "database/migrations/2026_05_15_031241_create_role_permission_table.php",
+        "database/migrations/2026_05_29_000001_add_billing_group_to_tagihans_table.php"
+    ]
+}

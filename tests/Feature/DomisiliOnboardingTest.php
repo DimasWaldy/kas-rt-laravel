@@ -1,13 +1,13 @@
 <?php
 
+use App\Http\Middleware\EnsureInitialDomicile;
 use App\Models\Role;
 use App\Models\Rt;
 use App\Models\Rumah;
 use App\Models\Rw;
+use App\Models\Tagihan;
 use App\Models\User;
 use App\Models\Warga;
-use App\Models\Tagihan;
-use App\Http\Middleware\EnsureInitialDomicile;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
@@ -212,7 +212,8 @@ test('proposed house never grants payment proof access before approval', functio
     $this->withoutMiddleware(EnsureInitialDomicile::class)->get(route('tagihan.bukti', $bill))->assertForbidden();
     $this->get(route('tagihan.index'))->assertOk()->assertDontSee('PRIVATE HOUSEHOLD BILL');
     $this->actingAs($this->officer)->patch(route('verifikasi-warga.domisili.setujui', $user->warga))->assertSessionHasNoErrors();
-    $this->actingAs($user->fresh())->get(route('tagihan.bukti', $bill))->assertOk();
+    $this->actingAs($user->fresh())->get(route('tagihan.bukti', $bill))->assertForbidden();
+    $this->actingAs($owner)->get(route('tagihan.bukti', $bill))->assertOk();
     expect($house->fresh()->penanggung_jawab_id)->toBe($owner->id)->and($user->fresh()->is_penanggung_jawab_rumah)->toBeFalse();
     $this->assertDatabaseHas('audit_logs', ['event' => 'domisili_disetujui', 'user_id' => $this->officer->id, 'auditable_id' => $user->warga->id]);
 })->with(['existing', 'new']);

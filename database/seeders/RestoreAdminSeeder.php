@@ -52,6 +52,6 @@ class RestoreAdminSeeder extends Seeder
             ]
         );
 
-        $this->command?->info('Admin berhasil dibuat/diperbarui: ' . Str::lower($email));
+        $this->command?->info('Admin berhasil dibuat/diperbarui: '.Str::lower($email));
     }
 }

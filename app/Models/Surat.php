@@ -104,13 +104,40 @@ class Surat extends Model
         ];
     }
 
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function verifierRt(): BelongsTo { return $this->belongsTo(User::class, 'verified_rt_by'); }
-    public function approverRt(): BelongsTo { return $this->belongsTo(User::class, 'approved_rt_by'); }
-    public function verifierRw(): BelongsTo { return $this->belongsTo(User::class, 'verified_rw_by'); }
-    public function approverRw(): BelongsTo { return $this->belongsTo(User::class, 'approved_rw_by'); }
-    public function rejector(): BelongsTo { return $this->belongsTo(User::class, 'rejected_by'); }
-    public function attachments(): HasMany { return $this->hasMany(SuratAttachment::class); }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function verifierRt(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_rt_by');
+    }
+
+    public function approverRt(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_rt_by');
+    }
+
+    public function verifierRw(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_rw_by');
+    }
+
+    public function approverRw(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_rw_by');
+    }
+
+    public function rejector(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(SuratAttachment::class);
+    }
 
     public function getTypeLabelAttribute(): string
     {

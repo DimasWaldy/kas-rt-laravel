@@ -5,8 +5,6 @@ namespace App\Notifications;
 use App\Models\Tagihan;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 
 class PaymentReceived extends Notification
 {

@@ -128,16 +128,13 @@
                             </td>
                             <td class="px-4 py-3">
                                 @if($warga->phone)
-                                    <p class="font-semibold text-slate-800">{{ $warga->phone }}</p>
-                                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $warga->phone) }}" target="_blank" class="mt-1 inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
-                                        <i class="fa-brands fa-whatsapp"></i> WhatsApp
-                                    </a>
+                                    <p class="font-semibold text-slate-800">{{ \App\Support\Mask::phone($warga->phone) }}</p>
                                 @else
                                     <span class="text-xs text-slate-400">Belum ada nomor HP</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3">
-                                <p class="font-semibold text-slate-800">{{ $warga->warga?->kartuKeluarga?->no_kk ?? '-' }}</p>
+                                <p class="font-semibold text-slate-800">{{ \App\Support\Mask::nik($warga->warga?->kartuKeluarga?->no_kk) }}</p>
                                 <p class="text-xs text-slate-500">{{ $warga->warga?->status_dalam_kk ? str($warga->warga->status_dalam_kk)->replace('_', ' ')->headline() : 'Status KK belum diisi' }}</p>
                             </td>
                             <td class="px-4 py-3">

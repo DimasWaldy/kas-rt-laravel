@@ -244,9 +244,7 @@ class KoperasiController extends Controller
         }
 
         if ($actor->isRwOfficial()) {
-            return $query->whereHas('rt', function (Builder $rtQuery) use ($actor) {
-                $rtQuery->where('rw_id', $this->resolveRwId($actor));
-            });
+            return $query->inRw($this->resolveRwId($actor));
         }
 
         abort_unless($actor->rt_id, 403, 'Akun belum terhubung ke RT.');
@@ -264,7 +262,7 @@ class KoperasiController extends Controller
 
         if ($actor->isRwOfficial()) {
             abort_unless(
-                $target->rt_id && (int) $target->rt()->value('rw_id') === $this->resolveRwId($actor),
+                $target->rt_id && (int) $target->assignedRwId() === $this->resolveRwId($actor),
                 404
             );
 
@@ -291,7 +289,7 @@ class KoperasiController extends Controller
 
     private function resolveRwId(User $user): int
     {
-        $rwId = $user->rt()->value('rw_id');
+        $rwId = $user->assignedRwId();
 
         if (! $rwId && $user->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');

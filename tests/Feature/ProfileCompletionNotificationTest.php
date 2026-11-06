@@ -7,6 +7,7 @@ use App\Models\Rumah;
 use App\Models\Rw;
 use App\Models\User;
 use App\Models\Warga;
+use Database\Seeders\RoleAndPermissionSeeder;
 
 test('warga dengan profil belum lengkap melihat notifikasi lengkapi profil', function () {
     $role = Role::firstOrCreate(['name' => 'warga']);
@@ -109,7 +110,7 @@ test('personal data is completed through profile and family assignment through o
         ->and($user->warga->nik)->toBe('3273000000000003')
         ->and($user->warga->kartu_keluarga_id)->toBeNull();
 
-    $this->seed(\Database\Seeders\RoleAndPermissionSeeder::class);
+    $this->seed(RoleAndPermissionSeeder::class);
     $officer = User::factory()->create(['role_id' => Role::where('name', 'sekretaris_rt')->value('id'), 'rt_id' => $rt->id]);
     $this->actingAs($officer)->patch(route('admin.warga.update', $user), [
         'name' => $user->name, 'email' => $user->email, 'phone' => $user->phone,

@@ -54,11 +54,11 @@ class IuranKhususController extends Controller
                 ...$validated,
                 'rt_id' => $rtId,
                 'created_by' => Auth::id(),
-                'billing_group' => 'sementara_' . str()->uuid(),
+                'billing_group' => 'sementara_'.str()->uuid(),
             ]);
 
             $iuranKhusus->update([
-                'billing_group' => 'insidental_' . $iuranKhusus->id,
+                'billing_group' => 'insidental_'.$iuranKhusus->id,
             ]);
 
             $warga = $this->targetWarga($rtId)->get();
@@ -121,29 +121,46 @@ class IuranKhususController extends Controller
             'alasan_dikecualikan' => ['required', 'string', 'min:5', 'max:255'],
         ]);
 
-        $this->authorizeTagihan($tagihan, $request->user());
-        abort_unless($tagihan->isInsidental(), 403);
-        abort_if($tagihan->status === 'lunas', 403);
+        $user = $request->user();
+        $this->authorizeTagihan($tagihan, $user);
 
-        $tagihan->update([
-            'dikecualikan_at' => now(),
-            'dikecualikan_oleh' => Auth::id(),
-            'alasan_dikecualikan' => $validated['alasan_dikecualikan'],
-        ]);
+        DB::transaction(function () use ($tagihan, $user, $validated) {
+            $locked = Tagihan::lockForUpdate()->findOrFail($tagihan->id);
+
+            // Re-check after the row lock so a payment committed in between cannot be overridden.
+            $this->authorizeTagihan($locked, $user);
+            abort_unless($locked->isInsidental(), 403);
+            abort_if($locked->status === 'lunas', 403);
+
+            $locked->update([
+                'dikecualikan_at' => now(),
+                'dikecualikan_oleh' => $user->id,
+                'alasan_dikecualikan' => $validated['alasan_dikecualikan'],
+            ]);
+        });
 
         return back()->with('success', 'Warga berhasil dikecualikan dari iuran khusus.');
     }
 
     public function batalKecualikan(Tagihan $tagihan)
     {
-        $this->authorizeTagihan($tagihan, Auth::user());
+        $user = Auth::user();
+        $this->authorizeTagihan($tagihan, $user);
         abort_unless($tagihan->isInsidental() && $tagihan->isDikecualikan(), 403);
 
-        $tagihan->update([
-            'dikecualikan_at' => null,
-            'dikecualikan_oleh' => null,
-            'alasan_dikecualikan' => null,
-        ]);
+        DB::transaction(function () use ($tagihan, $user) {
+            $locked = Tagihan::lockForUpdate()->findOrFail($tagihan->id);
+
+            $this->authorizeTagihan($locked, $user);
+            abort_unless($locked->isInsidental() && $locked->isDikecualikan(), 403);
+            abort_if($locked->status === 'lunas', 403);
+
+            $locked->update([
+                'dikecualikan_at' => null,
+                'dikecualikan_oleh' => null,
+                'alasan_dikecualikan' => null,
+            ]);
+        });
 
         return back()->with('success', 'Pengecualian warga berhasil dibatalkan.');
     }

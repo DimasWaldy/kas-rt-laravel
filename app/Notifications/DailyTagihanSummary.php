@@ -11,7 +11,9 @@ class DailyTagihanSummary extends Notification
     use Queueable;
 
     protected int $unpaidCount;
+
     protected int $overdueCount;
+
     protected int $dueSoonCount;
 
     public function __construct(int $unpaidCount, int $overdueCount, int $dueSoonCount)

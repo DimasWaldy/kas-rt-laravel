@@ -29,9 +29,9 @@ class PeminjamanDiajukan extends Notification
             'tanggal_mulai' => $this->peminjaman->tanggal_mulai->format('d M Y'),
             'tanggal_selesai' => $this->peminjaman->tanggal_selesai->format('d M Y'),
             'keperluan' => $this->peminjaman->keperluan,
-            'pesan' => 'Pengajuan peminjaman baru: ' . $this->peminjaman->aset->nama
-                . ' oleh ' . $this->peminjaman->pemohon->name,
-            'url' => '/peminjaman-aset/' . $this->peminjaman->id,
+            'pesan' => 'Pengajuan peminjaman baru: '.$this->peminjaman->aset->nama
+                .' oleh '.$this->peminjaman->pemohon->name,
+            'url' => '/peminjaman-aset/'.$this->peminjaman->id,
         ];
     }
 }

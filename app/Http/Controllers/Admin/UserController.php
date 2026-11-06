@@ -161,9 +161,9 @@ class UserController extends Controller
             return User::query();
         }
         if ($actor->isRwOfficial()) {
-            $rwId = $actor->rt()->value('rw_id');
+            $rwId = $actor->assignedRwId();
 
-            return $rwId ? User::whereHas('rt', fn ($rt) => $rt->where('rw_id', $rwId)) : User::whereRaw('1 = 0');
+            return $rwId ? User::inRw($rwId) : User::whereRaw('1 = 0');
         }
 
         return $actor->rt_id ? User::where('rt_id', $actor->rt_id) : User::whereRaw('1 = 0');
@@ -176,7 +176,7 @@ class UserController extends Controller
             return $query;
         }
         if ($actor->isRwOfficial()) {
-            $rwId = $actor->rt()->value('rw_id');
+            $rwId = $actor->assignedRwId();
 
             return $rwId ? $query->where('rw_id', $rwId) : $query->whereRaw('1 = 0');
         }
@@ -289,8 +289,8 @@ class UserController extends Controller
         $actor = auth()->user();
         abort_unless($actor?->isAktif() && $actor->canManageWarga(), 403);
         if ($actor->isRwOfficial()) {
-            $rwId = $actor->rt()->value('rw_id');
-            abort_unless($rwId && (int) $user->rt()->value('rw_id') === (int) $rwId, 404);
+            $rwId = $actor->assignedRwId();
+            abort_unless($rwId && (int) $user->assignedRwId() === (int) $rwId, 404);
         }
         $warga = $user->warga()->first();
         $kartuKeluarga = null;

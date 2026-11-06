@@ -63,6 +63,34 @@ test('warga dapat mendaftar menjadi anggota koperasi', function () {
     ]);
 });
 
+test('read-only koperasi member cannot submit transactions or open their forms', function () {
+    $role = Role::firstOrCreate(['name' => 'koperasi_read_only']);
+    $view = Permission::firstOrCreate(['name' => 'view-koperasi']);
+    $role->permissions()->sync([$view->id]);
+    $memberUser = User::factory()->create(['role_id' => $role->id, 'status_akun' => 'aktif']);
+    KoperasiMember::create([
+        'user_id' => $memberUser->id,
+        'member_number' => 'KOP-READONLY',
+        'joined_at' => now(),
+        'status' => 'aktif',
+    ]);
+
+    $this->actingAs($memberUser)->get(route('koperasi.index'))->assertOk()->assertDontSee('Tambah Simpanan');
+    $this->get(route('koperasi.simpan'))->assertForbidden();
+    $this->post(route('koperasi.store-simpanan'), [])->assertForbidden();
+    $this->get(route('koperasi.pinjam'))->assertForbidden();
+    $this->post(route('koperasi.store-pinjam'), ['amount' => 900000, 'tenor_months' => 10])->assertForbidden();
+    $this->post(route('koperasi.store-daftar'))->assertForbidden();
+    $loan = KoperasiPinjam::create([
+        'user_id' => $memberUser->id, 'amount' => 50000, 'tenor_months' => 1,
+        'service_fee_percentage' => 2, 'service_fee_amount' => 1000,
+        'remaining_amount' => 51000, 'status' => 'disetujui',
+    ]);
+    $this->get(route('koperasi.angsuran', $loan))->assertForbidden();
+    $this->post(route('koperasi.store-angsuran', $loan), [])->assertForbidden();
+    $this->assertDatabaseMissing('koperasi_pinjams', ['user_id' => $memberUser->id, 'status' => 'menunggu_persetujuan']);
+});
+
 test('warga aktif dapat mengajukan simpanan', function () {
     Storage::fake('local');
 
@@ -95,6 +123,14 @@ test('warga aktif dapat mengajukan simpanan', function () {
     Storage::disk('local')->assertExists($simpanan->proof_path);
 });
 
+test('warga cannot register twice for koperasi membership', function () {
+    $user = $this->warga->user;
+    $this->actingAs($user)->post(route('koperasi.store-daftar'))->assertSessionHas('success');
+    $this->actingAs($user)->post(route('koperasi.store-daftar'))->assertSessionHas('error');
+
+    expect(KoperasiMember::where('user_id', $user->id)->count())->toBe(1);
+});
+
 test('warga aktif dapat mengajukan pinjaman dengan bunga 2 persen', function () {
     KoperasiMember::create([
         'user_id' => $this->warga->user->id,
@@ -120,6 +156,21 @@ test('warga aktif dapat mengajukan pinjaman dengan bunga 2 persen', function () 
         'remaining_amount' => 1080000,
         'status' => 'menunggu_persetujuan',
     ]);
+});
+
+test('warga cannot submit a second loan while first loan awaits approval', function () {
+    KoperasiMember::create([
+        'user_id' => $this->warga->user->id,
+        'member_number' => 'KOP-ONE-LOAN',
+        'joined_at' => now(),
+        'status' => 'aktif',
+    ]);
+
+    $payload = ['amount' => 900000, 'tenor_months' => 10];
+    $this->actingAs($this->warga->user)->post(route('koperasi.store-pinjam'), $payload)->assertSessionHas('success');
+    $this->actingAs($this->warga->user)->post(route('koperasi.store-pinjam'), $payload)->assertSessionHas('error');
+
+    expect(KoperasiPinjam::where('user_id', $this->warga->user->id)->count())->toBe(1);
 });
 
 test('warga aktif tidak bisa mengajukan pinjaman satu juta jika simpanan wajib kurang dari lima puluh ribu', function () {

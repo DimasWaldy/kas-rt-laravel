@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
-use App\Models\AuditLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class RumahController extends Controller
@@ -36,7 +36,7 @@ class RumahController extends Controller
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('kode_rumah', 'like', "%{$search}%")
                         ->orWhere('alamat', 'like', "%{$search}%")
-                        ->orWhereHas('penanggungJawab', fn($userQuery) => $userQuery->where('name', 'like', "%{$search}%"));
+                        ->orWhereHas('penanggungJawab', fn ($userQuery) => $userQuery->where('name', 'like', "%{$search}%"));
                 });
             })
             ->orderBy('kode_rumah')

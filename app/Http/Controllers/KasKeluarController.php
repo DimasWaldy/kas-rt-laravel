@@ -18,7 +18,7 @@ class KasKeluarController extends Controller
         $data = KasKeluar::query()
             ->visibleTo($request->user())
             ->when($search, function ($query) use ($search) {
-                $query->where('keterangan', 'like', '%' . $search . '%');
+                $query->where('keterangan', 'like', '%'.$search.'%');
             })
             ->when($bulan, function ($query) use ($bulan) {
                 $query->whereMonth('tanggal', $bulan);
@@ -60,8 +60,8 @@ class KasKeluarController extends Controller
         Cache::forget('admin.dashboard.stats');
         Cache::forget('admin.dashboard.stats.v2');
         Cache::forget('admin.dashboard.stats.v3');
-        Cache::forget('dashboard.stats.user.' . auth()->id());
-        Cache::forget('dashboard.stats.user.v2.' . auth()->id());
+        Cache::forget('dashboard.stats.user.'.auth()->id());
+        Cache::forget('dashboard.stats.user.v2.'.auth()->id());
 
         return redirect()->route('kas-keluar.index')
             ->with('success', 'Data pengeluaran berhasil dicatat.');

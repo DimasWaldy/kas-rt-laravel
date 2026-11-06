@@ -111,6 +111,19 @@
 </div>
 @endif
 
+@if(auth()->user()->isGlobalOperator() && auth()->user()->isAktif() && auth()->user()->hasPermission('admin-only'))
+<div class="mb-8 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-800 dark:bg-emerald-950/40 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Administrasi Sistem</p>
+        <h2 class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">Manajemen Akun</h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Buat akun pengurus dan tempatkan sesuai wilayah tugas. Akun warga mengikuti alur data rumah dan KK.</p>
+    </div>
+    <a href="{{ route('admin.accounts.create') }}" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800">
+        <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Buka Manajemen Akun
+    </a>
+</div>
+@endif
+
 {{-- =============================================
      SECTION 1: KEUANGAN KESELURUHAN
      ============================================= --}}

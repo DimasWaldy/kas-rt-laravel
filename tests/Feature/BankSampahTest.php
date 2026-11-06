@@ -125,6 +125,25 @@ test('petugas bank sampah tanpa rt tidak mendapat akses rw pertama', function ()
     $this->actingAs($tanpaRt)->get(route('bank-sampah.index'))->assertForbidden();
 });
 
+test('petugas RW tanpa RT hanya dapat mengakses RW penempatan eksplisit', function () {
+    $petugas = User::factory()->create([
+        'role_id' => Role::where('name', 'petugas_bank_sampah')->value('id'),
+        'rt_id' => null,
+        'rw_id' => $this->rw->id,
+    ]);
+
+    $this->actingAs($petugas)->get(route('bank-sampah.index'))->assertOk();
+    $this->post(route('penjualan-sampah.store'), [
+        'jenis_sampah_id' => $this->jenisLain->id,
+        'tanggal_jual' => now()->toDateString(),
+        'berat_total' => 5,
+        'harga_jual' => 2500,
+    ])->assertSessionHasErrors('jenis_sampah_id');
+
+    expect($petugas->assignedRwId())->toBe($this->rw->id)
+        ->and($petugas->rt_id)->toBeNull();
+});
+
 test('warga dapat mengajukan setoran sampah dan saldo belum berubah', function () {
     $response = $this->actingAs($this->warga)
         ->post(route('setoran-sampah.store'), [

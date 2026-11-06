@@ -114,6 +114,20 @@ test('pengurus rw tanpa penugasan tidak dapat membuka direktori wilayah', functi
     $this->actingAs($ketuaRw)->get(route('direktori-rw.rt.show', $rt))->assertForbidden();
 });
 
+test('global operator without rt sees directory across active rw', function () {
+    $rwFirst = Rw::create(['name' => 'RW Pertama', 'is_active' => true]);
+    $rwSecond = Rw::create(['name' => 'RW Kedua', 'is_active' => true]);
+    $rtFirst = Rt::create(['rw_id' => $rwFirst->id, 'name' => 'RT Pertama']);
+    $rtSecond = Rt::create(['rw_id' => $rwSecond->id, 'name' => 'RT Kedua']);
+    wargaDirektori('Warga RW Pertama', $rtFirst, 'pertama@example.test', '081111111111', 'R1-01', '3273000000000101', '3273000000000201');
+    wargaDirektori('Warga RW Kedua', $rtSecond, 'kedua@example.test', '082222222222', 'R2-01', '3273000000000102', '3273000000000202');
+    $operator = User::factory()->create(['role_id' => roleDirektori('super_admin')->id, 'rt_id' => null]);
+
+    $this->actingAs($operator)->get(route('direktori-rw.index'))
+        ->assertOk()->assertSee('Warga RW Pertama')->assertSee('Warga RW Kedua');
+    $this->get(route('direktori-rw.rt.show', $rtSecond))->assertOk()->assertSee('Warga RW Kedua');
+});
+
 test('warga biasa tidak dapat mengakses direktori rw', function () {
     $role = Role::firstOrCreate(['name' => 'warga']);
     $user = User::factory()->create(['role_id' => $role->id]);
@@ -122,6 +136,25 @@ test('warga biasa tidak dapat mengakses direktori rw', function () {
         ->get(route('direktori-rw.index'))
         ->assertForbidden();
 });
+
+test('direktori menyamarkan nomor hp dan kk warga di daftar dan detail rt', function (string $routeName) {
+    $rw = Rw::create(['name' => 'RW Data Privat', 'is_active' => true]);
+    $rt = Rt::create(['rw_id' => $rw->id, 'name' => 'RT Data Privat', 'is_active' => true]);
+    $resident = wargaDirektori('Warga Privat', $rt, 'private@example.test', '081234567890', 'PRIVATE-01', '3273010101900001', '3273000000000201');
+    $actor = User::factory()->create(['role_id' => roleDirektori('ketua_rw')->id, 'rt_id' => $rt->id]);
+
+    $this->actingAs($actor)
+        ->get(route($routeName, $routeName === 'direktori-rw.rt.show' ? [$rt] : []))
+        ->assertOk()
+        ->assertSee('********7890')
+        ->assertSee('3273********0201')
+        ->assertDontSee('081234567890')
+        ->assertDontSee('3273000000000201')
+        ->assertDontSee('wa.me/081234567890');
+
+    expect($resident->fresh()->phone)->toBe('081234567890')
+        ->and($resident->fresh()->warga->kartuKeluarga->no_kk)->toBe('3273000000000201');
+})->with(['direktori-rw.index', 'direktori-rw.rt.show']);
 
 test('daftar warga direktori menyamarkan nik tanpa mengubah data', function (string $routeName) {
     $rw = Rw::create(['name' => 'RW Mask', 'is_active' => true]);

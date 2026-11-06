@@ -72,7 +72,7 @@ test('personal profile update preserves domicile and house responsibility', func
         ->and($home->fresh()->penanggung_jawab_id)->toBe($user->id);
 });
 
-test('onboarding resident can submit rt and domicile proposal together in personal profile update', function () {
+test('onboarding resident cannot change verified rt through personal profile update', function () {
     $rw = Rw::create(['name' => 'RW Test', 'is_active' => true]);
     $rtA = Rt::create(['name' => 'RT 01', 'rw_id' => $rw->id, 'is_active' => true]);
     $rtB = Rt::create(['name' => 'RT 02', 'rw_id' => $rw->id, 'is_active' => true]);
@@ -99,12 +99,21 @@ test('onboarding resident can submit rt and domicile proposal together in person
         'rt_id' => $rtB->id,
         'mode' => 'existing',
         'rumah_id' => $houseB->id,
-    ])->assertSessionHasNoErrors()->assertRedirect('/profile');
+    ])->assertSessionHasErrors('rt_id');
 
-    expect($user->fresh()->rt_id)->toBe($rtB->id)
+    expect($user->fresh()->rt_id)->toBe($rtA->id)
         ->and($user->fresh()->rumah_id)->toBeNull()
-        ->and($warga->fresh()->status_domisili)->toBe('pending')
-        ->and($warga->fresh()->rumah_diajukan_id)->toBe($houseB->id);
+        ->and($warga->fresh()->status_domisili)->toBe('belum_mengajukan')
+        ->and($warga->fresh()->rumah_diajukan_id)->toBeNull();
+
+    $this->actingAs($user)->patch('/profile', [
+        'name' => $user->name,
+        'email' => $user->email,
+        'rt_id' => $rtB->id,
+    ])->assertSessionHasErrors('rt_id');
+
+    expect($user->fresh()->rt_id)->toBe($rtA->id);
+    $this->actingAs($user)->get('/profile')->assertOk()->assertSee('RT 01')->assertDontSee('RT 02');
 });
 
 test('warga sees updated family card after onboarding profile submission and officer verification', function () {

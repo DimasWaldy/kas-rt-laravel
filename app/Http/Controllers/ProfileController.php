@@ -54,7 +54,8 @@ class ProfileController extends Controller
             $wargaDomisili = $user->warga;
             $wargaDomisili?->load('rumahDiajukan');
 
-            $rts = Rt::where('is_active', true)
+            $rts = Rt::whereKey($user->rt_id)
+                ->where('is_active', true)
                 ->whereHas('rw', fn ($q) => $q->where('is_active', true))
                 ->with('rw:id,name')
                 ->orderBy('name')
@@ -91,10 +92,6 @@ class ProfileController extends Controller
             $isOnboardingDomisili = $user->role_name === 'warga'
                 && $user->onboarding_domisili
                 && ! $user->rumah_id;
-
-            if ($isOnboardingDomisili && isset($validated['rt_id'])) {
-                $user->rt_id = $validated['rt_id'];
-            }
 
             if ($user->isDirty('email')) {
                 $user->email_verified_at = null;

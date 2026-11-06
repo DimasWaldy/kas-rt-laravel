@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasRtScope;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -39,7 +39,7 @@ class Rumah extends Model
 
     public function getLabelAttribute(): string
     {
-        return trim($this->kode_rumah . ' - ' . $this->alamat, ' -');
+        return trim($this->kode_rumah.' - '.$this->alamat, ' -');
     }
 
     public function scopeBillingVisibleTo(Builder $query, ?User $actor): Builder
@@ -48,7 +48,7 @@ class Rumah extends Model
             return $query;
         }
         if ($actor->isRwOfficial()) {
-            $rwId = $actor->rt()->value('rw_id');
+            $rwId = $actor->assignedRwId();
 
             return $rwId ? $query->whereHas('rt', fn (Builder $rt) => $rt->where('rw_id', $rwId)) : $query->whereRaw('1 = 0');
         }

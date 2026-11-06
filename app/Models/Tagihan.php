@@ -3,16 +3,13 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasRtScope;
+use App\Services\TagihanService;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
-
-use App\Models\IuranBulanan;
-use App\Services\TagihanService;
-use App\Models\User;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Tagihan extends Model
 {
@@ -100,7 +97,7 @@ class Tagihan extends Model
             return 'iuran_rutin';
         }
 
-        return 'iuran_' . $iuran->id;
+        return 'iuran_'.$iuran->id;
     }
 
     public static function titleForGroup($items, string $group): string
@@ -142,7 +139,7 @@ class Tagihan extends Model
     public static function nextTransactionNumber(): string
     {
         do {
-            $number = 'TRX-' . now()->format('Ymd') . '-' . strtoupper(str()->random(6));
+            $number = 'TRX-'.now()->format('Ymd').'-'.strtoupper(str()->random(6));
         } while (self::where('transaction_number', $number)->exists());
 
         return $number;
@@ -169,6 +166,7 @@ class Tagihan extends Model
         }
 
         $now = now()->startOfDay();
+
         return $now->lte($this->due_date) && $now->diffInDays($this->due_date) <= 5;
     }
 

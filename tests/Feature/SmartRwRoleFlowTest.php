@@ -156,13 +156,13 @@ test('navigation labels and actions match rw and rt responsibilities', function 
         ->assertSee('Laporan Kas')
         ->assertSee('Rekap Keuangan RW')
         ->assertDontSee('Status Iuran Anda')
-        ->assertDontSee('href="' . route('kas-keluar.index') . '"', false)
-        ->assertDontSee('href="' . route('tagihan.admin') . '"', false);
+        ->assertDontSee('href="'.route('kas-keluar.index').'"', false)
+        ->assertDontSee('href="'.route('tagihan.admin').'"', false);
 
     $this->actingAs($bendaharaRt)
         ->get(route('dashboard'))
         ->assertOk()
         ->assertSee('Bendahara RT')
-        ->assertSee('href="' . route('kas-keluar.index') . '"', false)
-        ->assertSee('href="' . route('tagihan.admin') . '"', false);
+        ->assertSee('href="'.route('kas-keluar.index').'"', false)
+        ->assertSee('href="'.route('tagihan.admin').'"', false);
 });

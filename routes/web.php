@@ -1,39 +1,45 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Admin\AccountController;
+use App\Http\Controllers\Admin\KoperasiController as KoperasiAdminController;
+use App\Http\Controllers\Admin\RumahController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AsetController;
 use App\Http\Controllers\BankSampahController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DirektoriRwController;
+use App\Http\Controllers\DomisiliController;
 use App\Http\Controllers\FasilitasController;
 use App\Http\Controllers\HadiahSampahController;
 use App\Http\Controllers\IuranBulananController;
 use App\Http\Controllers\IuranKhususController;
-use App\Http\Controllers\KeamananController;
-use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\KasKeluarController;
 use App\Http\Controllers\KasMasukController;
+use App\Http\Controllers\KeamananController;
+use App\Http\Controllers\KegiatanController;
+use App\Http\Controllers\KegiatanRfidController;
+use App\Http\Controllers\KoperasiWargaController;
 use App\Http\Controllers\LaporanKasController;
-use App\Http\Controllers\PeminjamanAsetController;
 use App\Http\Controllers\PemeriksaanPosyanduController;
+use App\Http\Controllers\PeminjamanAsetController;
 use App\Http\Controllers\PenarikanSampahController;
+use App\Http\Controllers\PengaduanController;
+use App\Http\Controllers\PengaduanFasilitasController;
 use App\Http\Controllers\PenjualanSampahController;
+use App\Http\Controllers\PosyanduController;
 use App\Http\Controllers\ProdukUmkmController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PosyanduController;
-use App\Http\Controllers\PengaduanFasilitasController;
 use App\Http\Controllers\SetoranSampahController;
+use App\Http\Controllers\SuratController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\UmkmController;
 use App\Http\Controllers\VerifikasiWargaController;
-use App\Http\Controllers\KoperasiWargaController;
-use App\Http\Controllers\Admin\KoperasiController as KoperasiAdminController;
-use App\Http\Controllers\DirektoriRwController;
 use App\Http\Controllers\WelcomeController;
-use App\Http\Controllers\SuratController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
-    Route::post('/domisili', [\App\Http\Controllers\DomisiliController::class, 'store'])->middleware('throttle:10,1')->name('domisili.store');
+    Route::post('/domisili', [DomisiliController::class, 'store'])->middleware('throttle:10,1')->name('domisili.store');
     Route::get('/domisili', fn () => redirect()->route('dashboard'))->name('domisili.create');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -132,33 +138,38 @@ Route::middleware('auth')->group(function () {
         ->name('laporan-kas.index');
 
     Route::middleware(['permission:manage-warga'])->group(function () {
-        Route::get('/admin/warga', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.warga.index');
-        Route::get('/admin/warga/create', [\App\Http\Controllers\Admin\UserController::class, 'create'])->name('admin.warga.create');
-        Route::post('/admin/warga', [\App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.warga.store');
-        Route::get('/admin/warga/{user}/edit', [\App\Http\Controllers\Admin\UserController::class, 'edit'])->name('admin.warga.edit');
-        Route::patch('/admin/warga/{user}', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.warga.update');
-        Route::delete('/admin/warga/{user}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('admin.warga.destroy');
+        Route::get('/admin/warga', [UserController::class, 'index'])->name('admin.warga.index');
+        Route::get('/admin/warga/create', [UserController::class, 'create'])->name('admin.warga.create');
+        Route::post('/admin/warga', [UserController::class, 'store'])->name('admin.warga.store');
+        Route::get('/admin/warga/{user}/edit', [UserController::class, 'edit'])->name('admin.warga.edit');
+        Route::patch('/admin/warga/{user}', [UserController::class, 'update'])->name('admin.warga.update');
+        Route::delete('/admin/warga/{user}', [UserController::class, 'destroy'])->name('admin.warga.destroy');
 
-        Route::get('/admin/rumah', [\App\Http\Controllers\Admin\RumahController::class, 'index'])->name('admin.rumah.index');
-        Route::get('/admin/rumah/{rumah}', [\App\Http\Controllers\Admin\RumahController::class, 'show'])->name('admin.rumah.show');
-        Route::get('/admin/rumah/{rumah}/edit', [\App\Http\Controllers\Admin\RumahController::class, 'edit'])->name('admin.rumah.edit');
-        Route::patch('/admin/rumah/{rumah}', [\App\Http\Controllers\Admin\RumahController::class, 'update'])->name('admin.rumah.update');
-        Route::post('/admin/rumah/{rumah}/warga/{user}/move', [\App\Http\Controllers\Admin\RumahController::class, 'moveWarga'])->name('admin.rumah.warga.move');
+        Route::get('/admin/rumah', [RumahController::class, 'index'])->name('admin.rumah.index');
+        Route::get('/admin/rumah/{rumah}', [RumahController::class, 'show'])->name('admin.rumah.show');
+        Route::get('/admin/rumah/{rumah}/edit', [RumahController::class, 'edit'])->name('admin.rumah.edit');
+        Route::patch('/admin/rumah/{rumah}', [RumahController::class, 'update'])->name('admin.rumah.update');
+        Route::post('/admin/rumah/{rumah}/warga/{user}/move', [RumahController::class, 'moveWarga'])->name('admin.rumah.warga.move');
     });
 
-    Route::get('/admin/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])
+    Route::middleware(['permission:admin-only', 'role:super_admin,admin'])->group(function () {
+        Route::get('/admin/accounts/create', [AccountController::class, 'create'])->name('admin.accounts.create');
+        Route::post('/admin/accounts', [AccountController::class, 'store'])->name('admin.accounts.store');
+    });
+
+    Route::get('/admin/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])
         ->middleware('permission:admin-only')
         ->name('admin.dashboard');
 
-    Route::get('/admin', fn() => redirect()->route('admin.dashboard'))->middleware('permission:admin-only');
+    Route::get('/admin', fn () => redirect()->route('admin.dashboard'))->middleware('permission:admin-only');
 
     Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
     Route::post('/tagihan/pay', [TagihanController::class, 'pay'])->name('tagihan.pay');
     Route::get('/tagihan/{tagihan}/bukti', [TagihanController::class, 'bukti'])->name('tagihan.bukti');
 
-    Route::get('/pengaduan/{pengaduan}/foto', [\App\Http\Controllers\PengaduanController::class, 'foto'])->name('pengaduan.foto');
-    Route::resource('pengaduan', \App\Http\Controllers\PengaduanController::class)->except(['edit', 'update']);
-    Route::patch('/pengaduan/{pengaduan}/status', [\App\Http\Controllers\PengaduanController::class, 'updateStatus'])
+    Route::get('/pengaduan/{pengaduan}/foto', [PengaduanController::class, 'foto'])->name('pengaduan.foto');
+    Route::resource('pengaduan', PengaduanController::class)->except(['edit', 'update']);
+    Route::patch('/pengaduan/{pengaduan}/status', [PengaduanController::class, 'updateStatus'])
         ->middleware('permission:manage-pengaduan')
         ->name('pengaduan.status');
 
@@ -212,7 +223,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('permission:manage-kegiatan')->group(function () {
-        Route::prefix('/kegiatan/{kegiatan}/rfid')->name('kegiatan.rfid.')->controller(\App\Http\Controllers\KegiatanRfidController::class)->group(function () {
+        Route::prefix('/kegiatan/{kegiatan}/rfid')->name('kegiatan.rfid.')->controller(KegiatanRfidController::class)->group(function () {
             Route::get('/', 'show')->name('show');
             Route::get('/status', 'status')->name('status');
             Route::post('/open', 'open')->middleware('throttle:10,1')->name('open');
@@ -500,13 +511,16 @@ Route::middleware('auth')->group(function () {
     // Koperasi Warga
     Route::middleware('permission:view-koperasi')->group(function () {
         Route::get('/koperasi', [KoperasiWargaController::class, 'index'])->name('koperasi.index');
-        Route::post('/koperasi/daftar', [KoperasiWargaController::class, 'storeDaftar'])->name('koperasi.store-daftar');
-        Route::get('/koperasi/simpan', [KoperasiWargaController::class, 'simpan'])->name('koperasi.simpan');
-        Route::post('/koperasi/simpan', [KoperasiWargaController::class, 'storeSimpanan'])->name('koperasi.store-simpanan');
-        Route::get('/koperasi/pinjam', [KoperasiWargaController::class, 'pinjam'])->name('koperasi.pinjam');
-        Route::post('/koperasi/pinjam', [KoperasiWargaController::class, 'storePinjam'])->name('koperasi.store-pinjam');
-        Route::get('/koperasi/angsuran/{pinjaman}', [KoperasiWargaController::class, 'angsuran'])->name('koperasi.angsuran');
-        Route::post('/koperasi/angsuran/{pinjaman}', [KoperasiWargaController::class, 'storeAngsuran'])->name('koperasi.store-angsuran');
+        Route::post('/koperasi/daftar', [KoperasiWargaController::class, 'storeDaftar'])
+            ->middleware('permission:submit-koperasi')->name('koperasi.store-daftar');
+        Route::middleware('permission:submit-koperasi')->group(function () {
+            Route::get('/koperasi/simpan', [KoperasiWargaController::class, 'simpan'])->name('koperasi.simpan');
+            Route::post('/koperasi/simpan', [KoperasiWargaController::class, 'storeSimpanan'])->name('koperasi.store-simpanan');
+            Route::get('/koperasi/pinjam', [KoperasiWargaController::class, 'pinjam'])->name('koperasi.pinjam');
+            Route::post('/koperasi/pinjam', [KoperasiWargaController::class, 'storePinjam'])->name('koperasi.store-pinjam');
+            Route::get('/koperasi/angsuran/{pinjaman}', [KoperasiWargaController::class, 'angsuran'])->name('koperasi.angsuran');
+            Route::post('/koperasi/angsuran/{pinjaman}', [KoperasiWargaController::class, 'storeAngsuran'])->name('koperasi.store-angsuran');
+        });
     });
 
     // Koperasi Admin
@@ -515,10 +529,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/koperasi/simpanan/{simpanan}/bukti', [KoperasiAdminController::class, 'buktiSimpanan'])->name('admin.koperasi.simpanan-bukti');
         Route::get('/admin/koperasi/pinjaman/{pinjaman}/bukti', [KoperasiAdminController::class, 'buktiPinjaman'])->name('admin.koperasi.pinjaman-bukti');
         Route::get('/admin/koperasi/angsuran/{angsuran}/bukti', [KoperasiAdminController::class, 'buktiAngsuran'])->name('admin.koperasi.angsuran-bukti');
-        Route::patch('/admin/koperasi/member/{member}/approve', [KoperasiAdminController::class, 'approveMember'])->name('admin.koperasi.approve-member');
-        Route::patch('/admin/koperasi/simpanan/{simpanan}/approve', [KoperasiAdminController::class, 'approveSimpanan'])->name('admin.koperasi.approve-simpanan');
-        Route::patch('/admin/koperasi/pinjaman/{pinjaman}/approve', [KoperasiAdminController::class, 'approvePinjaman'])->name('admin.koperasi.approve-pinjaman');
-        Route::patch('/admin/koperasi/angsuran/{angsuran}/approve', [KoperasiAdminController::class, 'approveAngsuran'])->name('admin.koperasi.approve-angsuran');
+        Route::middleware('permission:approve-koperasi')->group(function () {
+            Route::patch('/admin/koperasi/member/{member}/approve', [KoperasiAdminController::class, 'approveMember'])->name('admin.koperasi.approve-member');
+            Route::patch('/admin/koperasi/simpanan/{simpanan}/approve', [KoperasiAdminController::class, 'approveSimpanan'])->name('admin.koperasi.approve-simpanan');
+            Route::patch('/admin/koperasi/pinjaman/{pinjaman}/approve', [KoperasiAdminController::class, 'approvePinjaman'])->name('admin.koperasi.approve-pinjaman');
+            Route::patch('/admin/koperasi/angsuran/{angsuran}/approve', [KoperasiAdminController::class, 'approveAngsuran'])->name('admin.koperasi.approve-angsuran');
+        });
     });
 });
 
@@ -537,4 +553,4 @@ Route::get('/docs/{slug?}', function (?string $slug = null) {
 
 Route::get('/verifikasi-surat/{code}', [SuratController::class, 'verifyPublic'])->name('surat.verify-public');
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

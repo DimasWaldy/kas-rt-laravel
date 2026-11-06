@@ -11,7 +11,8 @@ test('whatsapp tanpa konfigurasi dilewati tanpa http atau pembuatan payload', fu
     Http::fake();
     Log::spy();
     $user = User::factory()->create(['phone' => '081234567890']);
-    $notification = new class extends Notification {
+    $notification = new class extends Notification
+    {
         public function via(object $notifiable): array
         {
             return [WhatsAppChannel::class];

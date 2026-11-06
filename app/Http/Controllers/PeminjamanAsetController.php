@@ -41,6 +41,7 @@ class PeminjamanAsetController extends Controller
             $query->whereHas('aset', function ($query) use ($scope, $rwId, $rtId) {
                 if ($scope === 'rw') {
                     $query->where('rw_id', $rwId);
+
                     return;
                 }
 
@@ -224,6 +225,7 @@ class PeminjamanAsetController extends Controller
 
         if ($this->canManageScope($peminjamanAset->aset->scope, $user)) {
             $this->authorizeManage($peminjamanAset, $user);
+
             return;
         }
 
@@ -260,6 +262,7 @@ class PeminjamanAsetController extends Controller
 
         if ($aset->isRwAsset()) {
             abort_unless($aset->rw_id === $this->resolveRwId($user), 403);
+
             return;
         }
 
@@ -276,6 +279,7 @@ class PeminjamanAsetController extends Controller
 
         if ($aset->isRwAsset()) {
             abort_unless($aset->rw_id === $this->resolveRwId($user), 403);
+
             return;
         }
 
@@ -317,7 +321,7 @@ class PeminjamanAsetController extends Controller
 
     private function resolveRwId(User $user): int
     {
-        $rwId = $user->rt()->value('rw_id');
+        $rwId = $user->assignedRwId();
 
         if (! $rwId && $user->isGlobalOperator()) {
             $rwId = Rw::where('is_active', true)->orderBy('id')->value('id');
