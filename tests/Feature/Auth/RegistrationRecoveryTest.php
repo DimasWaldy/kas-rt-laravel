@@ -184,6 +184,7 @@ test('rejected account can recover a forgotten password without gaining approved
     Notification::assertSentTo($this->applicant, ResetPassword::class, function ($notification) {
         $this->post(route('password.store'), ['token' => $notification->token, 'email' => $this->applicant->email,
             'password' => 'new-password', 'password_confirmation' => 'new-password'])->assertSessionHasNoErrors();
+
         return true;
     });
     $this->post(route('login'), ['email' => $this->applicant->email, 'password' => 'new-password'])

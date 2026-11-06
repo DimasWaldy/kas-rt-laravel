@@ -3,17 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\KasMasuk;
 use App\Models\KasKeluar;
+use App\Models\KasMasuk;
 use App\Models\Pengaduan;
 use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
 use App\Models\Warga;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -144,7 +145,7 @@ class DashboardController extends Controller
             ->get()
             ->map(fn (KasKeluar $item) => [
                 'keterangan' => $item->keterangan,
-                'tanggal_label' => \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y'),
+                'tanggal_label' => Carbon::parse($item->tanggal)->translatedFormat('d M Y'),
                 'jumlah' => (int) $item->jumlah,
             ])
             ->all();
@@ -227,12 +228,12 @@ class DashboardController extends Controller
         $end = now()->endOfMonth();
         $monthExpression = $this->monthGroupExpression();
 
-        $masukByMonth = KasMasuk::selectRaw($monthExpression . ' as periode, SUM(jumlah) as total')
+        $masukByMonth = KasMasuk::selectRaw($monthExpression.' as periode, SUM(jumlah) as total')
             ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
             ->groupBy(DB::raw($monthExpression))
             ->pluck('total', 'periode');
 
-        $keluarByMonth = KasKeluar::selectRaw($monthExpression . ' as periode, SUM(jumlah) as total')
+        $keluarByMonth = KasKeluar::selectRaw($monthExpression.' as periode, SUM(jumlah) as total')
             ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
             ->groupBy(DB::raw($monthExpression))
             ->pluck('total', 'periode');
@@ -292,7 +293,7 @@ class DashboardController extends Controller
     private function rumahBelumBayar(Collection $tagihanBulanIni): Collection
     {
         return $tagihanBulanIni
-            ->groupBy(fn (Tagihan $tagihan) => $tagihan->rumah_id ? 'rumah-' . $tagihan->rumah_id : 'user-' . $tagihan->user_id)
+            ->groupBy(fn (Tagihan $tagihan) => $tagihan->rumah_id ? 'rumah-'.$tagihan->rumah_id : 'user-'.$tagihan->user_id)
             ->map(function (Collection $items) {
                 $first = $items->first();
 

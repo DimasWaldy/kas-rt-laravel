@@ -22,7 +22,7 @@ class ReportUsersWithoutRt extends Command
             return self::SUCCESS;
         }
 
-        $this->line('Total user tanpa RT: ' . $total);
+        $this->line('Total user tanpa RT: '.$total);
 
         $users = User::query()
             ->with(['role:id,name', 'warga:id,user_id,rumah_diajukan_id'])

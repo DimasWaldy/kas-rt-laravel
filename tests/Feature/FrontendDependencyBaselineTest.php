@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\File;
+
 test('frontend lock retains patched dependency baselines', function (string $package, string $minimum) {
     $lock = json_decode(file_get_contents(base_path('package-lock.json')), true, flags: JSON_THROW_ON_ERROR);
     $matches = collect($lock['packages'])->filter(
@@ -40,7 +42,7 @@ test('Tailwind four sources and dark mode remain explicit and obsolete classes a
         ->toContain('@custom-variant dark (&:where(.dark, .dark *))')
         ->toContain("@plugin '@tailwindcss/forms'")
         ->not->toContain('@tailwind ');
-    foreach (\Illuminate\Support\Facades\File::allFiles(resource_path('views')) as $file) {
+    foreach (File::allFiles(resource_path('views')) as $file) {
         expect($file->getContents(), $file->getRelativePathname())
             ->not->toMatch('/\b(?:bg-opacity-\d+|ring-opacity-\d+|flex-shrink-\d+|flex-grow-\d+|bg-gradient-to-\w+|outline-none)\b/');
     }

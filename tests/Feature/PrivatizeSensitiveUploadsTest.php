@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\Rt;
 use App\Models\Rw;
 use App\Models\User;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
@@ -55,7 +56,7 @@ test('identical private copy permits safe removal of only the public duplicate',
 
 test('failed private write keeps the public original intact', function () {
     Storage::disk('public')->put('koperasi/proof.jpg', 'original');
-    $private = Mockery::mock(\Illuminate\Filesystem\FilesystemAdapter::class);
+    $private = Mockery::mock(FilesystemAdapter::class);
     $private->shouldReceive('path')->with('')->andReturn(Storage::disk('local')->path(''));
     $private->shouldReceive('exists')->with('koperasi/proof.jpg')->andReturn(false);
     $private->shouldReceive('put')->once()->andReturn(false);

@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RolePermission extends Model
 {
     protected $table = 'role_permission';
+
     public $timestamps = true;
+
     protected $fillable = ['role_id', 'permission_id'];
 
     public function role(): BelongsTo

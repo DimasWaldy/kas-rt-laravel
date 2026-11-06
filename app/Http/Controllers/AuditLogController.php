@@ -29,8 +29,8 @@ class AuditLogController extends Controller
         // Search by user
         if ($request->has('search') && $request->search) {
             $query->whereHas('user', function ($q) {
-                $q->where('name', 'like', '%' . request('search') . '%')
-                    ->orWhere('email', 'like', '%' . request('search') . '%');
+                $q->where('name', 'like', '%'.request('search').'%')
+                    ->orWhere('email', 'like', '%'.request('search').'%');
             });
         }
 
@@ -46,6 +46,7 @@ class AuditLogController extends Controller
     public function show(AuditLog $auditLog)
     {
         $this->authorize('view-audit-logs');
+
         return view('audit-logs.show', compact('auditLog'));
     }
 

@@ -12,8 +12,7 @@ final readonly class WeightForAgeResult
         public string $statusLabel,
         public string $versiStandar,
         public int $referenceId,
-    ) {
-    }
+    ) {}
 
     public function toArray(): array
     {

@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\KasKeluar;
 use App\Models\KasMasuk;
-use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class LaporanKasController extends Controller
 {
@@ -82,7 +82,7 @@ class LaporanKasController extends Controller
                 'transaksi' => $items->count(),
             ])
             ->values();
-        $periodeLabel = $tanggalMulai->translatedFormat('d F Y') . ' - ' . $tanggalSelesai->translatedFormat('d F Y');
+        $periodeLabel = $tanggalMulai->translatedFormat('d F Y').' - '.$tanggalSelesai->translatedFormat('d F Y');
 
         return view('laporan_kas.index', compact(
             'tanggalMulai',

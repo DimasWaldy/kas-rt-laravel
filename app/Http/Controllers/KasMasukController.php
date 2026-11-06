@@ -21,8 +21,8 @@ class KasMasukController extends Controller
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->whereHas('user', function ($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
-                    })->orWhere('keterangan', 'like', '%' . $search . '%');
+                        $q->where('name', 'like', '%'.$search.'%');
+                    })->orWhere('keterangan', 'like', '%'.$search.'%');
                 });
             })
             ->when($bulan, function ($query) use ($bulan) {
@@ -62,8 +62,8 @@ class KasMasukController extends Controller
         Cache::forget('admin.dashboard.stats');
         Cache::forget('admin.dashboard.stats.v2');
         Cache::forget('admin.dashboard.stats.v3');
-        Cache::forget('dashboard.stats.user.' . auth()->id());
-        Cache::forget('dashboard.stats.user.v2.' . auth()->id());
+        Cache::forget('dashboard.stats.user.'.auth()->id());
+        Cache::forget('dashboard.stats.user.v2.'.auth()->id());
 
         return redirect()->route('kas-masuk.index')
             ->with('success', 'Data kas masuk berhasil dicatat.');

@@ -40,10 +40,8 @@ use App\Models\Umkm;
 use App\Models\User;
 use App\Models\Warga;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class DemoSeeder extends Seeder
 {

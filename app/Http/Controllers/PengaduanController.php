@@ -92,6 +92,7 @@ class PengaduanController extends Controller
         abort_unless($pengaduan->isVisibleTo(Auth::user()), 404);
 
         $pengaduan->load(['user', 'responder']);
+
         return view('pengaduan.show', compact('pengaduan'));
     }
 
@@ -109,7 +110,7 @@ class PengaduanController extends Controller
         abort_unless(Storage::disk($disk)->exists($pengaduan->foto), 404);
 
         return response()->file(Storage::disk($disk)->path($pengaduan->foto), [
-            'Content-Disposition' => 'inline; filename="' . basename($pengaduan->foto) . '"',
+            'Content-Disposition' => 'inline; filename="'.basename($pengaduan->foto).'"',
         ]);
     }
 
@@ -149,7 +150,7 @@ class PengaduanController extends Controller
         abort_unless($pengaduan->isVisibleTo($user), 404);
 
         // Warga hanya boleh menghapus pengaduan miliknya sendiri yang masih bertatus 'pending'
-        if (!$user->canManagePengaduan()) {
+        if (! $user->canManagePengaduan()) {
             if ($pengaduan->user_id !== $user->id) {
                 abort(403, 'Anda tidak memiliki hak untuk menghapus pengaduan ini.');
             }

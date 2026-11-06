@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\FinancialHistory;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 test('self deletion preserves cooperative loan and installments in every status', function (string $status) {
@@ -63,7 +64,7 @@ test('database rejects deletion bypassing model events when a loan exists', func
 });
 
 test('all financial owner foreign keys restrict user deletion', function (string $table, string $column) {
-    $foreign = collect(\Illuminate\Support\Facades\Schema::getForeignKeys($table))
+    $foreign = collect(Schema::getForeignKeys($table))
         ->first(fn ($key) => $key['columns'] === [$column] && $key['foreign_table'] === 'users');
     expect($foreign)->not->toBeNull();
     expect(strtolower($foreign['on_delete']))->toBe('restrict');

@@ -28,8 +28,8 @@ class PeminjamanDisetujui extends Notification
             'tanggal_mulai' => $this->peminjaman->tanggal_mulai->format('d M Y'),
             'tanggal_selesai' => $this->peminjaman->tanggal_selesai->format('d M Y'),
             'catatan' => $this->peminjaman->catatan_pengurus,
-            'pesan' => 'Peminjaman ' . $this->peminjaman->aset->nama . ' disetujui.',
-            'url' => '/peminjaman-aset/' . $this->peminjaman->id,
+            'pesan' => 'Peminjaman '.$this->peminjaman->aset->nama.' disetujui.',
+            'url' => '/peminjaman-aset/'.$this->peminjaman->id,
         ];
     }
 }

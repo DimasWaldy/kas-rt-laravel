@@ -16,7 +16,7 @@ class StoreTagihanRequest extends FormRequest
         return [
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'bulan' => ['required', 'integer', 'min:1', 'max:12'],
-            'tahun' => ['required', 'integer', 'min:2020', 'max:' . (now()->year + 5)],
+            'tahun' => ['required', 'integer', 'min:2020', 'max:'.(now()->year + 5)],
             'total' => ['required', 'integer', 'min:1000'],
             'note' => ['nullable', 'string', 'max:500'],
         ];

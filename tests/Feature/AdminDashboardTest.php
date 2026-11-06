@@ -125,8 +125,8 @@ test('main dashboard remains stable after visiting admin dashboard', function ()
         'tanggal' => now()->toDateString(),
     ]);
 
-    Cache::forget('dashboard.stats.user.' . $admin->id);
-    Cache::forget('dashboard.stats.user.v2.' . $admin->id);
+    Cache::forget('dashboard.stats.user.'.$admin->id);
+    Cache::forget('dashboard.stats.user.v2.'.$admin->id);
 
     $this->actingAs($admin)->get(route('dashboard'))->assertOk();
     $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();

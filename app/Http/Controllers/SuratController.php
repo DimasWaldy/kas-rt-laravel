@@ -189,6 +189,7 @@ class SuratController extends Controller
     {
         if ($user->role_name === 'warga') {
             abort_unless($surat->user_id === $user->id, 404);
+
             return;
         }
 

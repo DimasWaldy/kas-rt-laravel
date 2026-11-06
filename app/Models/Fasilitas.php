@@ -87,7 +87,7 @@ class Fasilitas extends Model
             $this->rt?->name,
             $this->rw?->name,
         ])
-            ->filter(fn($value) => filled($value))
+            ->filter(fn ($value) => filled($value))
             ->implode(', ');
     }
 }

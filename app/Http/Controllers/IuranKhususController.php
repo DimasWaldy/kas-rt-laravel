@@ -54,11 +54,11 @@ class IuranKhususController extends Controller
                 ...$validated,
                 'rt_id' => $rtId,
                 'created_by' => Auth::id(),
-                'billing_group' => 'sementara_' . str()->uuid(),
+                'billing_group' => 'sementara_'.str()->uuid(),
             ]);
 
             $iuranKhusus->update([
-                'billing_group' => 'insidental_' . $iuranKhusus->id,
+                'billing_group' => 'insidental_'.$iuranKhusus->id,
             ]);
 
             $warga = $this->targetWarga($rtId)->get();

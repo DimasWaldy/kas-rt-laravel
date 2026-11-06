@@ -16,6 +16,6 @@ class KasKeluar extends Model
         'rt_id',
         'jumlah',
         'tanggal',
-        'bukti'
+        'bukti',
     ];
 }

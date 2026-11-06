@@ -25,7 +25,7 @@ test('daftar admin tidak melakukan lazy load rt per warga', function (string $ro
             ]);
             KoperasiMember::create([
                 'user_id' => $user->id,
-                'member_number' => 'QUERY-' . $user->id,
+                'member_number' => 'QUERY-'.$user->id,
                 'joined_at' => now(),
                 'status' => 'pending',
             ]);

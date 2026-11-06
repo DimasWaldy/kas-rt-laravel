@@ -29,6 +29,7 @@ class PrivatizeSensitiveUploads extends Command
 
         if ($apply && realpath($public->path('')) === realpath($private->path(''))) {
             $this->error('Disk public dan local tidak boleh menggunakan lokasi yang sama.');
+
             return self::FAILURE;
         }
 
@@ -92,6 +93,7 @@ class PrivatizeSensitiveUploads extends Command
             if (hash_update_stream($hash, $stream) === false) {
                 throw new RuntimeException('Verifikasi checksum gagal.');
             }
+
             return hash_final($hash);
         } finally {
             fclose($stream);

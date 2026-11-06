@@ -33,18 +33,18 @@ class TagihanCreated extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Tagihan Baru: ' . $this->tagihan->getDueDateAttribute()->translatedFormat('F Y'))
-            ->line("Tagihan RT baru telah dibuat untuk Anda.")
+            ->subject('Tagihan Baru: '.$this->tagihan->getDueDateAttribute()->translatedFormat('F Y'))
+            ->line('Tagihan RT baru telah dibuat untuk Anda.')
             ->line("Periode: {$this->tagihan->bulan}/{$this->tagihan->tahun}")
-            ->line('Total tagihan: Rp ' . number_format($this->tagihan->total, 0, ',', '.'))
-            ->line('Tanggal jatuh tempo: ' . $this->tagihan->due_date->format('d F Y'))
+            ->line('Total tagihan: Rp '.number_format($this->tagihan->total, 0, ',', '.'))
+            ->line('Tanggal jatuh tempo: '.$this->tagihan->due_date->format('d F Y'))
             ->line('Silakan lakukan pembayaran sebelum jatuh tempo.');
     }
 
     public function toWhatsapp(object $notifiable): array
     {
         return [
-            'body' => "Halo {$notifiable->name}, tagihan iuran RT untuk periode {$this->tagihan->bulan}/{$this->tagihan->tahun} telah dibuat. Total tagihan: Rp " . number_format($this->tagihan->total, 0, ',', '.') . ". Jatuh tempo pada " . $this->tagihan->due_date->format('d F Y') . ".",
+            'body' => "Halo {$notifiable->name}, tagihan iuran RT untuk periode {$this->tagihan->bulan}/{$this->tagihan->tahun} telah dibuat. Total tagihan: Rp ".number_format($this->tagihan->total, 0, ',', '.').'. Jatuh tempo pada '.$this->tagihan->due_date->format('d F Y').'.',
         ];
     }
 
