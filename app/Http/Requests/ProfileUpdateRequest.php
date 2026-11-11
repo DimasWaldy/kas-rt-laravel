@@ -23,6 +23,7 @@ class ProfileUpdateRequest extends FormRequest
         $isOnboardingDomisili = $user->role_name === 'warga'
             && $user->onboarding_domisili
             && ! $user->rumah_id;
+        $isWarga = $user->role_name === 'warga';
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
@@ -58,8 +59,9 @@ class ProfileUpdateRequest extends FormRequest
             ],
             'dokumen_ktp' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
             'dokumen_kk' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
-            'ajukan_pj_iuran' => $isOnboardingDomisili ? ['sometimes', 'boolean'] : ['prohibited'],
-            'jumlah_penghuni_rumah' => $isOnboardingDomisili ? ['nullable', 'integer', 'min:1', 'max:50'] : ['prohibited'],
+            'ajukan_pj_iuran' => $isWarga ? ['sometimes', 'boolean'] : ['prohibited'],
+            'ajukan_ubah_domisili' => ['nullable', 'boolean'],
+            'jumlah_penghuni_rumah' => $isWarga ? ['nullable', 'integer', 'min:1', 'max:50'] : ['prohibited'],
             'jumlah_anggota' => $isOnboardingDomisili ? ['nullable', 'integer', 'min:1', 'max:50'] : ['prohibited'],
             'kartu_keluarga_id' => ['prohibited'],
             'nama_kepala_keluarga' => ['prohibited'],
@@ -67,14 +69,10 @@ class ProfileUpdateRequest extends FormRequest
             'ganti_kepala_keluarga' => ['prohibited'],
         ];
 
-        if ($isOnboardingDomisili && $warga?->status_domisili !== 'pending') {
-            $rules['rt_id'] = [
-                'required',
-                'integer',
-                $this->unchangedAssignment('rt_id'),
-                Rule::exists('rts', 'id')->where('is_active', true),
-            ];
-            $rules['mode'] = ['nullable', 'in:existing,new'];
+        // A domicile change request only exists when the resident explicitly submits
+        // a fill mode; otherwise house and RT stay officer-controlled assignments.
+        if ($isWarga && $this->has('mode') && $warga?->status_domisili !== 'pending') {
+            $rules['mode'] = ['required', 'in:existing,new'];
             $rules['rumah_id'] = [
                 'required_if:mode,existing',
                 'prohibited_unless:mode,existing',
@@ -92,6 +90,14 @@ class ProfileUpdateRequest extends FormRequest
                 'min:5',
                 'max:500',
             ];
+            if ($isOnboardingDomisili) {
+                $rules['rt_id'] = [
+                    'required',
+                    'integer',
+                    $this->unchangedAssignment('rt_id'),
+                    Rule::exists('rts', 'id')->where('is_active', true),
+                ];
+            }
         }
 
         return $rules;

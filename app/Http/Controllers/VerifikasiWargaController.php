@@ -109,17 +109,6 @@ class VerifikasiWargaController extends Controller
                 ]);
             }
 
-            // Only the officer's approval may turn a proposal into household access.
-            $user->rumah_id = $rumah->id;
-            $user->rt_id = $rumah->rt_id;
-            $user->onboarding_domisili = false;
-            $user->save();
-            $lockedWarga->update([
-                'rumah_diajukan_id' => $rumah->id,
-                'status_domisili' => 'disetujui', 'catatan_domisili' => null,
-                'domisili_diproses_oleh' => $actor->id, 'domisili_diproses_at' => now(),
-            ]);
-
             if ($lockedWarga->kartu_keluarga_id && $lockedWarga->kartuKeluarga) {
                 $kartuKeluarga = $lockedWarga->kartuKeluarga;
                 if ($kartuKeluarga->rumah_id && (int) $kartuKeluarga->rumah_id !== (int) $rumah->id) {
@@ -129,6 +118,34 @@ class VerifikasiWargaController extends Controller
                 }
                 $kartuKeluarga->update(['rumah_id' => $rumah->id]);
             }
+
+            $oldRumahId = $user->rumah_id;
+            if ($oldRumahId && (int) $oldRumahId !== (int) $rumah->id) {
+                $oldRumah = Rumah::whereKey($oldRumahId)->lockForUpdate()->first();
+                $user->is_penanggung_jawab_rumah = false;
+
+                if ($oldRumah) {
+                    if ((int) $oldRumah->penanggung_jawab_id === (int) $user->id) {
+                        $oldRumah->penanggung_jawab_id = null;
+                    }
+                    if (! User::where('rumah_id', $oldRumah->id)->whereKeyNot($user->id)->exists()) {
+                        $oldRumah->status = 'kosong';
+                        $oldRumah->penanggung_jawab_id = null;
+                    }
+                    $oldRumah->save();
+                }
+            }
+
+            // Only the officer's approval may turn a proposal into household access.
+            $lockedWarga->update([
+                'rumah_diajukan_id' => $rumah->id,
+                'status_domisili' => 'disetujui', 'catatan_domisili' => null,
+                'domisili_diproses_oleh' => $actor->id, 'domisili_diproses_at' => now(),
+            ]);
+            $user->rumah_id = $rumah->id;
+            $user->rt_id = $rumah->rt_id;
+            $user->onboarding_domisili = false;
+            $user->save();
 
             if ($lockedWarga->ajukan_pj_iuran && ! $rumah->penanggung_jawab_id) {
                 $rumah->update(['penanggung_jawab_id' => $user->id]);

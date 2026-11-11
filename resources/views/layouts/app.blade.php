@@ -20,15 +20,17 @@
         [x-cloak] { display: none !important; }
         .sidebar-item { transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease; }
         .active-menu { background-color: #16a34a; color: #fff; box-shadow: 0 10px 18px -12px rgb(22 163 74 / 0.65); }
-        .sidebar-scroll { scrollbar-width: thin; scrollbar-color: #86efac #ecfdf5; }
+        .active-menu i { color: #fff; }
+        .sidebar-scroll { scrollbar-width: thin; scrollbar-color: #c7d2fe #eef2ff; }
         .sidebar-scroll::-webkit-scrollbar { width: 8px; }
-        .sidebar-scroll::-webkit-scrollbar-track { background: #ecfdf5; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background: #86efac; border-radius: 999px; border: 2px solid #ecfdf5; }
-        .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #4ade80; }
-        .dark .active-menu { background-color: #059669; box-shadow: 0 10px 18px -12px rgb(16 185 129 / 0.75); }
-        .dark .sidebar-scroll { scrollbar-color: #10b981 #020617; }
-        .dark .sidebar-scroll::-webkit-scrollbar-track { background: #020617; }
-        .dark .sidebar-scroll::-webkit-scrollbar-thumb { background: #10b981; border-color: #020617; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: #eef2ff; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #a5b4fc; border-radius: 999px; border: 2px solid #eef2ff; }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #818cf8; }
+        .dark .active-menu { background-color: #059669; color: #fff; box-shadow: 0 10px 18px -12px rgb(16 185 129 / 0.75); }
+        .dark .active-menu i { color: #fff; }
+        .dark .sidebar-scroll { scrollbar-color: #4f46e5 #0f172a; }
+        .dark .sidebar-scroll::-webkit-scrollbar-track { background: #0f172a; }
+        .dark .sidebar-scroll::-webkit-scrollbar-thumb { background: #4f46e5; border-color: #0f172a; }
     </style>
 </head>
 @php
@@ -359,32 +361,30 @@
         : [];
     $isRegistrationPending = in_array($user->status_akun, ['pending_verifikasi', 'ditolak'], true);
 @endphp
-<body class="bg-gray-50 font-sans text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100" x-data="appShell()" x-on:keydown.escape.window="mobileMenuOpen = false">
+<body class="bg-fintech font-sans text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100" x-data="appShell()" x-on:keydown.escape.window="mobileMenuOpen = false">
 
-    <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-40 bg-emerald-950/35 lg:hidden" x-transition.opacity x-on:click="mobileMenuOpen = false"></div>
+    <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-40 bg-slate-900/35 lg:hidden" x-transition.opacity x-on:click="mobileMenuOpen = false"></div>
     <div x-cloak x-show="navigating" x-transition.opacity class="fixed left-1/2 top-4 z-[9999] -translate-x-1/2 rounded-full bg-emerald-600 px-4 py-2 text-xs font-black text-white shadow-2xl shadow-emerald-900/20">
         Membuka halaman...
     </div>
 
     <aside
-        class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] -translate-x-full flex-col border-r border-emerald-100 bg-linear-to-b/srgb from-emerald-50 via-green-50 to-white text-slate-700 shadow-2xl shadow-emerald-950/10 transition-transform duration-300 dark:border-slate-800 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 dark:text-slate-200 lg:translate-x-0"
+        class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] -translate-x-full flex-col border-r border-slate-100 bg-white text-slate-700 shadow-xl shadow-slate-900/10 transition-transform duration-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 lg:translate-x-0"
         :class="{ 'translate-x-0': mobileMenuOpen, '-translate-x-full': !mobileMenuOpen }"
         aria-label="Navigasi utama"
     >
-        <div class="flex items-center justify-between border-b border-emerald-100 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70 lg:p-6">
+        <div class="flex items-center justify-between border-b border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 lg:p-6">
             <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-3">
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500 shadow-xs shadow-emerald-500/30">
                     <i class="fa-solid fa-wallet text-lg text-white"></i>
                 </span>
-                <span class="truncate text-xl font-extrabold tracking-wider text-emerald-950">Smart RW</span>
+                <span class="truncate text-xl font-extrabold tracking-wider text-slate-900 dark:text-slate-100">Smart RW</span>
             </a>
-
-            <button type="button" class="flex h-10 w-10 items-center justify-center rounded-lg text-emerald-700 hover:bg-emerald-100 hover:text-emerald-950 lg:hidden" x-on:click="mobileMenuOpen = false" aria-label="Tutup menu">
+            <button type="button" class="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-emerald-100 hover:text-emerald-950 lg:hidden" x-on:click="mobileMenuOpen = false" aria-label="Tutup menu">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
-
-        <nav class="sidebar-scroll flex-1 space-y-6 overflow-y-auto p-4">
+<nav class="sidebar-scroll flex-1 space-y-6 overflow-y-auto p-4">
             @foreach($visibleMenuGroups as $group)
                 <div>
                     <p class="mb-3 px-2 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-700/70">{{ $group['label'] }}</p>
@@ -398,7 +398,7 @@
                             <li>
                                 @if($isLocked)
                                     <span
-                                        class="sidebar-item flex min-h-12 touch-manipulation cursor-not-allowed items-center gap-3 rounded-xl p-3 text-sm font-semibold text-slate-400"
+                                        class="sidebar-item flex min-h-12 touch-manipulation cursor-not-allowed items-center gap-3 rounded-xl p-3 text-sm font-semibold text-slate-400 dark:text-slate-500"
                                         title="Terkunci sampai pendaftaran disetujui"
                                     >
                                         <i class="fa-solid {{ $item['icon'] }} w-5 shrink-0 text-center {{ $item['iconClass'] }} opacity-50"></i>
@@ -528,7 +528,7 @@
             </div>
 
             <div class="flex items-center gap-4">
-                <div class="hidden items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-emerald-900 shadow-xs dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100 xl:flex">
+                <div class="hidden items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-emerald-900 shadow-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 xl:flex">
                     <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-xs dark:bg-slate-900 dark:text-emerald-300">
                         <i class="fa-solid fa-calendar-days"></i>
                     </span>
@@ -543,7 +543,7 @@
                 </button>
 
                 <div class="relative" x-data="{ open: false }">
-                    <button type="button" x-on:click="open = !open" class="relative flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100" aria-label="Notifikasi">
+                    <button type="button" x-on:click="open = !open" class="relative flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 transition hover:bg-slate-100" aria-label="Notifikasi">
                         <i class="fa-solid fa-bell"></i>
                         @if($visibleUnreadCount)
                             <span class="absolute right-0 top-0 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 text-[10px] font-bold text-white">
@@ -596,7 +596,7 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 rounded-full bg-emerald-50 px-3 py-1.5 dark:bg-emerald-500/10">
+                <div class="flex items-center gap-3 rounded-full bg-emerald-50 px-3 py-1.5 dark:bg-slate-800">
                     <span class="text-sm font-semibold text-emerald-800 dark:text-emerald-300">{{ $roleLabel }}</span>
                 </div>
 

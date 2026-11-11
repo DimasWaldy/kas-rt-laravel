@@ -29,6 +29,16 @@ class User extends Authenticatable
                 $user->onboarding_domisili = false;
             }
         });
+        static::saved(function (User $user) {
+            if ($user->wasChanged('rumah_id') && $user->rumah_id) {
+                $user->warga()
+                    ->where('status_domisili', 'pending')
+                    ->update([
+                        'status_domisili' => 'dibatalkan',
+                        'catatan_domisili' => 'Domisili telah ditetapkan langsung oleh pengurus.',
+                    ]);
+            }
+        });
         static::deleting(function (User $user) {
             if (FinancialHistory::existsForUser($user->id)) {
                 throw ValidationException::withMessages([
