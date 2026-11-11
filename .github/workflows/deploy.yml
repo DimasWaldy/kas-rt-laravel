@@ -1,0 +1,88 @@
+name: CI/CD Deploy ke VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  ci:
+    name: Test & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_sqlite, bcmath, intl, xml, zip
+          coverage: none
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          composer install --no-interaction --prefer-dist --optimize-autoloader
+          php artisan key:generate
+
+      - name: Install frontend & run tests/build
+        run: |
+          npm ci
+          npm run test:frontend
+          npm run build
+
+      - name: Run Pest test suite
+        run: php artisan test --compact
+
+  deploy:
+    name: Deploy to VPS
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
+    steps:
+      - name: Deploy via SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_APP_DIR: ${{ secrets.VPS_APP_DIR }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${VPS_PORT:-22}" -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/deploy_key -p "${VPS_PORT:-22}" "${VPS_USER}@${VPS_HOST}" bash -s -- "$VPS_APP_DIR" << 'EOF'
+            set -euo pipefail
+            APP_DIR="$1"
+            APP_OWNER="$(stat -c '%U' "$APP_DIR")"
+            run_as_owner() {
+              if [ "$(id -un)" = "$APP_OWNER" ]; then
+                "$@"
+              else
+                sudo -u "$APP_OWNER" "$@"
+              fi
+            }
+            cd "$APP_DIR"
+            run_as_owner git config core.fileMode false
+            run_as_owner git pull --ff-only origin main
+            run_as_owner composer install --no-dev --optimize-autoloader --no-interaction
+            run_as_owner php artisan migrate --force
+            run_as_owner npm ci --no-audit --no-fund
+            run_as_owner npm run build
+            run_as_owner php artisan optimize:clear
+            run_as_owner php artisan config:cache
+            run_as_owner php artisan view:cache
+          EOF
