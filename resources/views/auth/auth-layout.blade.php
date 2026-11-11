@@ -121,7 +121,7 @@
     </style>
 </head>
 <body class="min-h-screen overflow-x-hidden bg-slate-100 p-4 font-sans text-slate-900">
-    <main class="flex min-h-[calc(100vh-2rem)] items-center justify-center">
+    <main class="flex min-h-[calc(100vh-2rem)] flex-col items-center justify-center">
         @if(session('success') || session('error') || session('status'))
             <div id="toast" class="toast-animate fixed right-5 top-5 z-[9999] flex w-full max-w-xs items-center rounded-2xl p-4 text-white shadow-2xl {{ session('error') ? 'bg-rose-500' : 'bg-emerald-500' }}">
                 <div class="ml-3 text-sm font-bold">{{ session('success') ?? session('status') ?? session('error') }}</div>
@@ -130,6 +130,13 @@
                 </button>
             </div>
         @endif
+
+        <div class="mb-4 flex w-[920px] max-w-full justify-start">
+            <a href="{{ url('/') }}" class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold tracking-wide text-slate-600 shadow-xs transition-all hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 active:scale-95">
+                <i class="fa-solid fa-arrow-left text-[11px]"></i>
+                <span>Kembali ke Beranda</span>
+            </a>
+        </div>
 
         <div id="authCard" class="auth-card relative min-h-[640px] w-[920px] max-w-full overflow-hidden rounded-[40px] bg-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.22)] transition-all duration-700 ease-in-out">
             <div class="form-container sign-up pointer-events-none absolute left-0 top-0 h-full w-1/2 opacity-0 transition-all duration-700 ease-in-out">
