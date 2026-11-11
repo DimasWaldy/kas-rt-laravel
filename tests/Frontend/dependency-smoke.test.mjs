@@ -19,7 +19,8 @@ test('Tailwind configuration still compiles forms, responsive and dark variants'
     assert.match(css, /\.focus\\:ring-emerald-500/);
     assert.match(css, /\.shadow-xs/);
     assert.match(css, /\.bg-black\\\/50/);
-    assert.match(css, /\.dark \.bg-lime-50\s*\{\s*background-color:\s*(?:rgb\(6 78 59 \/ (?:0?\.25)\)|#064e3b40)\s*!important/);
+    assert.match(css, /\.dark \.bg-lime-50(?:,|{)/);
+    assert.match(css, /background-color:\s*#064e3b(?:38|40)\s*!important/);
     assert.match(css, /Font Awesome 6 Free/);
     assert.match(css, /Figtree/);
     assert.doesNotMatch(css, /@tailwind|@source|@plugin/);

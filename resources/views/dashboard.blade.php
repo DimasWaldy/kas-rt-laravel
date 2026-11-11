@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Ringkasan Statistik')
 
@@ -127,93 +127,145 @@
 {{-- =============================================
      SECTION 1: KEUANGAN KESELURUHAN
      ============================================= --}}
+@php
+    $u = auth()->user();
+    $canViewFinance = $u->canViewFinance();
+    $isLockedAccount = ! $u->isAktif() || ($u->role_name === 'warga' && $u->onboarding_domisili && ! $u->rumah_id);
+@endphp
+
+@if($canViewFinance && ! $isLockedAccount)
 <div class="mb-2">
     <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-        {{ auth()->user()->isRwOfficial() ? 'Rekap Keuangan RW' : (auth()->user()->role_name === 'warga' ? 'Ringkasan Keuangan RT' : 'Keuangan RT') }}
+        {{ $u->isRwOfficial() ? 'Rekap Keuangan RW' : ($u->role_name === 'warga' ? 'Ringkasan Keuangan RT' : 'Keuangan RT') }}
     </p>
 </div>
-
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-
-    {{-- Kas Masuk --}}
-    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-        <div class="flex items-start justify-between gap-3">
-            <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Total kas masuk</p>
-                <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100 truncate">
-                    Rp {{ number_format($kasMasuk ?? 0, 0, ',', '.') }}
-                </p>
-                <p class="text-xs text-slate-400 mt-1">Sepanjang waktu</p>
-            </div>
-            <div class="bg-green-50 dark:bg-green-500/10 p-2.5 rounded-xl shrink-0">
-                            <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg>
-            </div>
-        </div>
-        <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                        <span class="inline-flex items-center gap-1 text-xs font-medium bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300 px-2.5 py-1 rounded-full">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"/></svg>
-                Bulan ini: Rp {{ number_format($monthlyRevenue ?? 0, 0, ',', '.') }}
-            </span>
-        </div>
-    </div>
-
-    {{-- Kas Keluar --}}
-    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-        <div class="flex items-start justify-between gap-3">
-            <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Total kas keluar</p>
-                <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100 truncate">
-                    Rp {{ number_format($kasKeluar ?? 0, 0, ',', '.') }}
-                </p>
-                <p class="text-xs text-slate-400 mt-1">Sepanjang waktu</p>
-            </div>
-            <div class="bg-red-50 p-2.5 rounded-xl shrink-0">
-                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6L9 12.75l4.306-4.307a11.95 11.95 0 015.814 5.519l2.74 1.22m0 0l-5.94 2.28m5.94-2.28l-2.28-5.941"/></svg>
-            </div>
-        </div>
-        <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-            <span class="inline-flex items-center gap-1 text-xs font-medium bg-red-50 text-red-700 px-2.5 py-1 rounded-full">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"/></svg>
-                Pengeluaran tercatat
-            </span>
-        </div>
-    </div>
-
-    {{-- Saldo Bersih --}}
-    @php
-        $saldo = ($kasMasuk ?? 0) - ($kasKeluar ?? 0);
-        $saldoPositif = $saldo >= 0;
-    @endphp
-    <div class="bg-white dark:bg-slate-900 rounded-2xl border p-5 {{ $saldoPositif ? 'border-slate-200 dark:border-slate-700' : 'border-red-200' }}">
-        <div class="flex items-start justify-between gap-3">
-            <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Saldo bersih</p>
-                <p class="text-2xl font-semibold truncate {{ $saldoPositif ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
-                    Rp {{ number_format(abs($saldo), 0, ',', '.') }}
-                </p>
-                <p class="text-xs text-slate-400 mt-1">Kas masuk âˆ’ kas keluar</p>
-            </div>
-            <div class="{{ $saldoPositif ? 'bg-blue-50 dark:bg-blue-500/10' : 'bg-red-50' }} p-2.5 rounded-xl shrink-0">
-                <svg class="w-5 h-5 {{ $saldoPositif ? 'text-blue-500' : 'text-red-500' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z"/></svg>
-            </div>
-        </div>
-        <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-            @if($saldoPositif)
-                <span class="inline-flex items-center gap-1 text-xs font-medium bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                    Saldo positif
+{{-- ===== MAIN BALANCE CARD ===== --}}
+@php
+    $saldo = ($kasMasuk ?? 0) - ($kasKeluar ?? 0);
+@endphp
+<div class="balance-card mb-6 p-6 md:p-8">
+    <div class="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
+                    <i class="fa-solid fa-wallet text-white"></i>
                 </span>
-            @else
-                <span class="inline-flex items-center gap-1 text-xs font-medium bg-red-50 text-red-700 px-2.5 py-1 rounded-full">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-                    Saldo defisit
-                </span>
-            @endif
+                <p class="text-sm font-medium text-white/80">Saldo Kas {{ $u->isRwOfficial() ? 'RW' : 'RT' }} Saat Ini</p>
+            </div>
+            <p class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Rp {{ number_format($saldo, 0, ',', '.') }}</p>
+            <p class="mt-2 text-xs font-medium text-white/70">Saldo = Kas Masuk − Kas Keluar (seluruh waktu)</p>
+        </div>
+        <div class="flex flex-wrap gap-4">
+            <div class="rounded-2xl bg-white/10 px-4 py-3 text-center backdrop-blur-sm">
+                <p class="text-[10px] font-medium uppercase tracking-wider text-white/70">Total Masuk</p>
+                <p class="mt-1 text-sm font-bold text-white">Rp {{ number_format($kasMasuk ?? 0, 0, ',', '.') }}</p>
+            </div>
+            <div class="rounded-2xl bg-white/10 px-4 py-3 text-center backdrop-blur-sm">
+                <p class="text-[10px] font-medium uppercase tracking-wider text-white/70">Total Keluar</p>
+                <p class="mt-1 text-sm font-bold text-white">Rp {{ number_format($kasKeluar ?? 0, 0, ',', '.') }}</p>
+            </div>
         </div>
     </div>
-
 </div>
+{{-- ===== FINANCIAL STATISTICS CARDS ===== --}}
+<div class="grid grid-cols-2 gap-4 md:grid-cols-4 mb-6">
+    <div class="card-fintech p-4">
+        <div class="icon-tile bg-green-50">
+            <i class="fa-solid fa-arrow-down-left text-green-600"></i>
+        </div>
+        <p class="mt-3 text-xs font-medium text-slate-400">Total Pemasukan</p>
+        <p class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100 truncate">Rp {{ number_format($kasMasuk ?? 0, 0, ',', '.') }}</p>
+    </div>
+    <div class="card-fintech p-4">
+        <div class="icon-tile bg-red-50">
+            <i class="fa-solid fa-arrow-up-right text-red-500"></i>
+        </div>
+        <p class="mt-3 text-xs font-medium text-slate-400">Total Pengeluaran</p>
+        <p class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100 truncate">Rp {{ number_format($kasKeluar ?? 0, 0, ',', '.') }}</p>
+    </div>
+    <div class="card-fintech p-4">
+        <div class="icon-tile bg-emerald-50">
+            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+        </div>
+        <p class="mt-3 text-xs font-medium text-slate-400">Iuran Lunas</p>
+        <p class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100 truncate">{{ $totalPaidTagihan ?? 0 }} tagihan</p>
+    </div>
+    <div class="card-fintech p-4">
+        <div class="icon-tile {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'bg-amber-50' : 'bg-slate-50' }}">
+            <i class="fa-solid fa-clock {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-amber-600' : 'text-slate-400' }}"></i>
+        </div>
+        <p class="mt-3 text-xs font-medium text-slate-400">Iuran Belum Bayar</p>
+        <p class="mt-1 text-lg font-bold truncate {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-slate-100' }}">{{ $totalUnpaidTagihan ?? 0 }} tagihan</p>
+    </div>
+</div>
+@else
+@if(! $isLockedAccount)
+<div class="mb-2">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Ringkasan Tagihan</p>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+    <div class="card-fintech p-4">
+        <div class="icon-tile bg-emerald-50">
+            <i class="fa-solid fa-receipt text-emerald-600"></i>
+        </div>
+        <p class="mt-3 text-xs font-medium text-slate-400">Tagihan Bulan Ini</p>
+        <p class="mt-1 text-lg font-bold capitalize text-slate-900 dark:text-slate-100 truncate">{{ str_replace('_', ' ', $userStatus ?? 'Belum Ada Tagihan') }}</p>
+    </div>
+    <div class="card-fintech p-4">
+        <div class="icon-tile {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'bg-amber-50' : 'bg-slate-50' }}">
+            <i class="fa-solid fa-clock {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-amber-600' : 'text-slate-400' }}"></i>
+        </div>
+        <p class="mt-3 text-xs font-medium text-slate-400">Iuran Belum Bayar</p>
+        <p class="mt-1 text-lg font-bold truncate {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-slate-100' }}">{{ $totalUnpaidTagihan ?? 0 }} tagihan</p>
+    </div>
+</div>
+@endif
+@endif
 
+{{-- ===== QUICK ACTIONS ===== --}}
+@if(! $isLockedAccount)
+@php
+    $quickActions = [
+        ['label' => 'Bayar Iuran', 'route' => 'tagihan.index', 'icon' => 'fa-wallet', 'visible' => ! $u->isRwOfficial()],
+        ['label' => 'Laporan Kas', 'route' => 'laporan-kas.index', 'icon' => 'fa-chart-pie', 'visible' => $u->canViewFinance()],
+        ['label' => 'Verifikasi Warga', 'route' => 'verifikasi-warga.index', 'icon' => 'fa-user-check', 'visible' => $u->canManageWarga()],
+        ['label' => 'Kas Masuk', 'route' => 'kas-masuk.index', 'icon' => 'fa-money-bill-trend-up', 'visible' => ! $u->isRwOfficial() && $u->canViewFinance()],
+        ['label' => 'Kas Keluar', 'route' => 'kas-keluar.index', 'icon' => 'fa-money-bill-transfer', 'visible' => ! $u->isRwOfficial() && $u->canViewFinance()],
+        ['label' => 'Iuran Bulanan', 'route' => 'iuran-bulanan.index', 'icon' => 'fa-list-check', 'visible' => $u->canManageFinance() || in_array($u->role_name, ['ketua_rt', 'rt', 'ketua-rt'], true)],
+        ['label' => 'Iuran Khusus', 'route' => 'iuran-khusus.index', 'icon' => 'fa-hand-holding-heart', 'visible' => $u->canManageFinance()],
+        ['label' => 'Aset RT', 'route' => 'aset.index', 'icon' => 'fa-boxes-stacked', 'visible' => $u->hasPermission('view-aset')],
+        ['label' => 'Peminjaman Aset', 'route' => 'peminjaman-aset.index', 'icon' => 'fa-hand-holding', 'visible' => $u->hasPermission('pinjam-aset')],
+        ['label' => 'Verifikasi Tagihan', 'route' => 'tagihan.admin', 'icon' => 'fa-clipboard-list', 'visible' => $u->canManageFinance()],
+        ['label' => 'Koperasi', 'route' => 'koperasi.index', 'icon' => 'fa-wallet', 'visible' => $u->hasPermission('view-koperasi')],
+        ['label' => 'Data Warga', 'route' => 'admin.warga.index', 'icon' => 'fa-users', 'visible' => $u->canManageWarga()],
+        ['label' => 'Pengaduan', 'route' => 'pengaduan.index', 'icon' => 'fa-bullhorn', 'visible' => true],
+        ['label' => 'Fasilitas', 'route' => 'fasilitas.index', 'icon' => 'fa-building-shield', 'visible' => $u->hasPermission('view-fasilitas')],
+        ['label' => 'UMKM', 'route' => 'umkm.index', 'icon' => 'fa-store', 'visible' => $u->hasPermission('view-umkm')],
+        ['label' => 'Keamanan', 'route' => 'keamanan.index', 'icon' => 'fa-shield-halved', 'visible' => $u->hasPermission('manage-fasilitas')],
+        ['label' => 'Surat', 'route' => 'surat.index', 'icon' => 'fa-envelope-open-text', 'visible' => $u->canViewSurat()],
+        ['label' => 'Kegiatan', 'route' => 'kegiatan.index', 'icon' => 'fa-calendar-days', 'visible' => $u->hasPermission('view-kegiatan')],
+        ['label' => 'Posyandu', 'route' => 'posyandu.index', 'icon' => 'fa-baby', 'visible' => $u->hasPermission('view-posyandu')],
+        ['label' => 'Bank Sampah', 'route' => 'bank-sampah.index', 'icon' => 'fa-recycle', 'visible' => $u->hasPermission('view-bank-sampah')],
+        ['label' => 'Direktori RW', 'route' => 'direktori-rw.index', 'icon' => 'fa-address-book', 'visible' => $u->hasPermission('view-direktori-rw')],
+    ];
+    $quickActions = array_values(array_filter($quickActions, function ($qa) {
+        return $qa['visible'] && Route::has($qa['route']);
+    }));
+@endphp
+@if(count($quickActions) > 0)
+<div class="card-fintech p-5 mb-6">
+    <p class="mb-4 text-sm font-semibold text-slate-800 dark:text-slate-100">Menu Cepat</p>
+    <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+        @foreach($quickActions as $qa)
+            <a href="{{ route($qa['route']) }}" class="quick-action flex flex-col items-center gap-2 rounded-xl p-3">
+                <span class="icon-tile bg-emerald-50"><i class="fa-solid {{ $qa['icon'] }} text-emerald-600"></i></span>
+                <span class="text-center text-xs font-semibold text-slate-700 dark:text-slate-200 leading-tight">{{ $qa['label'] }}</span>
+            </a>
+        @endforeach
+    </div>
+</div>
+@endif
+@endif
 {{-- =============================================
      SECTION 2: DATA WARGA
      ============================================= --}}

@@ -1,9 +1,23 @@
 @php
-    $isOnboardingDomisili = $user->role_name === 'warga' && $user->onboarding_domisili && ! $user->rumah_id;
+    $isWarga = $user->role_name === 'warga';
+    $isOnboardingDomisili = $isWarga && $user->onboarding_domisili && ! $user->rumah_id;
     $initialRtId = $user->rt_id ?? '';
     $initialMode = old('mode', $wargaDomisili?->mode_domisili ?? ($rumahsDomisili->isEmpty() ? 'new' : 'existing'));
     $initialRumahs = $rumahsDomisili->map(fn($r) => ['id' => $r->id, 'kode_rumah' => $r->kode_rumah, 'alamat' => $r->alamat])->values();
-    $selectedRumahId = old('rumah_id', $wargaDomisili?->rumah_diajukan_id ?? '');
+    $selectedRumahId = old('rumah_id', ($isOnboardingDomisili || $wargaDomisili?->status_domisili === 'perlu_perbaikan') ? ($wargaDomisili?->rumah_diajukan_id ?? '') : '');
+    $initialAjukanPindah = $isOnboardingDomisili
+        || $wargaDomisili?->status_domisili === 'perlu_perbaikan'
+        || old('ajukan_ubah_domisili') === '1'
+        || $errors->hasAny(['mode', 'rumah_id', 'alamat']);
+    $defaultPjChecked = $user->rumah_id
+        ? (bool) $user->is_penanggung_jawab_rumah
+        : (bool) ($user->warga?->ajukan_pj_iuran ?? false);
+    $currentHousePj = $user->rumah?->penanggungJawab;
+    $otherActivePj = $user->rumah_id
+        && $user->rumah?->penanggung_jawab_id
+        && (int) $user->rumah->penanggung_jawab_id !== (int) $user->id
+        && $currentHousePj?->isAktif()
+        && (int) $currentHousePj->rumah_id === (int) $user->rumah_id;
 @endphp
 
 <section x-data="{
@@ -12,6 +26,14 @@
     rumahs: @js($initialRumahs),
     selectedRumahId: @js((string) $selectedRumahId),
     loadingRumah: false,
+    ajukanPindah: @js((bool) $initialAjukanPindah),
+    needsInitialLoad: @js($rumahsDomisili->isEmpty() && $initialRtId && $isWarga && $initialAjukanPindah),
+    init() {
+        if (this.needsInitialLoad) {
+            this.needsInitialLoad = false;
+            this.onRtChange(this.rtId);
+        }
+    },
     async onRtChange(newRtId) {
         if (!newRtId) {
             this.rumahs = [];
@@ -126,11 +148,12 @@
             </div>
         @endif
 
-        @if($isOnboardingDomisili)
+        @if($isWarga && ($isOnboardingDomisili || $user->rumah_id || $wargaDomisili?->status_domisili === 'pending'))
             <div class="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-xs space-y-5">
                 <div>
                     <h3 class="text-base font-bold text-slate-900 dark:text-white">Data Domisili</h3>
                     <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Tentukan wilayah RT dan rumah tempat tinggal Anda di lingkungan ini.</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Hubungi pengurus untuk menetapkan atau mengubah RT.</p>
                 </div>
 
                 @if($wargaDomisili?->status_domisili === 'pending')
@@ -141,6 +164,31 @@
                         <p class="text-xs">Pengurus akan memeriksa domisili Anda. Data rumah dan fitur warga akan aktif setelah disetujui. Hubungi pengurus jika perlu perubahan.</p>
                     </section>
                 @else
+                    @if(! $isOnboardingDomisili && $user->rumah_id)
+                        <dl class="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                            <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                                <dt class="font-medium text-slate-500 dark:text-slate-400">Wilayah RT</dt>
+                                <dd class="font-semibold text-slate-900 dark:text-white">{{ $user->rt?->name ?? 'Belum ditetapkan' }}</dd>
+                            </div>
+                            <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                                <dt class="font-medium text-slate-500 dark:text-slate-400">Kode & Alamat Rumah</dt>
+                                <dd class="font-semibold text-slate-900 dark:text-white">{{ $user->rumah?->kode_rumah ?? 'Belum ditetapkan' }} {{ $user->rumah?->alamat ? '— ' . $user->rumah->alamat : '' }}</dd>
+                            </div>
+                            <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                                <dt class="font-medium text-slate-500 dark:text-slate-400">Penanggung Jawab Iuran</dt>
+                                <dd>
+                                    @if($user->is_penanggung_jawab_rumah)
+                                        <span class="font-semibold text-emerald-600 dark:text-emerald-400">Ya — Anda adalah PJ iuran</span>
+                                    @elseif($otherActivePj)
+                                        <span class="font-medium text-slate-700 dark:text-slate-300">{{ $currentHousePj->name }} (PJ aktif)</span>
+                                    @else
+                                        <span class="font-medium text-amber-600 dark:text-amber-400">Belum ada</span>
+                                    @endif
+                                </dd>
+                            </div>
+                        </dl>
+                    @endif
+
                     @if($wargaDomisili?->status_domisili === 'perlu_perbaikan')
                         <div role="alert" class="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
                             <p class="font-bold">Perbaiki pengajuan domisili</p>
@@ -149,55 +197,66 @@
                         </div>
                     @endif
 
-                    <div>
-                        <x-input-label for="rt_id" value="RT Hasil Verifikasi" />
-                        <select id="rt_id" name="rt_id" x-model="rtId" required class="mt-1 block w-full rounded-xl border-slate-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
-                            @foreach($rts as $rtItem)
-                                <option value="{{ $rtItem->id }}">
-                                    {{ $rtItem->name }} ({{ $rtItem->rw?->name ?? 'RW' }})
-                                </option>
-                            @endforeach
-                        </select>
-                        <x-input-error class="mt-2" :messages="$errors->get('rt_id')" />
-                    </div>
-
-                    <fieldset class="space-y-2 pt-2">
-                        <legend class="mb-2 text-sm font-bold text-slate-800 dark:text-slate-200">Cara Pengisian Rumah</legend>
-                        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                            <input type="radio" name="mode" value="existing" x-model="mode" :disabled="rumahs.length === 0" class="text-emerald-600 focus:ring-emerald-500">
-                            Pilih rumah yang sudah terdaftar di RT ini
+                    @if(! $isOnboardingDomisili && $user->rumah_id)
+                        <label class="flex items-center gap-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer pt-1">
+                            <input type="checkbox" name="ajukan_ubah_domisili" value="1" x-model="ajukanPindah"
+                                x-on:change="if (ajukanPindah && rumahs.length === 0 && rtId) { onRtChange(rtId); }"
+                                class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                            <span>Ajukan pindah / ubah domisili rumah</span>
                         </label>
-                        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                            <input type="radio" name="mode" value="new" x-model="mode" class="text-emerald-600 focus:ring-emerald-500">
-                            Rumah belum terdaftar — isi alamat baru
-                        </label>
-                        <x-input-error class="mt-1" :messages="$errors->get('mode')" />
-                    </fieldset>
+                    @endif
 
-                    <div x-show="loadingRumah" class="rounded-xl bg-slate-100 p-3 text-xs text-slate-600 dark:bg-slate-900/60 dark:text-slate-400 flex items-center gap-2">
-                        <span>Memuat daftar rumah...</span>
-                    </div>
+                    <div x-show="ajukanPindah" @if(! $initialAjukanPindah) x-cloak @endif class="space-y-4">
+                        <div>
+                            <x-input-label for="rt_id" value="RT Hasil Verifikasi" />
+                            <select id="rt_id" name="rt_id" x-model="rtId" :disabled="!ajukanPindah" :required="ajukanPindah" class="mt-1 block w-full rounded-xl border-slate-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                                @foreach($rts as $rtItem)
+                                    <option value="{{ $rtItem->id }}">
+                                        {{ $rtItem->name }} ({{ $rtItem->rw?->name ?? 'RW' }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <x-input-error class="mt-2" :messages="$errors->get('rt_id')" />
+                        </div>
 
-                    <div x-show="!loadingRumah && rumahs.length === 0" class="rounded-xl bg-slate-100 p-3 text-xs text-slate-600 dark:bg-slate-900/60 dark:text-slate-400">
-                        Belum ada rumah di RT ini. Gunakan opsi isi alamat baru.
-                    </div>
+                        <fieldset class="space-y-2 pt-2">
+                            <legend class="mb-2 text-sm font-bold text-slate-800 dark:text-slate-200">Cara Pengisian Rumah</legend>
+                            <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                <input type="radio" name="mode" value="existing" x-model="mode" :disabled="!ajukanPindah || rumahs.length === 0" class="text-emerald-600 focus:ring-emerald-500">
+                                Pilih rumah yang sudah terdaftar di RT ini
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                <input type="radio" name="mode" value="new" x-model="mode" :disabled="!ajukanPindah" class="text-emerald-600 focus:ring-emerald-500">
+                                Rumah belum terdaftar — isi alamat baru
+                            </label>
+                            <x-input-error class="mt-1" :messages="$errors->get('mode')" />
+                        </fieldset>
 
-                    <div x-show="!loadingRumah && rumahs.length > 0 && mode === 'existing'" x-cloak>
-                        <x-input-label for="domisili-rumah" value="Pilih Rumah" />
-                        <select id="domisili-rumah" name="rumah_id" x-model="selectedRumahId" :disabled="mode !== 'existing'" :required="mode === 'existing'" class="mt-1 block w-full rounded-xl border-slate-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
-                            <option value="">Pilih rumah</option>
-                            <template x-for="rumahOption in rumahs" :key="rumahOption.id">
-                                <option :value="rumahOption.id" x-text="rumahOption.kode_rumah + ' — ' + rumahOption.alamat"></option>
-                            </template>
-                        </select>
-                        <x-input-error class="mt-2" :messages="$errors->get('rumah_id')" />
-                    </div>
+                        <div x-show="loadingRumah" class="rounded-xl bg-slate-100 p-3 text-xs text-slate-600 dark:bg-slate-900/60 dark:text-slate-400 flex items-center gap-2">
+                            <span>Memuat daftar rumah...</span>
+                        </div>
 
-                    <div x-show="mode === 'new'" x-cloak>
-                        <x-input-label for="domisili-alamat" value="Alamat Lengkap Rumah" />
-                        <textarea id="domisili-alamat" name="alamat" rows="3" minlength="5" maxlength="500" :disabled="mode !== 'new'" :required="mode === 'new'" placeholder="Nama jalan/gang, nomor rumah, blok, dan keterangan lokasi" class="mt-1 block w-full rounded-xl border-slate-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">{{ old('alamat', $wargaDomisili?->mode_domisili === 'new' ? $wargaDomisili?->alamat_domisili : '') }}</textarea>
-                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kode rumah dibuat otomatis. Jangan membuat alamat baru jika rumah sudah ada dalam daftar.</p>
-                        <x-input-error class="mt-2" :messages="$errors->get('alamat')" />
+                        <div x-show="!loadingRumah && rumahs.length === 0" class="rounded-xl bg-slate-100 p-3 text-xs text-slate-600 dark:bg-slate-900/60 dark:text-slate-400">
+                            Belum ada rumah di RT ini. Gunakan opsi isi alamat baru.
+                        </div>
+
+                        <div x-show="!loadingRumah && rumahs.length > 0 && mode === 'existing'" x-cloak>
+                            <x-input-label for="domisili-rumah" value="Pilih Rumah" />
+                            <select id="domisili-rumah" name="rumah_id" x-model="selectedRumahId" :disabled="!ajukanPindah || mode !== 'existing'" :required="ajukanPindah && mode === 'existing'" class="mt-1 block w-full rounded-xl border-slate-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                                <option value="">Pilih rumah</option>
+                                <template x-for="rumahOption in rumahs" :key="rumahOption.id">
+                                    <option :value="rumahOption.id" x-text="rumahOption.kode_rumah + ' — ' + rumahOption.alamat"></option>
+                                </template>
+                            </select>
+                            <x-input-error class="mt-2" :messages="$errors->get('rumah_id')" />
+                        </div>
+
+                        <div x-show="mode === 'new'" x-cloak>
+                            <x-input-label for="domisili-alamat" value="Alamat Lengkap Rumah" />
+                            <textarea id="domisili-alamat" name="alamat" rows="3" minlength="5" maxlength="500" :disabled="!ajukanPindah || mode !== 'new'" :required="ajukanPindah && mode === 'new'" placeholder="Nama jalan/gang, nomor rumah, blok, dan keterangan lokasi" class="mt-1 block w-full rounded-xl border-slate-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">{{ old('alamat', ($isOnboardingDomisili || $wargaDomisili?->status_domisili === 'perlu_perbaikan') && $wargaDomisili?->mode_domisili === 'new' ? $wargaDomisili?->alamat_domisili : '') }}</textarea>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kode rumah dibuat otomatis. Jangan membuat alamat baru jika rumah sudah ada dalam daftar.</p>
+                            <x-input-error class="mt-2" :messages="$errors->get('alamat')" />
+                        </div>
                     </div>
 
                     <div>
@@ -208,15 +267,32 @@
                     </div>
 
                     <div class="rounded-2xl border border-blue-100 bg-blue-50/70 p-4 dark:border-slate-700 dark:bg-slate-800/40 space-y-2">
-                        <label class="flex items-start gap-3 cursor-pointer">
-                            <input type="checkbox" name="ajukan_pj_iuran" value="1"
-                                @checked(old('ajukan_pj_iuran', $user->warga?->ajukan_pj_iuran))
-                                class="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-                            <span class="text-sm text-blue-950 dark:text-slate-200">
-                                <strong>Saya ingin menjadi penanggung jawab (PJ) iuran rumah ini</strong>
-                                <span class="block text-xs text-blue-700 dark:text-slate-400 mt-0.5">Satu rumah ditagihkan kepada satu PJ. Pengurus akan mengonfirmasi saat verifikasi.</span>
-                            </span>
-                        </label>
+                        @if($otherActivePj)
+                            <input type="hidden" name="ajukan_pj_iuran" value="0" :disabled="!ajukanPindah" />
+                            <label class="flex items-start gap-3" :class="ajukanPindah ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'">
+                                <input type="checkbox" name="ajukan_pj_iuran" value="1"
+                                    :disabled="!ajukanPindah"
+                                    @checked(old('ajukan_pj_iuran', false))
+                                    class="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:text-slate-400" />
+                                <span class="text-sm text-blue-950 dark:text-slate-200">
+                                    <strong>Saya ingin menjadi penanggung jawab (PJ) iuran rumah ini</strong>
+                                    <span class="block text-xs text-blue-700 dark:text-slate-400 mt-0.5">
+                                        PJ aktif rumah saat ini: <strong>{{ $currentHousePj->name }}</strong>. Opsi ini aktif jika Anda mengajukan pindah rumah.
+                                    </span>
+                                </span>
+                            </label>
+                        @else
+                            <input type="hidden" name="ajukan_pj_iuran" value="0" />
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" name="ajukan_pj_iuran" value="1"
+                                    @checked(old('ajukan_pj_iuran', $defaultPjChecked))
+                                    class="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                                <span class="text-sm text-blue-950 dark:text-slate-200">
+                                    <strong>Saya ingin menjadi penanggung jawab (PJ) iuran rumah ini</strong>
+                                    <span class="block text-xs text-blue-700 dark:text-slate-400 mt-0.5">Satu rumah ditagihkan kepada satu PJ. Pengurus akan mengonfirmasi saat verifikasi.</span>
+                                </span>
+                            </label>
+                        @endif
                         <x-input-error class="mt-1" :messages="$errors->get('ajukan_pj_iuran')" />
                     </div>
                 @endif

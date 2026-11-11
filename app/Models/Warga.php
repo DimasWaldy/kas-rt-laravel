@@ -107,10 +107,9 @@ class Warga extends Model
     {
         return $query->where('status_domisili', 'pending')
             ->where('status_verifikasi', 'terverifikasi')
-            ->whereNull('kartu_keluarga_id')
             ->whereHas('user', fn (Builder $user) => $user
-                ->where('onboarding_domisili', true)->where('status_akun', 'aktif')
-                ->whereNotNull('rt_id')->whereNull('rumah_id')
+                ->where('status_akun', 'aktif')
+                ->whereNotNull('rt_id')
                 ->whereHas('role', fn (Builder $role) => $role->where('name', 'warga')));
     }
 }

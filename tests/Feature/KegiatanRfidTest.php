@@ -270,3 +270,17 @@ test('rfid operator aktif tidak memerlukan verifikasi email tetapi izin tetap wa
     $this->operatorRfid->update(['status_akun' => 'ditolak']);
     ($this->tapRfid)($token)->assertForbidden();
 });
+
+test('rfid mempercayai forwarded ip dari loopback proxy tetapi mengabaikan header ip publik palsu', function () {
+    $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1'])
+        ->postJson(route('rfid.tap'), ['uid' => 'A1B2C3D4'], ['X-Forwarded-For' => '198.51.100.10'])
+        ->assertUnauthorized();
+
+    expect(request()->ip())->toBe('198.51.100.10');
+
+    $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.5'])
+        ->postJson(route('rfid.tap'), ['uid' => 'A1B2C3D4'], ['X-Forwarded-For' => '198.51.100.20'])
+        ->assertUnauthorized();
+
+    expect(request()->ip())->toBe('203.0.113.5');
+});
