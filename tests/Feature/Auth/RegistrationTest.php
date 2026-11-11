@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\Notification;
 test('registration screen can be rendered', function () {
     $response = $this->get('/register');
 
-    $response->assertStatus(200);
+    $response->assertStatus(200)
+        ->assertSee('Kembali ke Beranda')
+        ->assertSee('href="'.url('/').'"', false);
 });
 
 test('registration screen no longer exposes houses or asks for domicile', function () {

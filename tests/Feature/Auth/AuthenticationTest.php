@@ -8,7 +8,9 @@ use App\Models\User;
 test('login screen can be rendered', function () {
     $response = $this->get('/login');
 
-    $response->assertStatus(200);
+    $response->assertStatus(200)
+        ->assertSee('Kembali ke Beranda')
+        ->assertSee('href="'.url('/').'"', false);
 });
 
 test('login screen registration panel does not expose houses or addresses', function () {
