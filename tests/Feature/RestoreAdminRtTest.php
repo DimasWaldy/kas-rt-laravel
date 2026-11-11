@@ -16,19 +16,31 @@ test('admin awal hanya dihubungkan ke satu rt aktif yang cocok', function (strin
     $values = ['SEED_ADMIN_EMAIL' => 'admin-test@example.test', 'SEED_ADMIN_PASSWORD' => 'Testing-admin-strong-123', 'SEED_ADMIN_RT' => $rtName];
     $original = [];
     foreach ($values as $key => $value) {
-        $original[$key] = [getenv($key), $_ENV[$key] ?? null, array_key_exists($key, $_ENV)];
+        $original[$key] = [
+            'process' => getenv($key),
+            'env_exists' => array_key_exists($key, $_ENV),
+            'env' => $_ENV[$key] ?? null,
+            'server_exists' => array_key_exists($key, $_SERVER),
+            'server' => $_SERVER[$key] ?? null,
+        ];
         putenv("{$key}={$value}");
         $_ENV[$key] = $value;
+        $_SERVER[$key] = $value;
     }
     try {
         $this->seed(RestoreAdminSeeder::class);
     } finally {
-        foreach ($original as $key => [$processValue, $envValue, $exists]) {
-            putenv($processValue === false ? $key : "{$key}={$processValue}");
-            if ($exists) {
-                $_ENV[$key] = $envValue;
+        foreach ($original as $key => $saved) {
+            putenv($saved['process'] === false ? $key : "{$key}={$saved['process']}");
+            if ($saved['env_exists']) {
+                $_ENV[$key] = $saved['env'];
             } else {
                 unset($_ENV[$key]);
+            }
+            if ($saved['server_exists']) {
+                $_SERVER[$key] = $saved['server'];
+            } else {
+                unset($_SERVER[$key]);
             }
         }
     }
