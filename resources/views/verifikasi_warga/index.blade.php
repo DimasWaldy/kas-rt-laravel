@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Verifikasi Warga')
 
@@ -11,9 +11,14 @@
                 <h1 class="mt-2 text-2xl font-black">Verifikasi Warga</h1>
                 <p class="mt-2 text-sm text-emerald-50">Periksa pendaftaran akun dan pastikan pengajuan domisili sesuai tempat tinggal warga.</p>
             </div>
-            <div class="rounded-2xl bg-white/15 px-5 py-4 text-center">
-                <p class="text-3xl font-black">{{ $antrian->count() }}</p>
-                <p class="text-xs font-bold uppercase tracking-wider text-emerald-50">Menunggu</p>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="{{ route('admin.warga.rfid.show') }}" class="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-emerald-800 shadow-xs hover:bg-emerald-50 transition">
+                    <i class="fa-solid fa-id-card"></i> Verifikasi KTP (RFID)
+                </a>
+                <div class="rounded-2xl bg-white/15 px-5 py-4 text-center">
+                    <p class="text-3xl font-black">{{ $antrian->count() }}</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-emerald-50">Menunggu</p>
+                </div>
             </div>
         </div>
     </div>

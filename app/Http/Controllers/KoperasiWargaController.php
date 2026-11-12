@@ -29,7 +29,7 @@ class KoperasiWargaController extends Controller
             abort_unless($user->hasPermission('submit-koperasi'), 403);
 
             $rfidCard = RfidCard::where('user_id', $user->id)->first();
-            $hasVerifiedRfid = $rfidCard?->koperasi_verified_at !== null;
+            $hasVerifiedRfid = $rfidCard?->isEligibleForKoperasi() ?? false;
 
             return view('koperasi.warga.daftar', compact('rfidCard', 'hasVerifiedRfid'));
         }
@@ -77,7 +77,7 @@ class KoperasiWargaController extends Controller
             }
 
             $verifiedCard = RfidCard::where('user_id', $user->id)
-                ->whereNotNull('koperasi_verified_at')
+                ->where(fn ($query) => $query->whereNotNull('ktp_verified_at')->orWhereNotNull('koperasi_verified_at'))
                 ->first();
 
             if (! $verifiedCard) {

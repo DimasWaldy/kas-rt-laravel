@@ -40,7 +40,73 @@ class RfidAccess
 
     public static function canManageKoperasi(User $actor): bool
     {
-        if (! $actor->isAktif() || ! $actor->hasPermission('manage-koperasi')) {
+        return self::canManageScopedPermission($actor, 'manage-koperasi');
+    }
+
+    public static function canManageWargaKtp(User $actor): bool
+    {
+        return self::canManageScopedPermission($actor, 'manage-warga');
+    }
+
+    /**
+     * Resolve the unique Koperasi RFID session scope and territorial constraints for an operator.
+     *
+     * @return array{scope_key: string, rw_id: int|null, rt_id: int|null}
+     */
+    public static function resolveKoperasiScope(User $actor): array
+    {
+        return self::resolveScope($actor, 'koperasi');
+    }
+
+    /**
+     * Resolve the unique Warga KTP RFID verification scope and territorial constraints for an operator.
+     *
+     * @return array{scope_key: string, rw_id: int|null, rt_id: int|null}
+     */
+    public static function resolveWargaKtpScope(User $actor): array
+    {
+        return self::resolveScope($actor, 'warga');
+    }
+
+    public static function matchesKoperasiScope(User $actor, RfidSession $session): bool
+    {
+        return $session->scope_type === 'koperasi'
+            && self::resolveKoperasiScope($actor)['scope_key'] === $session->scope_key;
+    }
+
+    public static function matchesWargaKtpScope(User $actor, RfidSession $session): bool
+    {
+        return $session->scope_type === 'warga'
+            && self::resolveWargaKtpScope($actor)['scope_key'] === $session->scope_key;
+    }
+
+    public static function koperasiParticipants(RfidSession $session): Builder
+    {
+        return self::scopedUsersByAttributes($session->rt_id, $session->rw_id);
+    }
+
+    public static function koperasiParticipantsForActor(User $actor): Builder
+    {
+        $scope = self::resolveKoperasiScope($actor);
+
+        return self::scopedUsersByAttributes($scope['rt_id'], $scope['rw_id']);
+    }
+
+    public static function wargaKtpParticipants(RfidSession $session): Builder
+    {
+        return self::verifiedResidentUsers(self::scopedUsersByAttributes($session->rt_id, $session->rw_id));
+    }
+
+    public static function wargaKtpParticipantsForActor(User $actor): Builder
+    {
+        $scope = self::resolveWargaKtpScope($actor);
+
+        return self::verifiedResidentUsers(self::scopedUsersByAttributes($scope['rt_id'], $scope['rw_id']));
+    }
+
+    private static function canManageScopedPermission(User $actor, string $permission): bool
+    {
+        if (! $actor->isAktif() || ! $actor->hasPermission($permission)) {
             return false;
         }
 
@@ -56,53 +122,43 @@ class RfidAccess
     }
 
     /**
-     * Resolve the unique Koperasi RFID session scope and territorial constraints for an operator.
-     *
      * @return array{scope_key: string, rw_id: int|null, rt_id: int|null}
      */
-    public static function resolveKoperasiScope(User $actor): array
+    private static function resolveScope(User $actor, string $prefix): array
     {
         if ($actor->isGlobalOperator()) {
-            return ['scope_key' => 'koperasi:global', 'rw_id' => null, 'rt_id' => null];
+            return ['scope_key' => $prefix.':global', 'rw_id' => null, 'rt_id' => null];
         }
 
         if ($actor->isRwOfficial()) {
             $rwId = $actor->assignedRwId();
             abort_unless($rwId, 403, 'Akun belum terhubung ke wilayah.');
 
-            return ['scope_key' => 'koperasi:rw:'.$rwId, 'rw_id' => (int) $rwId, 'rt_id' => null];
+            return ['scope_key' => $prefix.':rw:'.$rwId, 'rw_id' => (int) $rwId, 'rt_id' => null];
         }
 
         abort_unless($actor->rt_id, 403, 'Akun belum terhubung ke RT.');
         $rwId = $actor->assignedRwId();
 
         return [
-            'scope_key' => 'koperasi:rt:'.$actor->rt_id,
+            'scope_key' => $prefix.':rt:'.$actor->rt_id,
             'rw_id' => $rwId ? (int) $rwId : null,
             'rt_id' => (int) $actor->rt_id,
         ];
     }
 
-    public static function matchesKoperasiScope(User $actor, RfidSession $session): bool
-    {
-        return $session->scope_type === 'koperasi'
-            && self::resolveKoperasiScope($actor)['scope_key'] === $session->scope_key;
-    }
-
-    public static function koperasiParticipants(RfidSession $session): Builder
+    private static function scopedUsersByAttributes(?int $rtId, ?int $rwId): Builder
     {
         return User::query()->where('status_akun', 'aktif')
-            ->when($session->rt_id, fn (Builder $q) => $q->where('rt_id', $session->rt_id))
-            ->when(! $session->rt_id && $session->rw_id, fn (Builder $q) => $q->inRw($session->rw_id));
+            ->when($rtId, fn (Builder $q) => $q->where('rt_id', $rtId))
+            ->when(! $rtId && $rwId, fn (Builder $q) => $q->inRw($rwId));
     }
 
-    public static function koperasiParticipantsForActor(User $actor): Builder
+    private static function verifiedResidentUsers(Builder $query): Builder
     {
-        $scope = self::resolveKoperasiScope($actor);
-
-        return User::query()->where('status_akun', 'aktif')
-            ->when($scope['rt_id'], fn (Builder $q) => $q->where('rt_id', $scope['rt_id']))
-            ->when(! $scope['rt_id'] && $scope['rw_id'], fn (Builder $q) => $q->inRw($scope['rw_id']));
+        return $query->whereRelation('role', 'name', 'warga')
+            ->where(fn (Builder $q) => $q->whereDoesntHave('warga')
+                ->orWhereHas('warga', fn (Builder $w) => $w->where('status_verifikasi', 'terverifikasi')));
     }
 
     /**

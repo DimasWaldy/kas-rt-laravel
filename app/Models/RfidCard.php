@@ -7,13 +7,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RfidCard extends Model
 {
-    protected $fillable = ['user_id', 'uid_hash', 'koperasi_verified_at'];
+    protected $fillable = [
+        'user_id',
+        'uid_hash',
+        'ktp_verified_at',
+        'verified_by',
+        'verified_rt_id',
+        'koperasi_verified_at',
+    ];
 
     protected $hidden = ['uid_hash'];
 
     protected function casts(): array
     {
         return [
+            'ktp_verified_at' => 'datetime',
             'koperasi_verified_at' => 'datetime',
         ];
     }
@@ -21,6 +29,21 @@ class RfidCard extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function verifiedRt(): BelongsTo
+    {
+        return $this->belongsTo(Rt::class, 'verified_rt_id');
+    }
+
+    public function isEligibleForKoperasi(): bool
+    {
+        return $this->ktp_verified_at !== null || $this->koperasi_verified_at !== null;
     }
 
     public static function hashUid(string $uid): string

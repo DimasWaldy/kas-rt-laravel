@@ -35,7 +35,10 @@
                 <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
                     <p class="font-bold"><i class="fa-solid fa-id-card mr-1.5"></i> Kartu RFID / e-KTP Sudah Terverifikasi</p>
                     <p class="mt-1 text-xs text-emerald-800">
-                        Tercatat tap pada {{ $rfidCard->koperasi_verified_at->translatedFormat('d M Y H:i') }} WIB. Anda bisa langsung klik <strong>Daftar Sekarang</strong>, lalu tunggu verifikasi bendahara.
+                        @php
+                            $verifiedAt = $rfidCard->ktp_verified_at ?? $rfidCard->koperasi_verified_at;
+                        @endphp
+                        Tercatat tap pada {{ $verifiedAt->translatedFormat('d M Y H:i') }} WIB (terdaftar di RT &amp; Sistem). Anda bisa langsung klik <strong>Daftar Sekarang</strong>, lalu tunggu verifikasi bendahara.
                     </p>
                 </div>
                 <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-700 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-800 sm:w-auto">
@@ -45,9 +48,9 @@
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
                     <p class="font-bold"><i class="fa-solid fa-id-card mr-1.5"></i> Wajib Tap Kartu RFID / e-KTP Terlebih Dahulu</p>
                     <ol class="mt-2 list-decimal space-y-1 pl-5 text-xs text-amber-900">
-                        <li>Bawa kartu RFID / e-KTP Anda ke petugas atau bendahara koperasi.</li>
-                        <li>Minta petugas mengaktifkan tap kartu di menu <strong>Kelola Koperasi &rarr; Sesi RFID Koperasi</strong>, lalu tempel kartu ke reader ESP32.</li>
-                        <li>Setelah tap berhasil, muat ulang halaman ini untuk mengaktifkan tombol pendaftaran.</li>
+                        <li>Bawa KTP / kartu RFID Anda ke petugas RT, Admin, atau bendahara koperasi.</li>
+                        <li>Minta petugas mengaktifkan tap KTP lewat menu <strong>Verifikasi KTP (RFID)</strong> (atau <strong>Sesi RFID Koperasi</strong>), lalu tempel KTP ke reader ESP32.</li>
+                        <li>Setelah KTP terdaftar di RT &amp; Sistem, muat ulang halaman ini untuk mengaktifkan tombol pendaftaran.</li>
                     </ol>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">

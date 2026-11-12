@@ -22,7 +22,8 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
-        $usersQuery = $this->residentsVisibleTo($request->user())->with(['rumah', 'warga.kartuKeluarga', 'rt:id,name'])
+        $usersQuery = $this->residentsVisibleTo($request->user())
+            ->with(['rumah', 'warga.kartuKeluarga', 'rt:id,name', 'rfidCard.verifiedRt:id,name'])
             ->whereRelation('role', 'name', 'warga');
 
         if ($search = trim($request->input('search'))) {

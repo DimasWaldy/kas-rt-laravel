@@ -11,7 +11,12 @@
                 <h1 class="text-2xl font-bold text-slate-800">Data Warga</h1>
                 <p class="mt-2 text-sm text-slate-500">Kelola profil warga, rumah/unit hunian, dan penanggung jawab iuran.</p>
             </div>
-            <button type="button" x-on:click="showWargaForm = true" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition">+ Tambah Warga</button>
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ route('admin.warga.rfid.show') }}" class="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 transition">
+                    <i class="fa-solid fa-id-card"></i> Verifikasi KTP (RFID)
+                </a>
+                <button type="button" x-on:click="showWargaForm = true" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition">+ Tambah Warga</button>
+            </div>
         </div>
 
         <form method="GET" action="{{ route('admin.warga.index') }}" class="mb-6 grid gap-4 lg:grid-cols-[1.5fr_auto] xl:grid-cols-[1.5fr_auto_auto] items-end">
@@ -50,6 +55,7 @@
                         <th class="px-4 py-3 text-left">Kepala KK</th>
                         <th class="px-4 py-3 text-left">PJ Iuran</th>
                         <th class="px-4 py-3 text-left">Status Profil</th>
+                        <th class="px-4 py-3 text-left">KTP RFID</th>
                         <th class="px-4 py-3 text-left">Aksi</th>
                     </tr>
                 </thead>
@@ -78,6 +84,17 @@
                                 </span>
                             </td>
                             <td class="px-4 py-4">
+                                @if($user->rfidCard?->ktp_verified_at)
+                                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                                        Terdaftar{{ $user->rfidCard?->verifiedRt?->name ? ' ('.$user->rfidCard->verifiedRt->name.')' : '' }}
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                                        Belum Tap KTP
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-4">
                                 <div class="flex items-center gap-2">
                                     <a href="{{ route('admin.warga.edit', $user) }}" class="inline-flex items-center px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 transition">
                                         Edit
@@ -90,7 +107,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="px-4 py-6 text-center text-slate-500">Tidak ada warga terdaftar.</td>
+                            <td colspan="11" class="px-4 py-6 text-center text-slate-500">Tidak ada warga terdaftar.</td>
                         </tr>
                     @endforelse
                 </tbody>
