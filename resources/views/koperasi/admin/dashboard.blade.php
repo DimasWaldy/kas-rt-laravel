@@ -10,8 +10,13 @@
             <h1 class="text-2xl font-black text-slate-900">Kelola Koperasi</h1>
             <p class="mt-1 text-sm text-slate-500">Bendahara dapat memproses anggota, simpanan, pinjaman, dan angsuran sesuai wilayahnya.</p>
         </div>
-        <div class="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">
-            <i class="fa-solid fa-shield-halved mr-2"></i> Data dibatasi sesuai RT/RW akun pengurus.
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ route('admin.koperasi.rfid.show') }}" class="inline-flex items-center gap-2 rounded-2xl bg-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-xs hover:bg-indigo-800">
+                <i class="fa-solid fa-id-card"></i> Sesi RFID Daftar Anggota
+            </a>
+            <div class="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">
+                <i class="fa-solid fa-shield-halved mr-2"></i> Data dibatasi sesuai RT/RW akun pengurus.
+            </div>
         </div>
     </div>
 

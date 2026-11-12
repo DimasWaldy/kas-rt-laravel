@@ -5,6 +5,7 @@ use App\Models\KoperasiMember;
 use App\Models\KoperasiPinjam;
 use App\Models\KoperasiSimpanan;
 use App\Models\Permission;
+use App\Models\RfidCard;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Warga;
@@ -44,14 +45,45 @@ beforeEach(function () {
     $this->warga = buatWargaKoperasi();
 });
 
-test('warga dapat melihat form daftar koperasi jika belum jadi anggota', function () {
+test('warga dapat melihat form daftar koperasi dan terkunci sebelum tap kartu rfid', function () {
     $this->actingAs($this->warga->user)
         ->get(route('koperasi.index'))
         ->assertOk()
+        ->assertSee('Wajib Tap Kartu RFID / e-KTP Terlebih Dahulu')
+        ->assertSee('Belum Tap Kartu')
+        ->assertDontSee('Daftar Sekarang');
+
+    RfidCard::create([
+        'user_id' => $this->warga->user->id,
+        'uid_hash' => RfidCard::hashUid('A1B2C3D4'),
+        'koperasi_verified_at' => now(),
+    ]);
+
+    $this->actingAs($this->warga->user)
+        ->get(route('koperasi.index'))
+        ->assertOk()
+        ->assertSee('Kartu RFID / e-KTP Sudah Terverifikasi')
         ->assertSee('Daftar Sekarang');
 });
 
-test('warga dapat mendaftar menjadi anggota koperasi', function () {
+test('warga ditolak mendaftar koperasi sebelum tap kartu rfid', function () {
+    $this->actingAs($this->warga->user)
+        ->post(route('koperasi.store-daftar'))
+        ->assertRedirect(route('koperasi.index'))
+        ->assertSessionHas('error');
+
+    $this->assertDatabaseMissing('koperasi_members', [
+        'user_id' => $this->warga->user->id,
+    ]);
+});
+
+test('warga dapat mendaftar menjadi anggota koperasi setelah tap kartu rfid', function () {
+    RfidCard::create([
+        'user_id' => $this->warga->user->id,
+        'uid_hash' => RfidCard::hashUid('A1B2C3D4'),
+        'koperasi_verified_at' => now(),
+    ]);
+
     $this->actingAs($this->warga->user)
         ->post(route('koperasi.store-daftar'))
         ->assertRedirect(route('koperasi.index'))
@@ -125,6 +157,12 @@ test('warga aktif dapat mengajukan simpanan', function () {
 
 test('warga cannot register twice for koperasi membership', function () {
     $user = $this->warga->user;
+    RfidCard::create([
+        'user_id' => $user->id,
+        'uid_hash' => RfidCard::hashUid('B1B2C3D4'),
+        'koperasi_verified_at' => now(),
+    ]);
+
     $this->actingAs($user)->post(route('koperasi.store-daftar'))->assertSessionHas('success');
     $this->actingAs($user)->post(route('koperasi.store-daftar'))->assertSessionHas('error');
 

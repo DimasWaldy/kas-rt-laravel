@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\KoperasiController as KoperasiAdminController;
+use App\Http\Controllers\Admin\KoperasiRfidController;
 use App\Http\Controllers\Admin\RumahController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AsetController;
@@ -526,6 +527,15 @@ Route::middleware('auth')->group(function () {
     // Koperasi Admin
     Route::middleware('permission:manage-koperasi')->group(function () {
         Route::get('/admin/koperasi', [KoperasiAdminController::class, 'index'])->name('admin.koperasi.index');
+        Route::prefix('/admin/koperasi/rfid')->name('admin.koperasi.rfid.')->controller(KoperasiRfidController::class)->group(function () {
+            Route::get('/', 'show')->name('show');
+            Route::get('/status', 'status')->name('status');
+            Route::post('/open', 'open')->middleware('throttle:10,1')->name('open');
+            Route::post('/close', 'close')->name('close');
+            Route::post('/enroll', 'enroll')->name('enroll');
+            Route::post('/cancel-enrollment', 'cancelEnrollment')->name('cancel-enrollment');
+            Route::post('/revoke', 'revoke')->name('revoke');
+        });
         Route::get('/admin/koperasi/simpanan/{simpanan}/bukti', [KoperasiAdminController::class, 'buktiSimpanan'])->name('admin.koperasi.simpanan-bukti');
         Route::get('/admin/koperasi/pinjaman/{pinjaman}/bukti', [KoperasiAdminController::class, 'buktiPinjaman'])->name('admin.koperasi.pinjaman-bukti');
         Route::get('/admin/koperasi/angsuran/{angsuran}/bukti', [KoperasiAdminController::class, 'buktiAngsuran'])->name('admin.koperasi.angsuran-bukti');

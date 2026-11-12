@@ -22,7 +22,7 @@ class KoperasiController extends Controller
     {
         $actor = $request->user();
 
-        $members = KoperasiMember::with(['user.warga', 'user.rt:id,name'])
+        $members = KoperasiMember::with(['user.warga', 'user.rt:id,name', 'user.rfidCard'])
             ->whereHas('user', fn (Builder $query) => $this->scopeUsersToActor($query, $actor))
             ->latest()
             ->get();
