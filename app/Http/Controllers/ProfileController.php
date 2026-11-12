@@ -29,14 +29,28 @@ class ProfileController extends Controller
         $user = auth()->user();
 
         if ($request->wantsJson()) {
-            abort_unless($user->isAktif(), 403, 'Akun belum aktif.');
+            $canFetchOnboardingHouses = $user->isPendingVerifikasi()
+                && $user->role_name === 'warga'
+                && $user->onboarding_domisili
+                && ! $user->rumah_id
+                && ! $user->rt_id;
+
+            abort_unless($user->isAktif() || $canFetchOnboardingHouses, 403, 'Akun belum aktif.');
 
             $rtId = $request->query('rt_id');
             if (! $rtId) {
                 return response()->json(['rumahs' => []]);
             }
 
-            abort_unless($user->isGlobalOperator() || (int) $user->rt_id === (int) $rtId, 403, 'RT di luar wilayah akun.');
+            if ($canFetchOnboardingHouses) {
+                $validRt = Rt::whereKey($rtId)
+                    ->where('is_active', true)
+                    ->whereHas('rw', fn ($q) => $q->where('is_active', true))
+                    ->exists();
+                abort_unless($validRt, 403, 'RT tidak aktif atau tidak ditemukan.');
+            } else {
+                abort_unless($user->isGlobalOperator() || (int) $user->rt_id === (int) $rtId, 403, 'RT di luar wilayah akun.');
+            }
 
             $rumahs = Rumah::where('status', 'aktif')
                 ->where('rt_id', $rtId)
@@ -68,11 +82,11 @@ class ProfileController extends Controller
                     ->orderBy('name')
                     ->get(['id', 'rw_id', 'name']);
             }
-            $selectedRtId = request('rt_id', old('rt_id', $aktifRtId ?? $rts->first()?->id));
+            $selectedRtId = request('rt_id', old('rt_id', $aktifRtId));
             $statusPending = $wargaDomisili?->status_domisili === 'pending';
             // Verified residents get the house list through the scoped JSON endpoint so a
             // plain profile render never exposes other households' addresses server-side.
-            $rumahsDomisili = ($statusPending || ! $user->onboarding_domisili || $user->rumah_id)
+            $rumahsDomisili = ($statusPending || ! $user->onboarding_domisili || $user->rumah_id || ! $selectedRtId)
                 ? collect()
                 : Rumah::where('status', 'aktif')
                     ->where('rt_id', $selectedRtId)
@@ -103,6 +117,14 @@ class ProfileController extends Controller
 
             $isWarga = $user->role_name === 'warga';
             $domicileSubmitted = $isWarga && isset($validated['mode']);
+
+            if ($isWarga
+                && $user->onboarding_domisili
+                && $user->isPendingVerifikasi()
+                && ! $user->getRawOriginal('rt_id')
+                && ! empty($validated['rt_id'])) {
+                $user->rt_id = (int) $validated['rt_id'];
+            }
 
             if ($user->isDirty('email')) {
                 $user->email_verified_at = null;

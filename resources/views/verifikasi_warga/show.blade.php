@@ -76,7 +76,16 @@
 
         <section class="rounded-3xl bg-white p-6 shadow-xs sm:p-8">
             <h2 class="text-lg font-black text-slate-800">Konfirmasi Data Final</h2>
-            <p class="mt-1 text-sm text-slate-500">Cocokkan identitas calon warga melalui pertemuan atau dokumen yang tersedia. Untuk pendaftaran baru, tetapkan RT saat verifikasi; warga mengisi alamat rumah setelah akun aktif.</p>
+            @php
+                $hasSubmittedDomicile = $warga->status_domisili === 'pending'
+                    || $warga->rumah_diajukan_id
+                    || filled($warga->alamat_domisili);
+            @endphp
+            @if($hasSubmittedDomicile)
+                <p class="mt-1 text-sm text-slate-500">Calon warga sudah mengisi domisili saat melengkapi profil. Menyetujui verifikasi ini akan sekaligus mengaktifkan akun dan menyetujui domisili rumah warga dalam satu langkah.</p>
+            @else
+                <p class="mt-1 text-sm text-slate-500">Cocokkan identitas calon warga melalui pertemuan atau dokumen yang tersedia. Untuk pendaftaran baru tanpa pengajuan rumah, tetapkan RT saat verifikasi; warga mengisi alamat rumah setelah akun aktif.</p>
+            @endif
 
             <form method="POST" action="{{ route('verifikasi-warga.verifikasi', $warga) }}" class="mt-6 space-y-5">
                 @csrf
@@ -92,7 +101,10 @@
                             </select>
                         </div>
                     @else
-                        <p class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900">Warga akan ditetapkan ke {{ $warga->user->rt?->name ?? auth()->user()->rt?->name }}. Pastikan calon warga benar berada di wilayah Anda. Rumah dipilih warga setelah login.</p>
+                        <p class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900">
+                            Warga akan ditetapkan ke {{ $warga->user->rt?->name ?? auth()->user()->rt?->name }}. Pastikan calon warga benar berada di wilayah Anda.
+                            {{ $hasSubmittedDomicile ? 'Pengajuan domisili warga akan ikut disetujui otomatis.' : 'Rumah dipilih warga setelah login.' }}
+                        </p>
                     @endif
                 @endif
 

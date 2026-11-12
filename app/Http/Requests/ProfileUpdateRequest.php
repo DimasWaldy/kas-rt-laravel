@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\KartuKeluarga;
+use App\Models\Rt;
 use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,6 +25,9 @@ class ProfileUpdateRequest extends FormRequest
             && $user->onboarding_domisili
             && ! $user->rumah_id;
         $isWarga = $user->role_name === 'warga';
+        $canSelectInitialRt = $isOnboardingDomisili
+            && $user->isPendingVerifikasi()
+            && ! $user->getRawOriginal('rt_id');
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
@@ -37,7 +41,9 @@ class ProfileUpdateRequest extends FormRequest
             ],
             // These assignments control access to other residents' data.
             // Only the scoped management workflow may change them.
-            'rt_id' => ['sometimes', $this->unchangedAssignment('rt_id')],
+            'rt_id' => $canSelectInitialRt
+                ? ['sometimes', 'nullable', 'integer', $this->activeRtRule()]
+                : ['sometimes', $this->unchangedAssignment('rt_id')],
             'rumah_id' => ['sometimes', $this->unchangedAssignment('rumah_id')],
             'rumah_kode' => ['prohibited'],
             'rumah_alamat' => ['prohibited'],
@@ -72,6 +78,7 @@ class ProfileUpdateRequest extends FormRequest
         // A domicile change request only exists when the resident explicitly submits
         // a fill mode; otherwise house and RT stay officer-controlled assignments.
         if ($isWarga && $this->has('mode') && $warga?->status_domisili !== 'pending') {
+            $targetRtId = $canSelectInitialRt ? $this->input('rt_id') : ($user->rt_id ?? $this->input('rt_id'));
             $rules['mode'] = ['required', 'in:existing,new'];
             $rules['rumah_id'] = [
                 'required_if:mode,existing',
@@ -80,7 +87,7 @@ class ProfileUpdateRequest extends FormRequest
                 'integer',
                 Rule::exists('rumahs', 'id')
                     ->where('status', 'aktif')
-                    ->where('rt_id', $this->input('rt_id') ?? $user->rt_id),
+                    ->where('rt_id', $targetRtId),
             ];
             $rules['alamat'] = [
                 'required_if:mode,new',
@@ -91,12 +98,14 @@ class ProfileUpdateRequest extends FormRequest
                 'max:500',
             ];
             if ($isOnboardingDomisili) {
-                $rules['rt_id'] = [
-                    'required',
-                    'integer',
-                    $this->unchangedAssignment('rt_id'),
-                    Rule::exists('rts', 'id')->where('is_active', true),
-                ];
+                $rules['rt_id'] = $canSelectInitialRt
+                    ? ['required', 'integer', $this->activeRtRule()]
+                    : [
+                        'required',
+                        'integer',
+                        $this->unchangedAssignment('rt_id'),
+                        Rule::exists('rts', 'id')->where('is_active', true),
+                    ];
             }
         }
 
@@ -153,6 +162,20 @@ class ProfileUpdateRequest extends FormRequest
             $existing = KartuKeluarga::where('no_kk', trim((string) $value))->first();
             if ($existing && $existing->wargas()->where('user_id', '!=', $this->user()->id)->exists()) {
                 $fail('KK tersebut sudah memiliki anggota. Penetapan anggota keluarga harus melalui pengurus.');
+            }
+        };
+    }
+
+    private function activeRtRule(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) {
+            $exists = Rt::whereKey($value)
+                ->where('is_active', true)
+                ->whereHas('rw', fn ($query) => $query->where('is_active', true))
+                ->exists();
+
+            if (! $exists) {
+                $fail('RT yang dipilih tidak valid atau tidak aktif.');
             }
         };
     }

@@ -307,3 +307,98 @@ test('manual assignment after a proposal prevents stale review from changing the
     $this->actingAs($this->officer)->patch(route('verifikasi-warga.domisili.setujui', $user->warga))->assertNotFound();
     expect($user->fresh()->rumah_id)->toBe($house->id)->and(Rumah::count())->toBe(1);
 });
+
+test('new resident fills profile kk ktp and domicile once then gets verified without double domicile', function (string $mode) {
+    Storage::fake('local');
+    $existingHouse = Rumah::create([
+        'kode_rumah' => 'RT1-H01',
+        'alamat' => 'Jl. Melati RT 01 No. 1',
+        'rt_id' => $this->rtOnboard->id,
+        'status' => 'aktif',
+    ]);
+    $otherRtOfficer = User::factory()->create([
+        'role_id' => $this->officer->role_id,
+        'rt_id' => $this->rtOther->id,
+        'status_akun' => 'aktif',
+    ]);
+    $admin = User::factory()->create([
+        'role_id' => Role::where('name', 'admin')->value('id'),
+        'status_akun' => 'aktif',
+    ]);
+
+    $user = ($this->registerResident)();
+
+    $this->actingAs($user)->get(route('profile.edit'))
+        ->assertOk()
+        ->assertSee('Pilih RT tempat tinggal Anda');
+
+    $this->actingAs($user)->getJson(route('profile.edit', ['rt_id' => $this->rtOnboard->id]))
+        ->assertOk()
+        ->assertJsonFragment(['id' => $existingHouse->id, 'kode_rumah' => 'RT1-H01']);
+
+    $payload = [
+        'name' => 'Dimas Warga Baru',
+        'email' => $user->email,
+        'phone' => '081234567890',
+        'nik' => '3201010101019999',
+        'no_kk' => '3201010101018888',
+        'status_dalam_kk' => 'kepala_keluarga',
+        'rt_id' => $this->rtOnboard->id,
+        'mode' => $mode,
+        'ajukan_pj_iuran' => '1',
+    ];
+    if ($mode === 'existing') {
+        $payload['rumah_id'] = $existingHouse->id;
+    } else {
+        $payload['alamat'] = 'Jl. Baru Sekali Verifikasi No. 9';
+    }
+
+    $this->actingAs($user)->patch(route('profile.update'), $payload)
+        ->assertRedirect(route('profile.edit'))
+        ->assertSessionHasNoErrors();
+
+    $user->refresh();
+    expect($user->rt_id)->toBe($this->rtOnboard->id)
+        ->and($user->warga->status_domisili)->toBe('pending')
+        ->and($user->status_akun)->toBe('pending_verifikasi');
+
+    // Only RT01, Admin, and Superadmin can see and verify; RT02 cannot.
+    $this->actingAs($otherRtOfficer)->get(route('verifikasi-warga.index'))
+        ->assertOk()
+        ->assertDontSee('Dimas Warga Baru');
+    $this->actingAs($otherRtOfficer)->get(route('verifikasi-warga.show', $user->warga))
+        ->assertNotFound();
+
+    $this->actingAs($this->officer)->get(route('verifikasi-warga.index'))
+        ->assertOk()
+        ->assertSee('Dimas Warga Baru');
+    $this->actingAs($admin)->get(route('verifikasi-warga.index'))
+        ->assertOk()
+        ->assertSee('Dimas Warga Baru');
+    $this->actingAs($this->superadmin)->get(route('verifikasi-warga.show', $user->warga))
+        ->assertOk()
+        ->assertSee('Dimas Warga Baru')
+        ->assertSee('dalam satu langkah');
+
+    // Single verification by superadmin approves both account and domicile.
+    $this->actingAs($this->superadmin)->patch(route('verifikasi-warga.verifikasi', $user->warga), [
+        'metode_verifikasi' => 'tatap_muka',
+        'rt_id' => $this->rtOnboard->id,
+    ])->assertRedirect(route('verifikasi-warga.index'))->assertSessionHasNoErrors();
+
+    $user->refresh();
+    expect($user->status_akun)->toBe('aktif')
+        ->and($user->onboarding_domisili)->toBeFalse()
+        ->and($user->rumah_id)->not->toBeNull()
+        ->and($user->warga->status_verifikasi)->toBe('terverifikasi')
+        ->and($user->warga->status_domisili)->toBe('disetujui');
+
+    // Citizen does NOT see domicile prompt again and goes straight to KTP RFID step.
+    $this->actingAs($user)->get(route('dashboard'))
+        ->assertOk()
+        ->assertDontSee('Lengkapi domisili')
+        ->assertSee('KTP belum diverifikasi via RFID');
+
+    $this->actingAs($user)->get(route('domisili.create'))
+        ->assertRedirect(route('dashboard'));
+})->with(['existing', 'new']);

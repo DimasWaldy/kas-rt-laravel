@@ -286,7 +286,9 @@ class VerifikasiWargaController extends Controller
 
             $user = $lockedWarga->user()->lockForUpdate()->firstOrFail();
             if ($user->onboarding_domisili) {
-                $rtId = $user->rt_id ?? ($actor->isGlobalOperator() ? ($validated['rt_id'] ?? null) : $actor->rt_id);
+                $rtId = $actor->isGlobalOperator()
+                    ? ($validated['rt_id'] ?? $user->rt_id)
+                    : ($user->rt_id ?? $actor->rt_id);
                 $rt = Rt::whereKey($rtId)->where('is_active', true)
                     ->whereHas('rw', fn (Builder $q) => $q->where('is_active', true))->first();
                 if (! $rt || (isset($validated['rt_id']) && (int) $validated['rt_id'] !== (int) $rt->id)) {
@@ -300,6 +302,11 @@ class VerifikasiWargaController extends Controller
                     if ($lockedWarga->mode_domisili === 'existing' || $lockedWarga->rumah_diajukan_id) {
                         $rumah = Rumah::whereKey($lockedWarga->rumah_diajukan_id)->where('rt_id', $rt->id)
                             ->where('status', 'aktif')->lockForUpdate()->first();
+                        if (! $rumah) {
+                            throw ValidationException::withMessages([
+                                'rt_id' => 'Rumah yang diajukan warga tidak aktif atau berada di RT yang berbeda.',
+                            ]);
+                        }
                     } else {
                         $alamat = trim($lockedWarga->alamat_domisili);
                         $rumah = Rumah::where('rt_id', $rt->id)->where('status', 'aktif')
