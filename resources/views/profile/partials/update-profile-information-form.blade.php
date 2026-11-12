@@ -1,7 +1,7 @@
 @php
     $isWarga = $user->role_name === 'warga';
     $isOnboardingDomisili = $isWarga && $user->onboarding_domisili && ! $user->rumah_id;
-    $initialRtId = $user->rt_id ?? '';
+    $initialRtId = old('rt_id', $user->rt_id ?? '');
     $initialMode = old('mode', $wargaDomisili?->mode_domisili ?? ($rumahsDomisili->isEmpty() ? 'new' : 'existing'));
     $initialRumahs = $rumahsDomisili->map(fn($r) => ['id' => $r->id, 'kode_rumah' => $r->kode_rumah, 'alamat' => $r->alamat])->values();
     $selectedRumahId = old('rumah_id', ($isOnboardingDomisili || $wargaDomisili?->status_domisili === 'perlu_perbaikan') ? ($wargaDomisili?->rumah_diajukan_id ?? '') : '');
@@ -208,8 +208,11 @@
 
                     <div x-show="ajukanPindah" @if(! $initialAjukanPindah) x-cloak @endif class="space-y-4">
                         <div>
-                            <x-input-label for="rt_id" value="RT Hasil Verifikasi" />
-                            <select id="rt_id" name="rt_id" x-model="rtId" :disabled="!ajukanPindah" :required="ajukanPindah" class="mt-1 block w-full rounded-xl border-slate-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                            <x-input-label for="rt_id" value="RT Domisili" />
+                            <select id="rt_id" name="rt_id" x-model="rtId" x-on:change="onRtChange(rtId)" :disabled="!ajukanPindah" :required="ajukanPindah" class="mt-1 block w-full rounded-xl border-slate-300 shadow-xs focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                                @if(! $user->rt_id)
+                                    <option value="">Pilih RT tempat tinggal Anda...</option>
+                                @endif
                                 @foreach($rts as $rtItem)
                                     <option value="{{ $rtItem->id }}">
                                         {{ $rtItem->name }} ({{ $rtItem->rw?->name ?? 'RW' }})
@@ -236,7 +239,11 @@
                             <span>Memuat daftar rumah...</span>
                         </div>
 
-                        <div x-show="!loadingRumah && rumahs.length === 0" class="rounded-xl bg-slate-100 p-3 text-xs text-slate-600 dark:bg-slate-900/60 dark:text-slate-400">
+                        <div x-show="!loadingRumah && !rtId" x-cloak class="rounded-xl bg-slate-100 p-3 text-xs text-slate-600 dark:bg-slate-900/60 dark:text-slate-400">
+                            Pilih RT terlebih dahulu untuk memuat daftar rumah yang tersedia.
+                        </div>
+
+                        <div x-show="!loadingRumah && rtId && rumahs.length === 0" class="rounded-xl bg-slate-100 p-3 text-xs text-slate-600 dark:bg-slate-900/60 dark:text-slate-400">
                             Belum ada rumah di RT ini. Gunakan opsi isi alamat baru.
                         </div>
 

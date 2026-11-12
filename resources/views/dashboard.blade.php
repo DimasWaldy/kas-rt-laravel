@@ -30,12 +30,15 @@
         $statusCtaUrl = route('pendaftaran.show');
         $statusCtaLabel = 'Periksa status & perbaiki';
     } elseif ($accountStatus === 'pending_verifikasi') {
+        $hasSubmittedProfileDomicile = auth()->user()->warga?->status_domisili === 'pending' && auth()->user()->rt_id;
         $statusTone = 'indigo';
         $statusIcon = 'fa-hourglass-half';
         $statusTitle = 'Pendaftaran Anda sedang diperiksa';
-        $statusMessage = 'Pengurus akan memeriksa identitas Anda. Fitur layanan masih terkunci sampai akun disetujui.';
-        $statusCtaUrl = null;
-        $statusCtaLabel = '';
+        $statusMessage = $hasSubmittedProfileDomicile
+            ? 'Profil, dokumen, dan domisili Anda sudah dikirim. Menunggu verifikasi dari pengurus RT/Admin/Superadmin.'
+            : 'Lengkapi profil, KK/KTP, serta domisili Anda melalui halaman profil agar pengurus RT/Admin/Superadmin dapat memverifikasi akun Anda sekaligus.';
+        $statusCtaUrl = route('profile.edit');
+        $statusCtaLabel = $hasSubmittedProfileDomicile ? 'Lihat Profil Saya' : 'Lengkapi Profil & Domisili';
     } elseif ($needsDomicile) {
         if ($domisiliStatus === 'perlu_perbaikan') {
             $statusTone = 'amber';
