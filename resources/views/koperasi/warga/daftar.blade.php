@@ -30,12 +30,35 @@
 
         <form method="POST" action="{{ route('koperasi.store-daftar') }}" class="space-y-5 p-6">
             @csrf
-            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                Setelah klik daftar, status Anda menjadi <strong>menunggu verifikasi</strong>. Menu transaksi baru aktif setelah bendahara menyetujui keanggotaan.
-            </div>
-            <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-700 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-800 sm:w-auto">
-                <i class="fa-solid fa-user-plus"></i> Daftar Sekarang
-            </button>
+
+            @if($hasVerifiedRfid)
+                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                    <p class="font-bold"><i class="fa-solid fa-id-card mr-1.5"></i> Kartu RFID / e-KTP Sudah Terverifikasi</p>
+                    <p class="mt-1 text-xs text-emerald-800">
+                        Tercatat tap pada {{ $rfidCard->koperasi_verified_at->translatedFormat('d M Y H:i') }} WIB. Anda bisa langsung klik <strong>Daftar Sekarang</strong>, lalu tunggu verifikasi bendahara.
+                    </p>
+                </div>
+                <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-700 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-800 sm:w-auto">
+                    <i class="fa-solid fa-user-plus"></i> Daftar Sekarang
+                </button>
+            @else
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                    <p class="font-bold"><i class="fa-solid fa-id-card mr-1.5"></i> Wajib Tap Kartu RFID / e-KTP Terlebih Dahulu</p>
+                    <ol class="mt-2 list-decimal space-y-1 pl-5 text-xs text-amber-900">
+                        <li>Bawa kartu RFID / e-KTP Anda ke petugas atau bendahara koperasi.</li>
+                        <li>Minta petugas mengaktifkan tap kartu di menu <strong>Kelola Koperasi &rarr; Sesi RFID Koperasi</strong>, lalu tempel kartu ke reader ESP32.</li>
+                        <li>Setelah tap berhasil, muat ulang halaman ini untuk mengaktifkan tombol pendaftaran.</li>
+                    </ol>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button type="button" disabled class="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-200 px-5 py-3 text-sm font-bold text-slate-500 sm:w-auto">
+                        <i class="fa-solid fa-lock"></i> Belum Tap Kartu (Daftar Terkunci)
+                    </button>
+                    <a href="{{ route('koperasi.index') }}" class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 sm:w-auto">
+                        <i class="fa-solid fa-rotate-right"></i> Cek Status Kartu
+                    </a>
+                </div>
+            @endif
         </form>
     </section>
 </div>

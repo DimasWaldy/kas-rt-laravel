@@ -535,6 +535,18 @@ void handleApiResponse(int httpCode, const String& body) {
       } else {
         delay(2000);
       }
+    } else if (status == "koperasi_registered") {
+      lcdShow("Kartu Terdaftar ", "Siap Daftar Kop.");
+      beepRegistered();
+      delay(2000);
+    } else if (status == "koperasi_verified") {
+      lcdShow("Tap Koperasi OK ", "Lanjut Daftar   ");
+      beepSuccess();
+      delay(2000);
+    } else if (status == "koperasi_already_verified") {
+      lcdShow("Kartu Sdh Tap   ", "Silakan Daftar  ");
+      beepAlreadyPresent();
+      delay(2000);
     } else {
       lcdShow("Respon OK       ", status);
       beepSuccess();

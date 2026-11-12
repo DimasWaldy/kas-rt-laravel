@@ -116,6 +116,11 @@ class User extends Authenticatable
         return $this->hasOne(KoperasiMember::class);
     }
 
+    public function rfidCard(): HasOne
+    {
+        return $this->hasOne(RfidCard::class);
+    }
+
     public function koperasiSimpanans(): HasMany
     {
         return $this->hasMany(KoperasiSimpanan::class);

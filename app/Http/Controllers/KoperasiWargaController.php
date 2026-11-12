@@ -6,6 +6,7 @@ use App\Models\KoperasiAngsuran;
 use App\Models\KoperasiMember;
 use App\Models\KoperasiPinjam;
 use App\Models\KoperasiSimpanan;
+use App\Models\RfidCard;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,7 +28,10 @@ class KoperasiWargaController extends Controller
         if (! $isMember) {
             abort_unless($user->hasPermission('submit-koperasi'), 403);
 
-            return view('koperasi.warga.daftar');
+            $rfidCard = RfidCard::where('user_id', $user->id)->first();
+            $hasVerifiedRfid = $rfidCard?->koperasi_verified_at !== null;
+
+            return view('koperasi.warga.daftar', compact('rfidCard', 'hasVerifiedRfid'));
         }
 
         $simpananTotal = KoperasiSimpanan::where('user_id', $user->id)
@@ -65,11 +69,19 @@ class KoperasiWargaController extends Controller
         $user = $request->user();
         abort_unless($user->hasPermission('submit-koperasi'), 403);
 
-        $created = DB::transaction(function () use ($user) {
+        $result = DB::transaction(function () use ($user) {
             User::whereKey($user->id)->lockForUpdate()->firstOrFail();
 
             if (KoperasiMember::where('user_id', $user->id)->exists()) {
-                return false;
+                return 'already_member';
+            }
+
+            $verifiedCard = RfidCard::where('user_id', $user->id)
+                ->whereNotNull('koperasi_verified_at')
+                ->first();
+
+            if (! $verifiedCard) {
+                return 'rfid_required';
             }
 
             $memberNumber = 'KOP-'.now()->format('Ym').'-'.str_pad((string) $user->id, 4, '0', STR_PAD_LEFT);
@@ -81,11 +93,16 @@ class KoperasiWargaController extends Controller
                 'status' => 'pending',
             ]);
 
-            return true;
+            return 'created';
         }, 3);
 
-        if (! $created) {
+        if ($result === 'already_member') {
             return back()->with('error', 'Anda sudah mendaftar sebagai anggota koperasi.');
+        }
+
+        if ($result === 'rfid_required') {
+            return redirect()->route('koperasi.index')
+                ->with('error', 'Wajib tap kartu RFID / e-KTP terlebih dahulu melalui petugas koperasi sebelum mendaftar anggota.');
         }
 
         return redirect()->route('koperasi.index')->with('success', 'Pendaftaran koperasi berhasil dikirim dan menunggu verifikasi bendahara.');

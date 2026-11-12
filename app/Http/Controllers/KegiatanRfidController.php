@@ -29,16 +29,13 @@ class KegiatanRfidController extends Controller
 
     public function open(Request $request, Kegiatan $kegiatan)
     {
-        $token = bin2hex(random_bytes(32));
-        $this->mutate($request, $kegiatan, function (Kegiatan $locked) use ($request, $token) {
+        $token = '';
+        $this->mutate($request, $kegiatan, function (Kegiatan $locked) use ($request, &$token) {
             $this->assertNotFinished($locked);
-            RfidSession::updateOrCreate(['kegiatan_id' => $locked->id], [
-                'created_by' => $request->user()->id,
-                'token_hash' => hash('sha256', $token),
-                'expires_at' => now()->addHours(6),
-                'enrollment_user_id' => null,
-                'enrollment_expires_at' => null,
-                'last_seen_at' => null,
+            $token = RfidAccess::openSession('kegiatan', 'kegiatan:'.$locked->id, $request->user(), [
+                'kegiatan_id' => $locked->id,
+                'rw_id' => null,
+                'rt_id' => null,
             ]);
         });
 
@@ -49,11 +46,7 @@ class KegiatanRfidController extends Controller
 
     public function close(Request $request, Kegiatan $kegiatan)
     {
-        $this->mutate($request, $kegiatan, function (Kegiatan $locked) {
-            RfidSession::where('kegiatan_id', $locked->id)->update([
-                'expires_at' => now(), 'enrollment_user_id' => null, 'enrollment_expires_at' => null,
-            ]);
-        });
+        $this->mutate($request, $kegiatan, fn (Kegiatan $locked) => RfidAccess::closeSession('kegiatan:'.$locked->id));
 
         return back()->with('success', 'Sesi ditutup. Alat tidak dapat mencatat tap lagi.');
     }
@@ -64,14 +57,7 @@ class KegiatanRfidController extends Controller
         $this->mutate($request, $kegiatan, function (Kegiatan $locked) use ($data) {
             $this->assertNotFinished($locked);
             RfidAccess::participants($locked)->whereKey($data['user_id'])->firstOrFail();
-            $session = RfidSession::where('kegiatan_id', $locked->id)->where('expires_at', '>', now())->first();
-            if (! $session) {
-                throw ValidationException::withMessages(['rfid' => 'Buka sesi RFID terlebih dahulu.']);
-            }
-            if (RfidCard::where('user_id', $data['user_id'])->exists()) {
-                throw ValidationException::withMessages(['rfid' => 'Cabut kartu lama sebelum mendaftarkan kartu pengganti.']);
-            }
-            $session->update(['enrollment_user_id' => $data['user_id'], 'enrollment_expires_at' => now()->addMinutes(2)]);
+            RfidAccess::startEnrollment('kegiatan:'.$locked->id, (int) $data['user_id']);
         });
 
         return back()->with('success', 'Mode pendaftaran aktif 2 menit. Periksa identitas warga, lalu tap kartunya satu kali.');
@@ -79,8 +65,7 @@ class KegiatanRfidController extends Controller
 
     public function cancelEnrollment(Request $request, Kegiatan $kegiatan)
     {
-        $this->mutate($request, $kegiatan, fn (Kegiatan $locked) => RfidSession::where('kegiatan_id', $locked->id)
-            ->update(['enrollment_user_id' => null, 'enrollment_expires_at' => null]));
+        $this->mutate($request, $kegiatan, fn (Kegiatan $locked) => RfidAccess::cancelEnrollment('kegiatan:'.$locked->id));
 
         return back()->with('success', 'Mode pendaftaran dibatalkan.');
     }
@@ -90,7 +75,7 @@ class KegiatanRfidController extends Controller
         $data = $request->validate(['user_id' => ['required', 'integer']]);
         $this->mutate($request, $kegiatan, function (Kegiatan $locked) use ($data) {
             $user = RfidAccess::participants($locked)->whereKey($data['user_id'])->lockForUpdate()->firstOrFail();
-            RfidCard::where('user_id', $user->id)->delete();
+            RfidAccess::revokeCard($user->id);
         });
 
         return back()->with('success', 'Kartu dicabut untuk seluruh kegiatan. Riwayat hadir tetap tersimpan.');
