@@ -547,6 +547,18 @@ void handleApiResponse(int httpCode, const String& body) {
       lcdShow("Kartu Sdh Tap   ", "Silakan Daftar  ");
       beepAlreadyPresent();
       delay(2000);
+    } else if (status == "ktp_registered") {
+      lcdShow("KTP Terdaftar!  ", "Aktif di RT&Web ");
+      beepRegistered();
+      delay(2000);
+    } else if (status == "ktp_verified") {
+      lcdShow("KTP Terverifikas", "Terdaftar di RT ");
+      beepSuccess();
+      delay(2000);
+    } else if (status == "ktp_already_verified") {
+      lcdShow("KTP Sdh Terdaft.", "Terdaftar di RT ");
+      beepAlreadyPresent();
+      delay(2000);
     } else {
       lcdShow("Respon OK       ", status);
       beepSuccess();

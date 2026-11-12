@@ -100,6 +100,24 @@
                         {{ $statusCtaLabel }}
                     </a>
                 @endif
+                @if($accountStatus === 'aktif' && ! $needsDomicile)
+                    @php
+                        $ktpRfidCard = \App\Models\RfidCard::where('user_id', auth()->id())->with('verifiedRt:id,name')->first();
+                    @endphp
+                    <div class="mt-3">
+                        @if($ktpRfidCard?->ktp_verified_at)
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200">
+                                <i class="fa-solid fa-id-card"></i>
+                                KTP Terdaftar di {{ $ktpRfidCard->verifiedRt?->name ?? 'RT' }} &amp; Sistem (RFID)
+                            </span>
+                        @else
+                            <div class="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                                <p class="font-bold"><i class="fa-solid fa-id-card mr-1"></i> KTP belum diverifikasi via RFID</p>
+                                <p class="mt-0.5">Layanan dasar tetap aktif. Bawa KTP ke petugas RT/Admin untuk tap verifikasi agar terdaftar di RT &amp; dapat mendaftar Koperasi serta Absensi RFID.</p>
+                            </div>
+                        @endif
+                    </div>
+                @endif
             </div>
         </div>
         <div class="shrink-0 rounded-xl border border-black/5 bg-white/60 px-4 py-3 dark:border-white/10 dark:bg-white/5">

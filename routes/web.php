@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\KoperasiController as KoperasiAdminController;
 use App\Http\Controllers\Admin\KoperasiRfidController;
 use App\Http\Controllers\Admin\RumahController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WargaRfidController;
 use App\Http\Controllers\AsetController;
 use App\Http\Controllers\BankSampahController;
 use App\Http\Controllers\DashboardController;
@@ -141,6 +142,15 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['permission:manage-warga'])->group(function () {
         Route::get('/admin/warga', [UserController::class, 'index'])->name('admin.warga.index');
         Route::get('/admin/warga/create', [UserController::class, 'create'])->name('admin.warga.create');
+        Route::prefix('/admin/warga/rfid')->name('admin.warga.rfid.')->controller(WargaRfidController::class)->group(function () {
+            Route::get('/', 'show')->name('show');
+            Route::get('/status', 'status')->name('status');
+            Route::post('/open', 'open')->middleware('throttle:10,1')->name('open');
+            Route::post('/close', 'close')->name('close');
+            Route::post('/enroll', 'enroll')->name('enroll');
+            Route::post('/cancel-enrollment', 'cancelEnrollment')->name('cancel-enrollment');
+            Route::post('/revoke', 'revoke')->name('revoke');
+        });
         Route::post('/admin/warga', [UserController::class, 'store'])->name('admin.warga.store');
         Route::get('/admin/warga/{user}/edit', [UserController::class, 'edit'])->name('admin.warga.edit');
         Route::patch('/admin/warga/{user}', [UserController::class, 'update'])->name('admin.warga.update');

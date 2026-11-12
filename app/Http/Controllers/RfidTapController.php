@@ -29,6 +29,10 @@ class RfidTapController extends Controller
                 return $this->handleKoperasiTap($initial, $hash, $data['uid']);
             }
 
+            if ($initial->scope_type === 'warga') {
+                return $this->handleWargaKtpTap($initial, $hash, $data['uid']);
+            }
+
             return $this->handleKegiatanTap($initial, $hash, $data['uid']);
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages(['uid' => 'Kartu atau warga sudah terdaftar. Silakan periksa kembali.']);
@@ -126,6 +130,65 @@ class RfidTapController extends Controller
                 'message' => $alreadyVerified
                     ? 'Kartu sudah terverifikasi untuk daftar koperasi.'
                     : 'Tap kartu berhasil. Warga dapat melanjutkan pendaftaran koperasi.',
+            ]);
+        }, 3);
+    }
+
+    private function handleWargaKtpTap(RfidSession $initial, string $hash, string $uid)
+    {
+        return DB::transaction(function () use ($initial, $hash, $uid) {
+            $session = RfidSession::whereKey($initial->id)->lockForUpdate()->firstOrFail();
+            abort_unless($session->scope_type === 'warga' && hash_equals($session->token_hash, $hash) && $session->expires_at->isFuture(), 401);
+            $actor = User::find($session->created_by);
+            abort_unless($actor && RfidAccess::canManageWargaKtp($actor) && RfidAccess::matchesWargaKtpScope($actor, $session), 403);
+            $uidHash = RfidCard::hashUid($uid);
+
+            if ($session->enrollment_user_id) {
+                if (! $session->enrollment_expires_at?->isFuture()) {
+                    throw ValidationException::withMessages(['uid' => 'Pendaftaran KTP kedaluwarsa. Petugas harus membatalkan atau memulai ulang.']);
+                }
+                $user = RfidAccess::wargaKtpParticipants($session)->whereKey($session->enrollment_user_id)->lockForUpdate()->firstOrFail();
+                if (RfidCard::where('user_id', $user->id)->orWhere('uid_hash', $uidHash)->exists()) {
+                    throw ValidationException::withMessages(['uid' => 'KTP atau warga sudah terdaftar. Cabut kartu lama terlebih dahulu.']);
+                }
+                RfidCard::create([
+                    'user_id' => $user->id,
+                    'uid_hash' => $uidHash,
+                    'ktp_verified_at' => now(),
+                    'verified_by' => $actor->id,
+                    'verified_rt_id' => $user->rt_id,
+                    'koperasi_verified_at' => now(),
+                ]);
+                $session->update(['enrollment_user_id' => null, 'enrollment_expires_at' => null, 'last_seen_at' => now()]);
+
+                return response()->json([
+                    'status' => 'ktp_registered',
+                    'message' => 'KTP warga berhasil didaftarkan dan tercatat di RT serta sistem.',
+                ]);
+            }
+
+            $card = RfidCard::where('uid_hash', $uidHash)->first();
+            abort_unless($card, 422, 'KTP belum terdaftar. Petugas harus memilih warga dan klik Aktifkan Tap KTP terlebih dahulu.');
+            $user = RfidAccess::wargaKtpParticipants($session)->whereKey($card->user_id)->lockForUpdate()->firstOrFail();
+            $lockedCard = RfidCard::whereKey($card->id)->where('uid_hash', $uidHash)->lockForUpdate()->first();
+            abort_unless($lockedCard, 422, 'Kartu telah dicabut.');
+
+            $alreadyVerified = $lockedCard->ktp_verified_at !== null;
+            if (! $alreadyVerified) {
+                $lockedCard->update([
+                    'ktp_verified_at' => now(),
+                    'verified_by' => $actor->id,
+                    'verified_rt_id' => $user->rt_id,
+                    'koperasi_verified_at' => $lockedCard->koperasi_verified_at ?? now(),
+                ]);
+            }
+            $session->update(['last_seen_at' => now()]);
+
+            return response()->json([
+                'status' => $alreadyVerified ? 'ktp_already_verified' : 'ktp_verified',
+                'message' => $alreadyVerified
+                    ? 'KTP warga sudah terdaftar di RT dan sistem.'
+                    : 'Verifikasi KTP berhasil. KTP warga kini terdaftar di RT dan sistem.',
             ]);
         }, 3);
     }
