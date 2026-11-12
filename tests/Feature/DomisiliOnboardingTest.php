@@ -328,9 +328,15 @@ test('new resident fills profile kk ktp and domicile once then gets verified wit
 
     $user = ($this->registerResident)();
 
+    $this->actingAs($user)->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Lengkapi Profil & Domisili')
+        ->assertDontSee('Profil warga belum lengkap');
+
     $this->actingAs($user)->get(route('profile.edit'))
         ->assertOk()
-        ->assertSee('Pilih RT tempat tinggal Anda');
+        ->assertSee('Pilih RT tempat tinggal Anda')
+        ->assertDontSee('Profil warga belum lengkap');
 
     $this->actingAs($user)->getJson(route('profile.edit', ['rt_id' => $this->rtOnboard->id]))
         ->assertOk()

@@ -356,10 +356,11 @@
     });
     $notificationItems = $visibleUnreadNotifications->take(5);
     $visibleUnreadCount = $visibleUnreadNotifications->count();
-    $profileCompletionIssues = $user->role_name === 'warga'
+    $isRegistrationPending = in_array($user->status_akun, ['pending_verifikasi', 'ditolak'], true);
+    $isOnboardingDomisili = $user->role_name === 'warga' && $user->onboarding_domisili && ! $user->rumah_id;
+    $profileCompletionIssues = ($user->role_name === 'warga' && ! $isRegistrationPending && ! $isOnboardingDomisili)
         ? $user->profileCompletionIssues()
         : [];
-    $isRegistrationPending = in_array($user->status_akun, ['pending_verifikasi', 'ditolak'], true);
 @endphp
 <body class="bg-fintech font-sans text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100" x-data="appShell()" x-on:keydown.escape.window="mobileMenuOpen = false">
 
