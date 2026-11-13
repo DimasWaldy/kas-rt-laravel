@@ -274,15 +274,166 @@
     }));
 @endphp
 @if(count($quickActions) > 0)
-<div class="card-fintech p-5 mb-6">
-    <p class="mb-4 text-sm font-semibold text-slate-800 dark:text-slate-100">Menu Cepat</p>
-    <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-        @foreach($quickActions as $qa)
-            <a href="{{ route($qa['route']) }}" class="quick-action flex flex-col items-center gap-2 rounded-xl p-3">
-                <span class="icon-tile bg-emerald-50"><i class="fa-solid {{ $qa['icon'] }} text-emerald-600"></i></span>
-                <span class="text-center text-xs font-semibold text-slate-700 dark:text-slate-200 leading-tight">{{ $qa['label'] }}</span>
+{{-- ==========================================
+     VERSI DESKTOP: MENU CEPAT
+     ========================================== --}}
+<div class="hidden md:block">
+    <div class="card-fintech p-5 mb-6">
+        <p class="mb-4 text-sm font-semibold text-slate-800 dark:text-slate-100">Menu Cepat</p>
+        <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            @foreach($quickActions as $qa)
+                <a href="{{ route($qa['route']) }}" class="quick-action flex flex-col items-center gap-2 rounded-xl p-3">
+                    <span class="icon-tile bg-emerald-50"><i class="fa-solid {{ $qa['icon'] }} text-emerald-600"></i></span>
+                    <span class="text-center text-xs font-semibold text-slate-700 dark:text-slate-200 leading-tight">{{ $qa['label'] }}</span>
+                </a>
+            @endforeach
+        </div>
+    </div>
+</div>
+
+{{-- ==========================================
+     VERSI MOBILE / ANDROID: TAMPILAN BPJS JMO
+     ========================================== --}}
+<div class="block md:hidden mb-6" x-data="{ showMorePrograms: false }">
+    {{-- Section 1: Program Layanan --}}
+    <div class="mb-5">
+        <div class="mb-3 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Program Layanan</h3>
+        </div>
+
+        <div class="space-y-2.5">
+            {{-- Card 1: Iuran & Kas Warga (Style JHT) --}}
+            <a href="{{ route('tagihan.index') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-200/50 dark:border-amber-500/20 text-xl">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Iuran Warga RT</h4>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">Anda sudah terdaftar di layanan ini</p>
+                    </div>
+                </div>
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
+                    <i class="fa-solid fa-check"></i>
+                </span>
             </a>
-        @endforeach
+
+            {{-- Card 2: Administrasi & Surat (Style JKK) --}}
+            @if(Route::has('surat.index'))
+            <a href="{{ route('surat.index') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500 border border-blue-200/50 dark:border-blue-500/20 text-xl">
+                        <i class="fa-solid fa-file-shield"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Administrasi Surat Digital</h4>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">Anda sudah terdaftar di layanan ini</p>
+                    </div>
+                </div>
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
+                    <i class="fa-solid fa-check"></i>
+                </span>
+            </a>
+            @endif
+
+            {{-- Program Tambahan (Expandable) --}}
+            <div x-show="showMorePrograms" x-cloak class="space-y-2.5 pt-0.5" x-transition>
+                @if(Route::has('bank-sampah.index'))
+                <a href="{{ route('bank-sampah.index') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 border border-teal-200/50 dark:border-teal-500/20 text-xl">
+                            <i class="fa-solid fa-recycle"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Bank Sampah Digital</h4>
+                            <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">Anda sudah terdaftar di layanan ini</p>
+                        </div>
+                    </div>
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
+                        <i class="fa-solid fa-check"></i>
+                    </span>
+                </a>
+                @endif
+
+                @if(Route::has('posyandu.index'))
+                <a href="{{ route('posyandu.index') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-500/10 text-pink-500 border border-pink-200/50 dark:border-pink-500/20 text-xl">
+                            <i class="fa-solid fa-baby"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Posyandu &amp; Balita</h4>
+                            <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">Anda sudah terdaftar di layanan ini</p>
+                        </div>
+                    </div>
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
+                        <i class="fa-solid fa-check"></i>
+                    </span>
+                </a>
+                @endif
+
+                @if(Route::has('koperasi.index'))
+                <a href="{{ route('koperasi.index') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-200/50 dark:border-amber-500/20 text-xl">
+                            <i class="fa-solid fa-wallet"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Koperasi Simpan Pinjam</h4>
+                            <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">Anda sudah terdaftar di layanan ini</p>
+                        </div>
+                    </div>
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
+                        <i class="fa-solid fa-check"></i>
+                    </span>
+                </a>
+                @endif
+            </div>
+
+            {{-- Tombol Program Lainnya (Style JMO) --}}
+            <button type="button" x-on:click="showMorePrograms = !showMorePrograms" class="flex w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50/70 py-2.5 text-center text-xs font-bold text-emerald-800 transition active:scale-[0.99] dark:border-emerald-800/40 dark:bg-emerald-950/30 dark:text-emerald-300">
+                <span x-text="showMorePrograms ? 'Tutup Program' : 'Program Lainnya'">Program Lainnya</span>
+                <i class="fa-solid text-[10px]" :class="showMorePrograms ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            </button>
+        </div>
+    </div>
+
+    {{-- Section 2: Layanan Lainnya (Grid 4 Kolom Style JMO) --}}
+    <div>
+        <div class="mb-3">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Layanan Lainnya</h3>
+        </div>
+
+        <div class="grid grid-cols-4 gap-y-4 gap-x-2 rounded-2xl border border-slate-100 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            @foreach($quickActions as $qa)
+                @php
+                    $mobileIconColor = match($qa['icon']) {
+                        'fa-wallet', 'fa-money-bill-trend-up' => 'text-amber-500',
+                        'fa-chart-pie', 'fa-boxes-stacked' => 'text-emerald-600',
+                        'fa-user-check', 'fa-users', 'fa-address-book' => 'text-indigo-500',
+                        'fa-money-bill-transfer' => 'text-rose-500',
+                        'fa-list-check', 'fa-clipboard-list' => 'text-blue-500',
+                        'fa-hand-holding-heart', 'fa-hand-holding' => 'text-teal-600',
+                        'fa-bullhorn' => 'text-teal-500',
+                        'fa-building-shield', 'fa-shield-halved' => 'text-cyan-600',
+                        'fa-store' => 'text-emerald-600',
+                        'fa-envelope-open-text' => 'text-emerald-500',
+                        'fa-calendar-days' => 'text-violet-500',
+                        'fa-baby' => 'text-pink-500',
+                        'fa-recycle' => 'text-teal-500',
+                        default => 'text-emerald-600',
+                    };
+                @endphp
+                <a href="{{ route($qa['route']) }}" class="flex flex-col items-center gap-1.5 p-1 transition active:scale-95 group">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50/80 shadow-2xs group-hover:scale-105 transition dark:border-slate-700/80 dark:bg-slate-800">
+                        <i class="fa-solid {{ $qa['icon'] }} text-lg {{ $mobileIconColor }}"></i>
+                    </div>
+                    <span class="text-center text-[10.5px] leading-tight font-medium text-slate-700 dark:text-slate-300 line-clamp-2">
+                        {{ $qa['label'] }}
+                    </span>
+                </a>
+            @endforeach
+        </div>
     </div>
 </div>
 @endif
