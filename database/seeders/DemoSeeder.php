@@ -788,10 +788,12 @@ class DemoSeeder extends Seeder
         $anggota = $this->wargaUsers->take(12);
 
         $anggota->each(function (User $user, int $index) {
+            $memberNumber = sprintf('KOP-RW05-%04d', $index + 1);
+            KoperasiMember::where('member_number', $memberNumber)->where('user_id', '!=', $user->id)->delete();
             KoperasiMember::updateOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'member_number' => sprintf('KOP-RW05-%04d', $index + 1),
+                    'member_number' => $memberNumber,
                     'joined_at' => now()->subMonths(3)->addDays($index)->toDateString(),
                     'status' => $index === 11 ? 'pending' : 'aktif',
                 ]
