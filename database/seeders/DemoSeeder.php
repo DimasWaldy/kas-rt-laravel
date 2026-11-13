@@ -394,8 +394,8 @@ class DemoSeeder extends Seeder
                     'transaction_number' => $status === 'belum_bayar' ? null : Tagihan::nextTransactionNumber(),
                     'note' => $status === 'pending_offline' ? 'Warga akan setor langsung ke bendahara.' : null,
                     'verified_by' => $status === 'lunas' ? $this->bendahara->id : null,
-                    'verified_at' => $status === 'lunas' ? now()->subDays(fake()->numberBetween(1, 12)) : null,
-                    'paid_at' => $status === 'lunas' ? now()->subDays(fake()->numberBetween(1, 12)) : null,
+                    'verified_at' => $status === 'lunas' ? now()->subDays(($index % 12) + 1) : null,
+                    'paid_at' => $status === 'lunas' ? now()->subDays(($index % 12) + 1) : null,
                 ]);
 
                 if ($status === 'lunas') {
