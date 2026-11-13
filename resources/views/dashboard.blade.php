@@ -275,26 +275,11 @@
 @endphp
 @if(count($quickActions) > 0)
 {{-- ==========================================
-     VERSI DESKTOP: MENU CEPAT
-     ========================================== --}}
-<div class="hidden md:block">
-    <div class="card-fintech p-5 mb-6">
-        <p class="mb-4 text-sm font-semibold text-slate-800 dark:text-slate-100">Menu Cepat</p>
-        <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-            @foreach($quickActions as $qa)
-                <a href="{{ route($qa['route']) }}" class="quick-action flex flex-col items-center gap-2 rounded-xl p-3">
-                    <span class="icon-tile bg-emerald-50"><i class="fa-solid {{ $qa['icon'] }} text-emerald-600"></i></span>
-                    <span class="text-center text-xs font-semibold text-slate-700 dark:text-slate-200 leading-tight">{{ $qa['label'] }}</span>
-                </a>
-            @endforeach
-        </div>
-    </div>
-</div>
-
-{{-- ==========================================
-     VERSI MOBILE / ANDROID: TAMPILAN BPJS JMO
+     MENU CEPAT: HANYA TAMPIL DI MOBILE / ANDROID
+     (GAYA BPJS JMO - DI DESKTOP DISEMBUNYIKAN)
      ========================================== --}}
 <div class="block md:hidden mb-6" x-data="{ showMorePrograms: false }">
+    <span class="sr-only">Menu Cepat</span>
     {{-- Section 1: Program Layanan --}}
     <div class="mb-5">
         <div class="mb-3 flex items-center justify-between">
