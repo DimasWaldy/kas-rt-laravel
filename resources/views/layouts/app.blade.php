@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Smart RW - Dashboard</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
     <script>
         (() => {
             const storedTheme = localStorage.getItem('smart-rw-theme');

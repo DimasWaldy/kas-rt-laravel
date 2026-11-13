@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Smart RW adalah platform digital terpadu untuk administrasi, keuangan, dan layanan warga RW.">
     <title>Smart RW | Sistem Informasi Warga RW Modern</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-white font-sans text-slate-900 antialiased">
@@ -177,7 +178,7 @@
 
                     <article data-reveal="scale" style="--reveal-delay:120ms" class="reveal reveal-scale relative text-center">
                         <div class="relative mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border-8 border-white bg-emerald-100 text-2xl text-emerald-600 shadow-xs">
-                            <i class="fa-solid fa-shield-check"></i>
+                            <i class="fa-solid fa-shield-halved"></i>
                             <span class="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white">2</span>
                         </div>
                         <h3 class="mt-5 text-xl font-black text-slate-900">Verifikasi RT</h3>
@@ -191,6 +192,66 @@
                         </div>
                         <h3 class="mt-5 text-xl font-black text-slate-900">Akses Semua Fitur</h3>
                         <p class="mx-auto mt-3 max-w-xs text-sm leading-7 text-slate-600">Setelah terverifikasi, nikmati seluruh layanan Smart RW kapan saja dan di mana saja.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="keamanan" class="scroll-mt-20 bg-slate-50/70 py-20 sm:py-24">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div data-reveal class="mx-auto max-w-2xl text-center">
+                    <p class="text-sm font-black uppercase tracking-[0.22em] text-emerald-600">Keamanan Terjamin</p>
+                    <h2 class="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Data Warga Terlindungi Sepenuhnya</h2>
+                    <p class="mt-4 text-base leading-7 text-slate-600 sm:text-lg">Smart RW dirancang dengan standar keamanan modern untuk melindungi setiap data dan privasi warga.</p>
+                </div>
+
+                <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <article data-reveal="left" style="--reveal-delay:0ms" class="reveal reveal-left rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70">
+                        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-xl text-emerald-600">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </span>
+                        <h3 class="mt-4 text-lg font-black text-slate-900">Isolasi Data per RT</h3>
+                        <p class="mt-3 text-sm leading-7 text-slate-600">Setiap RT hanya dapat mengakses data warganya sendiri. Pengurus RT 01 tidak bisa melihat data RT 02 — privasi antar lingkungan terjaga sepenuhnya.</p>
+                    </article>
+
+                    <article data-reveal="scale" style="--reveal-delay:80ms" class="reveal reveal-scale rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70">
+                        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-xl text-emerald-600">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <h3 class="mt-4 text-lg font-black text-slate-900">Enkripsi Password</h3>
+                        <p class="mt-3 text-sm leading-7 text-slate-600">Password warga di-hash menggunakan algoritma Bcrypt sehingga tidak dapat dibaca oleh siapa pun — termasuk administrator sistem.</p>
+                    </article>
+
+                    <article data-reveal="right" style="--reveal-delay:160ms" class="reveal reveal-right rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70">
+                        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-xl text-emerald-600">
+                            <i class="fa-solid fa-globe"></i>
+                        </span>
+                        <h3 class="mt-4 text-lg font-black text-slate-900">Koneksi HTTPS/SSL</h3>
+                        <p class="mt-3 text-sm leading-7 text-slate-600">Seluruh data yang dikirim antara browser dan server dienkripsi menggunakan protokol HTTPS, mencegah penyadapan oleh pihak ketiga.</p>
+                    </article>
+
+                    <article data-reveal="left" style="--reveal-delay:200ms" class="reveal reveal-left rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70">
+                        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-xl text-emerald-600">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </span>
+                        <h3 class="mt-4 text-lg font-black text-slate-900">Proteksi CSRF & XSS</h3>
+                        <p class="mt-3 text-sm leading-7 text-slate-600">Setiap form dilindungi token CSRF dan semua input di-sanitasi untuk mencegah serangan Cross-Site Scripting (XSS) dan pemalsuan permintaan.</p>
+                    </article>
+
+                    <article data-reveal="scale" style="--reveal-delay:280ms" class="reveal reveal-scale rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70">
+                        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-xl text-emerald-600">
+                            <i class="fa-solid fa-key"></i>
+                        </span>
+                        <h3 class="mt-4 text-lg font-black text-slate-900">Otorisasi Berbasis Role</h3>
+                        <p class="mt-3 text-sm leading-7 text-slate-600">Sistem role dan permission granular memastikan setiap pengguna hanya bisa mengakses fitur sesuai jabatannya — dari warga hingga superadmin.</p>
+                    </article>
+
+                    <article data-reveal="right" style="--reveal-delay:360ms" class="reveal reveal-right rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70">
+                        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-xl text-emerald-600">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </span>
+                        <h3 class="mt-4 text-lg font-black text-slate-900">Verifikasi Identitas Warga</h3>
+                        <p class="mt-3 text-sm leading-7 text-slate-600">Setiap pendaftar harus diverifikasi oleh pengurus RT sebelum bisa mengakses fitur — mencegah akun palsu dan penyalahgunaan data.</p>
                     </article>
                 </div>
             </div>
