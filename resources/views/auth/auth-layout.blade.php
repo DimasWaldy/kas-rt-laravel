@@ -187,44 +187,116 @@
                 </form>
             </div>
 
-            <div class="form-container sign-in absolute left-0 top-0 z-[2] h-full w-1/2 transition-all duration-700 ease-in-out">
-                <form action="{{ route('login') }}" method="POST" class="flex h-full flex-col items-center justify-center bg-white px-8 py-10 text-center sm:px-12">
-                    @csrf
+            <div class="form-container sign-in absolute left-0 top-0 z-[2] h-full w-1/2 overflow-y-auto transition-all duration-700 ease-in-out">
+                <div class="flex min-h-full flex-col items-center justify-center bg-white px-8 py-10 text-center sm:px-12">
+                    <form action="{{ route('login') }}" method="POST" class="flex w-full flex-col items-center">
+                        @csrf
 
-                    <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-3xl text-emerald-600 shadow-xs">
-                        <i class="fa-solid fa-fingerprint"></i>
-                    </div>
-                    <h1 class="mb-1 text-3xl font-black tracking-tight text-slate-800">Selamat Datang</h1>
-                    <p class="mb-4 text-xs font-medium text-slate-500">Masuk untuk layanan Smart RW atau cek status pendaftaran. Jika ditolak, perbaiki lewat akun yang sama.</p>
-
-                    <div class="w-full space-y-4">
-                        <div class="relative">
-                            <i class="fa-solid fa-at absolute left-4 top-4 text-xs text-slate-400"></i>
-                            <input type="email" name="email" placeholder="Email" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-emerald-500" value="{{ old('email') }}" required autocomplete="username">
+                        <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-3xl text-emerald-600 shadow-xs">
+                            <i class="fa-solid fa-fingerprint"></i>
                         </div>
-                        <div class="relative">
-                            <i class="fa-solid fa-lock absolute left-4 top-4 text-xs text-slate-400"></i>
-                            <input type="password" name="password" placeholder="Password" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-emerald-500" required autocomplete="current-password">
-                        </div>
-                    </div>
+                        <h1 class="mb-1 text-3xl font-black tracking-tight text-slate-800">Selamat Datang</h1>
+                        <p class="mb-4 text-xs font-medium text-slate-500">Masuk untuk layanan Smart RW atau cek status pendaftaran. Jika ditolak, perbaiki lewat akun yang sama.</p>
 
-                    @if (isset($errors) && $errors->any() && !old('name') && !request()->is('register'))
-                        <p class="mt-3 text-[10px] font-bold uppercase tracking-wider text-rose-500">{{ $errors->first() }}</p>
+                        <div class="w-full space-y-4">
+                            <div class="relative">
+                                <i class="fa-solid fa-at absolute left-4 top-4 text-xs text-slate-400"></i>
+                                <input type="email" name="email" placeholder="Email" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-emerald-500" value="{{ old('email') }}" required autocomplete="username">
+                            </div>
+                            <div class="relative">
+                                <i class="fa-solid fa-lock absolute left-4 top-4 text-xs text-slate-400"></i>
+                                <input type="password" name="password" placeholder="Password" class="auth-input w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-hidden transition-all focus:ring-2 focus:ring-emerald-500" required autocomplete="current-password">
+                            </div>
+                        </div>
+
+                        @if (isset($errors) && $errors->any() && !old('name') && !request()->is('register'))
+                            <p class="mt-3 text-[10px] font-bold uppercase tracking-wider text-rose-500">{{ $errors->first() }}</p>
+                        @endif
+
+                        <div class="mt-3 w-full text-right">
+                            <a href="{{ route('password.request') }}" class="text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-colors hover:text-emerald-600">Lupa Password?</a>
+                        </div>
+
+                        <button type="submit" id="loginBtn" class="mt-8 flex w-full items-center justify-center gap-3 rounded-2xl bg-emerald-600 py-4 text-xs font-black uppercase tracking-[0.15em] text-white transition-all hover:bg-emerald-700 hover:shadow-2xl active:scale-95">
+                            <span id="loginText">Masuk Ke Sistem</span>
+                            <span id="loginLoading" class="hidden"><i class="fa-solid fa-circle-notch animate-spin"></i></span>
+                        </button>
+                    </form>
+
+                    @if(\App\Http\Controllers\Auth\DemoLoginController::isEnabled())
+                        <div class="mt-4 w-full">
+                            <div class="relative mb-3 flex items-center">
+                                <div class="grow border-t border-slate-200"></div>
+                                <span class="mx-3 shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-400"><i class="fa-solid fa-bolt mr-1 text-amber-400"></i>Akses Cepat Demo</span>
+                                <div class="grow border-t border-slate-200"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                @foreach(\App\Http\Controllers\Auth\DemoLoginController::accounts() as $key => $account)
+                                    @php
+                                        $colors = match($account['color']) {
+                                            'rose' => [
+                                                'border' => 'hover:border-rose-200',
+                                                'bg' => 'hover:bg-rose-50',
+                                                'icon_bg' => 'bg-rose-100 group-hover:bg-rose-200',
+                                                'icon_text' => 'text-rose-600',
+                                            ],
+                                            'violet' => [
+                                                'border' => 'hover:border-violet-200',
+                                                'bg' => 'hover:bg-violet-50',
+                                                'icon_bg' => 'bg-violet-100 group-hover:bg-violet-200',
+                                                'icon_text' => 'text-violet-600',
+                                            ],
+                                            'blue' => [
+                                                'border' => 'hover:border-blue-200',
+                                                'bg' => 'hover:bg-blue-50',
+                                                'icon_bg' => 'bg-blue-100 group-hover:bg-blue-200',
+                                                'icon_text' => 'text-blue-600',
+                                            ],
+                                            'cyan' => [
+                                                'border' => 'hover:border-cyan-200',
+                                                'bg' => 'hover:bg-cyan-50',
+                                                'icon_bg' => 'bg-cyan-100 group-hover:bg-cyan-200',
+                                                'icon_text' => 'text-cyan-600',
+                                            ],
+                                            'amber' => [
+                                                'border' => 'hover:border-amber-200',
+                                                'bg' => 'hover:bg-amber-50',
+                                                'icon_bg' => 'bg-amber-100 group-hover:bg-amber-200',
+                                                'icon_text' => 'text-amber-600',
+                                            ],
+                                            default => [
+                                                'border' => 'hover:border-emerald-200',
+                                                'bg' => 'hover:bg-emerald-50',
+                                                'icon_bg' => 'bg-emerald-100 group-hover:bg-emerald-200',
+                                                'icon_text' => 'text-emerald-600',
+                                            ],
+                                        };
+                                    @endphp
+                                    <form action="{{ route('demo-login') }}" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="account" value="{{ $key }}">
+                                        <button type="submit" class="group flex w-full items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-left transition-all {{ $colors['border'] }} {{ $colors['bg'] }} hover:shadow-sm active:scale-[0.97]">
+                                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg {{ $colors['icon_bg'] }} {{ $colors['icon_text'] }} transition-colors">
+                                                <i class="fa-solid {{ $account['icon'] }} text-xs"></i>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="truncate text-[11px] font-bold text-slate-700">{{ $account['label'] }}</div>
+                                                <div class="truncate text-[9px] text-slate-400">{{ $account['description'] }}</div>
+                                            </div>
+                                        </button>
+                                    </form>
+                                @endforeach
+                            </div>
+                            <p class="mt-2 text-center text-[9px] font-medium text-slate-400">
+                                <i class="fa-solid fa-circle-info mr-0.5"></i> Password semua akun demo: <code class="rounded bg-slate-100 px-1 py-0.5 font-mono text-slate-500">password</code>
+                            </p>
+                        </div>
                     @endif
-
-                    <div class="mt-3 w-full text-right">
-                        <a href="{{ route('password.request') }}" class="text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-colors hover:text-emerald-600">Lupa Password?</a>
-                    </div>
-
-                    <button type="submit" id="loginBtn" class="mt-8 flex w-full items-center justify-center gap-3 rounded-2xl bg-emerald-600 py-4 text-xs font-black uppercase tracking-[0.15em] text-white transition-all hover:bg-emerald-700 hover:shadow-2xl active:scale-95">
-                        <span id="loginText">Masuk Ke Sistem</span>
-                        <span id="loginLoading" class="hidden"><i class="fa-solid fa-circle-notch animate-spin"></i></span>
-                    </button>
 
                     <button type="button" class="mt-4 text-[11px] font-black uppercase tracking-widest text-indigo-600 md:hidden" data-auth-switch="register">
                         Belum punya akun? Daftar
                     </button>
-                </form>
+                </div>
             </div>
 
             <div class="toggle-container absolute left-1/2 top-0 z-[100] h-full w-1/2 overflow-hidden rounded-l-[150px] transition-all duration-700 ease-in-out">
