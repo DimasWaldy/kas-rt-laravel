@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Http\Controllers\Auth\DemoLoginController;
 use App\Models\Aset;
 use App\Models\Balita;
 use App\Models\Fasilitas;
@@ -102,7 +103,7 @@ class DemoSeeder extends Seeder
         $this->command?->info('Demo Smart RW siap untuk recording.');
         $this->command?->info('Login admin      : admin@smartrw.test / password');
         $this->command?->info('Login superadmin : superadmin@smartrw.test / password');
-        $this->command?->info('Login warga      : warga.demo@smartrw.test / password');
+        $this->command?->info('Login warga (30) : 30 akun warga demo (14 teman + 16 warga random, default: Yazid)');
         $this->command?->info('Login warga baru : register manual di /register untuk demo verifikasi.');
     }
 
@@ -139,29 +140,26 @@ class DemoSeeder extends Seeder
 
     private function createRumahDanWarga(): void
     {
-        $names = [
-            'Fabian Saputra', 'Nadia Maharani', 'Budi Santoso', 'Siti Aminah', 'Agus Prasetyo',
-            'Dewi Lestari', 'Rudi Hartono', 'Maya Permata', 'Hendra Wijaya', 'Nina Kartika',
-            'Fajar Nugroho', 'Lina Marlina', 'Dedi Kurniawan', 'Ratna Sari', 'Yusuf Maulana',
-            'Indah Pertiwi', 'Taufik Hidayat', 'Rina Anggraini', 'Arif Setiawan', 'Wulan Safitri',
-            'Bambang Irawan', 'Fitri Handayani', 'Joko Susilo', 'Sri Wahyuni', 'Andi Saputra',
-            'Novi Rahmawati', 'Eko Purnomo', 'Dian Novita', 'Rizky Ramadhan', 'Putri Maharani',
-            'Bayu Pratama', 'Citra Ayu', 'Maman Suherman', 'Nana Mulyana', 'Slamet Riyadi',
-            'Asep Saepudin', 'Tini Kartini', 'Galih Firmansyah', 'Mega Puspita', 'Yoga Hermawan',
-            'Sarah Aulia', 'Teguh Santoso', 'Ari Wibowo', 'Mila Karmila', 'Reza Fahlevi',
-            'Anisa Putri', 'Irwan Syah', 'Nadia Lutfiah', 'Fikri Alamsyah', 'Rossa Amelia',
-            'Wahyu Saputra', 'Tari Oktaviani', 'Rangga Pratama', 'Dinda Safira', 'Raka Aditya',
-            'Aulia Rahman', 'Farhan Akbar', 'Mei Anggraini', 'Reno Firmansyah', 'Salsa Nuraini',
-            'Dimas Mahendra', 'Laras Wening', 'Ilham Fauzi', 'Nabila Zahra', 'Rian Maulana',
-            'Vina Amalia', 'Bagas Kurnia', 'Cahya Putri', 'Gilang Ramadhan', 'Mira Lesmana',
-            'Rafi Hidayat', 'Ayu Safitri', 'Damar Nugraha', 'Nisa Fadilah', 'Rizal Ramadhan',
-            'Tasya Kamila', 'Iqbal Maulana', 'Siska Wulandari', 'Hafiz Pratama', 'Tiara Permata',
-            'Reyhan Ardiansyah', 'Mutiara Sari', 'Alif Nurhakim', 'Rara Puspita', 'Kevin Wijaya',
-            'Niken Aprilia', 'Fauzan Akmal', 'Cindy Claudia', 'Rendra Bayu', 'Della Kartika',
-            'Fahri Azzam', 'Melly Oktavia', 'Aldi Firmansyah', 'Shinta Maharani', 'Robby Kurniawan',
+        $primary30 = DemoLoginController::DEMO_WARGA;
+
+        $names31Plus = [
+            'Rina Anggraini', 'Arif Setiawan', 'Wulan Safitri', 'Bambang Irawan', 'Fitri Handayani',
+            'Joko Susilo', 'Sri Wahyuni', 'Andi Saputra', 'Novi Rahmawati', 'Eko Purnomo',
+            'Dian Novita', 'Rizky Ramadhan', 'Putri Maharani', 'Bayu Pratama', 'Citra Ayu',
+            'Maman Suherman', 'Nana Mulyana', 'Slamet Riyadi', 'Asep Saepudin', 'Tini Kartini',
+            'Galih Firmansyah', 'Mega Puspita', 'Yoga Hermawan', 'Sarah Aulia', 'Teguh Santoso',
+            'Ari Wibowo', 'Mila Karmila', 'Reza Fahlevi', 'Anisa Putri', 'Irwan Syah',
+            'Nadia Lutfiah', 'Fikri Alamsyah', 'Rossa Amelia', 'Wahyu Saputra', 'Tari Oktaviani',
+            'Rangga Pratama', 'Dinda Safira', 'Raka Aditya', 'Aulia Rahman', 'Farhan Akbar',
+            'Mei Anggraini', 'Reno Firmansyah', 'Salsa Nuraini', 'Dimas Mahendra', 'Laras Wening',
+            'Ilham Fauzi', 'Nabila Zahra', 'Rian Maulana', 'Vina Amalia', 'Bagas Kurnia',
+            'Cahya Putri', 'Gilang Ramadhan', 'Mira Lesmana', 'Rafi Nugraha', 'Ayu Safitri',
+            'Damar Nugraha', 'Nisa Fadilah', 'Rizal Ramadhan', 'Tasya Kamila', 'Iqbal Maulana',
+            'Siska Wulandari', 'Hafiz Pratama', 'Tiara Permata', 'Reyhan Ardiansyah', 'Mutiara Sari',
         ];
 
         $counter = 0;
+        $activeWargaCount = 0;
         $mainWarga = null;
 
         foreach ($this->rts as $rtIndex => $rt) {
@@ -186,12 +184,23 @@ class DemoSeeder extends Seeder
                     continue;
                 }
 
+                if ($activeWargaCount < count($primary30)) {
+                    $demoInfo = $primary30[$activeWargaCount];
+                    $wargaName = $demoInfo['name'];
+                    $wargaEmail = $demoInfo['email'];
+                } else {
+                    $extraIdx = $activeWargaCount - count($primary30);
+                    $wargaName = $names31Plus[$extraIdx % count($names31Plus)];
+                    $wargaEmail = sprintf('warga%02d@smartrw.test', $activeWargaCount + 1);
+                }
+                $activeWargaCount++;
+
                 $kepala = $this->createWargaUser(
-                    name: $names[($counter - 1) % count($names)],
-                    email: $counter === 1 ? 'warga.demo@smartrw.test' : sprintf('warga%02d@smartrw.test', $counter),
+                    name: $wargaName,
+                    email: $wargaEmail,
                     rumah: $rumah,
                     rt: $rt,
-                    index: $counter,
+                    index: $activeWargaCount,
                     kepalaKeluarga: true
                 );
 
@@ -202,7 +211,7 @@ class DemoSeeder extends Seeder
                 if ($houseNumber % 3 === 0) {
                     $anggotaIndex = $counter + 100;
                     $anggota = $this->createWargaUser(
-                        name: $names[($anggotaIndex - 1) % count($names)],
+                        name: $names31Plus[($anggotaIndex - 1) % count($names31Plus)],
                         email: sprintf('anggota%02d@smartrw.test', $counter),
                         rumah: $rumah,
                         rt: $rt,
@@ -225,7 +234,7 @@ class DemoSeeder extends Seeder
     private function createWargaUser(string $name, string $email, Rumah $rumah, Rt $rt, int $index, bool $kepalaKeluarga): User
     {
         $kk = KartuKeluarga::firstOrCreate(
-            ['no_kk' => $this->number16(3273010000000000, $kepalaKeluarga ? $index : $index - 100)],
+            ['no_kk' => sprintf('327301%06d%04d', (($index * 73) % 900000) + 100000, $kepalaKeluarga ? $index : $index - 100)],
             [
                 'rumah_id' => $rumah->id,
                 'nama_kepala_keluarga' => $kepalaKeluarga ? $name : ($rumah->penanggungJawab?->name ?? $name),
@@ -236,6 +245,11 @@ class DemoSeeder extends Seeder
             $kk->update(['rumah_id' => $rumah->id]);
         }
 
+        $phone = sprintf('08%s%08d',
+            ['12', '13', '21', '52', '77', '81', '96'][$index % 7],
+            (($index * 1337) % 90000000) + 10000000
+        );
+
         $user = User::updateOrCreate(
             ['email' => $email],
             [
@@ -245,26 +259,53 @@ class DemoSeeder extends Seeder
                 'rumah_id' => $rumah->id,
                 'rt_id' => $rt->id,
                 'is_penanggung_jawab_rumah' => $kepalaKeluarga,
-                'phone' => $this->phoneFor('0812', $index),
+                'phone' => $phone,
                 'status_akun' => 'aktif',
                 'email_verified_at' => now(),
             ]
+        );
+
+        $femaleNames = [
+            'Nadia Maharani', 'Siti Aminah', 'Dewi Lestari', 'Maya Permata', 'Nina Kartika',
+            'Lina Marlina', 'Ratna Sari', 'Indah Pertiwi', 'Rina Anggraini', 'Wulan Safitri',
+            'Fitri Handayani', 'Sri Wahyuni', 'Novi Rahmawati', 'Dian Novita', 'Putri Maharani',
+            'Citra Ayu', 'Tini Kartini', 'Mega Puspita', 'Sarah Aulia', 'Mila Karmila',
+            'Anisa Putri', 'Nadia Lutfiah', 'Rossa Amelia', 'Tari Oktaviani', 'Dinda Safira',
+            'Mei Anggraini', 'Salsa Nuraini', 'Laras Wening', 'Nabila Zahra', 'Vina Amalia',
+            'Cahya Putri', 'Mira Lesmana', 'Ayu Safitri', 'Nisa Fadilah', 'Tasya Kamila',
+            'Siska Wulandari', 'Tiara Permata', 'Mutiara Sari', 'Rara Puspita', 'Niken Aprilia',
+            'Cindy Claudia', 'Della Kartika', 'Melly Oktavia', 'Shinta Maharani',
+        ];
+
+        $gender = in_array($name, $femaleNames, true) ? 'P' : 'L';
+        $birthYear = 1972 + ($index % 30);
+        $birthMonth = ($index % 12) + 1;
+        $birthDay = ($index % 28) + 1;
+        $tanggalLahir = sprintf('%04d-%02d-%02d', $birthYear, $birthMonth, $birthDay);
+
+        $nikDay = $gender === 'P' ? $birthDay + 40 : $birthDay;
+        $nik = sprintf('3273%02d%02d%02d%02d%04d',
+            ($index % 30) + 1,
+            $nikDay,
+            $birthMonth,
+            $birthYear % 100,
+            ($index % 9000) + 1000
         );
 
         Warga::updateOrCreate(
             ['user_id' => $user->id],
             [
                 'kartu_keluarga_id' => $kk->id,
-                'nik' => $this->number16(3273020000000000, $index),
+                'nik' => $nik,
                 'nama_lengkap' => $name,
                 'status_dalam_kk' => $kepalaKeluarga ? 'kepala_keluarga' : 'anggota',
-                'tanggal_lahir' => now()->subYears(fake()->numberBetween(21, 58))->subDays(fake()->numberBetween(1, 300)),
-                'jenis_kelamin' => $index % 2 === 0 ? 'P' : 'L',
+                'tanggal_lahir' => $tanggalLahir,
+                'jenis_kelamin' => $gender,
                 'status_verifikasi' => 'terverifikasi',
                 'metode_verifikasi' => 'tatap_muka',
                 'diverifikasi_oleh' => $this->ketuaRt->id,
-                'diverifikasi_at' => now()->subDays(fake()->numberBetween(10, 90)),
-                'catatan_verifikasi' => 'Data demo terverifikasi untuk presentasi.',
+                'diverifikasi_at' => now()->subDays(($index % 60) + 10),
+                'catatan_verifikasi' => 'Data demo warga terverifikasi untuk pengujian sistem.',
             ]
         );
 

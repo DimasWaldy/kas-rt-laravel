@@ -273,19 +273,34 @@
                                             ],
                                         };
                                     @endphp
-                                    <form action="{{ route('demo-login') }}" method="POST">
-                                        @csrf
-                                        <input type="hidden" name="account" value="{{ $key }}">
-                                        <button type="submit" class="group flex w-full items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-left transition-all {{ $colors['border'] }} {{ $colors['bg'] }} hover:shadow-sm active:scale-[0.97]">
+                                    @if($key === 'warga')
+                                        <button type="button" onclick="openWargaDemoModal()" class="group flex w-full items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-left transition-all {{ $colors['border'] }} {{ $colors['bg'] }} hover:shadow-sm active:scale-[0.97]">
                                             <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg {{ $colors['icon_bg'] }} {{ $colors['icon_text'] }} transition-colors">
                                                 <i class="fa-solid {{ $account['icon'] }} text-xs"></i>
                                             </div>
                                             <div class="min-w-0">
-                                                <div class="truncate text-[11px] font-bold text-slate-700">{{ $account['label'] }}</div>
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="truncate text-[11px] font-bold text-slate-700">{{ $account['label'] }}</span>
+                                                    <span class="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[8px] font-black text-emerald-700">30 Akun</span>
+                                                </div>
                                                 <div class="truncate text-[9px] text-slate-400">{{ $account['description'] }}</div>
                                             </div>
                                         </button>
-                                    </form>
+                                    @else
+                                        <form action="{{ route('demo-login') }}" method="POST">
+                                            @csrf
+                                            <input type="hidden" name="account" value="{{ $key }}">
+                                            <button type="submit" class="group flex w-full items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-left transition-all {{ $colors['border'] }} {{ $colors['bg'] }} hover:shadow-sm active:scale-[0.97]">
+                                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg {{ $colors['icon_bg'] }} {{ $colors['icon_text'] }} transition-colors">
+                                                    <i class="fa-solid {{ $account['icon'] }} text-xs"></i>
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <div class="truncate text-[11px] font-bold text-slate-700">{{ $account['label'] }}</div>
+                                                    <div class="truncate text-[9px] text-slate-400">{{ $account['description'] }}</div>
+                                                </div>
+                                            </button>
+                                        </form>
+                                    @endif
                                 @endforeach
                             </div>
                             <p class="mt-2 text-center text-[9px] font-medium text-slate-400">
@@ -317,6 +332,90 @@
             </div>
         </div>
     </main>
+
+    @if(\App\Http\Controllers\Auth\DemoLoginController::isEnabled())
+        <div id="wargaDemoModal" class="fixed inset-0 z-[200] hidden items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs transition-opacity duration-200" onclick="if(event.target === this) closeWargaDemoModal()">
+            <div class="relative flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-2xl">
+                <!-- Header Modal -->
+                <div class="flex items-center justify-between border-b border-slate-100 bg-emerald-50/60 px-5 py-4">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-200">
+                            <i class="fa-solid fa-users text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-black text-slate-900">Pilih Akun Demo Warga</h3>
+                                <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-800">30 Warga</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500">14 teman Anda + 16 warga random untuk simulasi</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeWargaDemoModal()" class="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Search & Quick Action -->
+                <div class="border-b border-slate-100 bg-white px-5 py-3">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400"></i>
+                        <input type="text" id="wargaSearchInput" placeholder="Ketik nama teman atau warga..." class="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-2 pl-9 pr-3 text-xs text-slate-800 transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-hidden" oninput="filterWargaDemo(this.value)">
+                    </div>
+                </div>
+
+                <!-- Scrollable Warga List -->
+                <div class="overflow-y-auto px-5 py-3 space-y-1.5 max-h-[52vh]" id="wargaDemoList">
+                    @foreach(\App\Http\Controllers\Auth\DemoLoginController::wargaAccounts() as $index => $w)
+                        <form action="{{ route('demo-login') }}" method="POST" class="warga-item" data-warga-name="{{ strtolower($w['name']) }}" data-warga-email="{{ strtolower($w['email']) }}" data-warga-rt="{{ strtolower($w['rt']) }}">
+                            @csrf
+                            <input type="hidden" name="account" value="warga">
+                            <input type="hidden" name="email" value="{{ $w['email'] }}">
+                            <button type="submit" class="group flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-2.5 text-left transition hover:border-emerald-300 hover:bg-emerald-50/50 hover:shadow-xs active:scale-[0.99]">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl {{ $w['is_friend'] ? 'bg-emerald-600 text-white font-black' : 'bg-slate-200 text-slate-600 font-bold' }} text-xs shadow-2xs group-hover:scale-105 transition">
+                                        {{ $index + 1 }}
+                                    </span>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="truncate text-xs font-bold text-slate-900 group-hover:text-emerald-900">{{ $w['name'] }}</span>
+                                            @if($w['is_friend'])
+                                                <span class="shrink-0 rounded-md bg-amber-100 px-1.5 py-0.2 text-[9px] font-black text-amber-800">
+                                                    <i class="fa-solid fa-user-check text-[8px] mr-0.5"></i>Teman
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <div class="truncate text-[10px] text-slate-400">
+                                            <span>{{ $w['email'] }}</span>
+                                            <span class="mx-1">&bull;</span>
+                                            <span class="font-medium text-slate-500">{{ $w['rt'] }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-emerald-200 bg-white px-3 py-1.5 text-[11px] font-bold text-emerald-700 shadow-2xs transition group-hover:border-emerald-600 group-hover:bg-emerald-600 group-hover:text-white">
+                                    <span>Masuk</span>
+                                    <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                                </span>
+                            </button>
+                        </form>
+                    @endforeach
+                    <div id="wargaNotFound" class="hidden py-8 text-center text-xs text-slate-400">
+                        <i class="fa-solid fa-user-slash text-2xl text-slate-300 mb-2 block"></i>
+                        Tidak ada warga dengan nama tersebut.
+                    </div>
+                </div>
+
+                <!-- Footer Modal -->
+                <div class="flex items-center justify-between border-t border-slate-100 bg-slate-50/80 px-5 py-3 text-[11px] text-slate-500">
+                    <span>
+                        <i class="fa-solid fa-key mr-1 text-amber-500"></i>Password: <code class="rounded bg-white px-1.5 py-0.5 font-mono font-bold text-slate-700 border border-slate-200">password</code>
+                    </span>
+                    <button type="button" onclick="closeWargaDemoModal()" class="rounded-xl px-3 py-1 font-bold text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <script>
         const authCard = document.getElementById('authCard');
@@ -362,6 +461,58 @@
             input.addEventListener('input', () => {
                 input.value = input.value.replace(/\D/g, '').slice(0, input.maxLength || undefined);
             });
+        });
+
+        function openWargaDemoModal() {
+            const modal = document.getElementById('wargaDemoModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                document.body.classList.add('overflow-hidden');
+                const search = document.getElementById('wargaSearchInput');
+                if (search) {
+                    search.value = '';
+                    filterWargaDemo('');
+                    setTimeout(() => search.focus(), 100);
+                }
+            }
+        }
+
+        function closeWargaDemoModal() {
+            const modal = document.getElementById('wargaDemoModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.classList.remove('overflow-hidden');
+            }
+        }
+
+        function filterWargaDemo(query) {
+            const q = (query || '').toLowerCase().trim();
+            const items = document.querySelectorAll('#wargaDemoList .warga-item');
+            let visibleCount = 0;
+
+            items.forEach((item) => {
+                const name = item.dataset.wargaName || '';
+                const email = item.dataset.wargaEmail || '';
+                const rt = item.dataset.wargaRt || '';
+                const match = !q || name.includes(q) || email.includes(q) || rt.includes(q);
+                item.style.display = match ? '' : 'none';
+                if (match) {
+                    visibleCount++;
+                }
+            });
+
+            const notFound = document.getElementById('wargaNotFound');
+            if (notFound) {
+                notFound.classList.toggle('hidden', visibleCount > 0);
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeWargaDemoModal();
+            }
         });
     </script>
 </body>
