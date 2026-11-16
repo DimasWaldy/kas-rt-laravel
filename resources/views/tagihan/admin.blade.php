@@ -3,36 +3,31 @@
 @section('title', 'Verifikasi Tagihan')
 
 @section('content')
-<div class="space-y-6" x-data="{ showTagihanForm: {{ old('_form') === 'tagihan_manual' ? 'true' : 'false' }} }">
-    <div class="rounded-3xl bg-white p-6 shadow-xs">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h2 class="text-2xl font-bold text-slate-900">Manajemen Tagihan</h2>
-                <p class="mt-2 text-slate-600">Verifikasi bukti pembayaran, beri catatan, atau tolak pembayaran dengan alasan yang jelas.</p>
-            </div>
-            <button type="button" x-on:click="showTagihanForm = true" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
-                + Buat Tagihan
-            </button>
+<div class="mx-auto max-w-7xl space-y-6" x-data="{ showTagihanForm: {{ old('_form') === 'tagihan_manual' ? 'true' : 'false' }} }">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-slate-100 sm:text-3xl">Iuran & Tagihan Warga</h1>
+            <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Pantau tagihan, verifikasi bukti pembayaran, dan kelola iuran warga lingkungan.</p>
         </div>
+        <button type="button" x-on:click="showTagihanForm = true" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white shadow-xs transition hover:bg-emerald-800">
+            <i class="fa-solid fa-plus"></i> Buat Tagihan
+        </button>
     </div>
 
-    {{-- Ringkasan Tunggakan --}}
+    {{-- 3 KPI Summary Cards --}}
     @if(isset($summaryTunggakan))
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div class="rounded-3xl border border-rose-100 bg-rose-50/50 p-5">
-                <div class="text-xs font-semibold uppercase tracking-wider text-rose-600">Total Tunggakan</div>
-                <div class="mt-2 text-2xl font-bold text-rose-700">Rp {{ number_format($summaryTunggakan['total_nominal'], 0, ',', '.') }}</div>
-                <div class="mt-1 text-xs text-rose-500">Iuran belum diselesaikan</div>
+            <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+                <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Total Nominal Tunggakan</p>
+                <p class="mt-2 text-2xl font-black tracking-tight text-rose-600 dark:text-rose-400 sm:text-3xl">Rp {{ number_format($summaryTunggakan['total_nominal'], 0, ',', '.') }}</p>
             </div>
-            <div class="rounded-3xl border border-amber-100 bg-amber-50/50 p-5">
-                <div class="text-xs font-semibold uppercase tracking-wider text-amber-600">Tagihan Tertunggak</div>
-                <div class="mt-2 text-2xl font-bold text-amber-700">{{ $summaryTunggakan['total_tagihan'] }} Item</div>
-                <div class="mt-1 text-xs text-amber-500">Belum dibayar & ditolak</div>
+            <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+                <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Tagihan Tertunggak</p>
+                <p class="mt-2 text-2xl font-black tracking-tight text-amber-600 dark:text-amber-400 sm:text-3xl">{{ $summaryTunggakan['total_tagihan'] }} tagihan</p>
             </div>
-            <div class="rounded-3xl border border-sky-100 bg-sky-50/50 p-5">
-                <div class="text-xs font-semibold uppercase tracking-wider text-sky-600">Rumah Menunggak</div>
-                <div class="mt-2 text-2xl font-bold text-sky-700">{{ $summaryTunggakan['total_rumah'] }} Rumah</div>
-                <div class="mt-1 text-xs text-sky-500">Memiliki tagihan aktif</div>
+            <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+                <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Rumah Menunggak</p>
+                <p class="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">{{ $summaryTunggakan['total_rumah'] }} rumah</p>
             </div>
         </div>
     @endif

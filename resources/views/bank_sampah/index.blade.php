@@ -6,18 +6,39 @@
 <div class="mx-auto max-w-7xl space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <p class="text-sm font-semibold text-emerald-700">Tabungan lingkungan Smart RW</p>
-            <h1 class="text-2xl font-black text-slate-900">Bank Sampah RW</h1>
-            <p class="mt-1 text-sm text-slate-500">Setor sampah, kumpulkan saldo, tarik tunai, atau tukar hadiah.</p>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-slate-100 sm:text-3xl">Bank Sampah</h1>
+            <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Setor sampah terpilah, kumpulkan saldo tabungan, dan tukar hadiah.</p>
         </div>
 
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('setoran-sampah.create') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800">
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('setoran-sampah.create') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white shadow-xs transition hover:bg-emerald-800">
                 <i class="fa-solid fa-recycle"></i> Setor Sampah
             </a>
-            <a href="{{ route('hadiah-sampah.index') }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-800 hover:bg-emerald-100">
+            <a href="{{ route('hadiah-sampah.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800 shadow-xs transition hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                 <i class="fa-solid fa-gift"></i> Tukar Hadiah
             </a>
+        </div>
+    </div>
+
+    {{-- 3 KPI Summary Cards --}}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">{{ $canManage ? 'Total Saldo Beredar' : 'Saldo Tabungan Anda' }}</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 sm:text-3xl">
+                Rp {{ number_format($canManage ? $statistik['total_saldo_beredar'] : ($saldoSaya?->saldo ?? 0), 0, ',', '.') }}
+            </p>
+        </div>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Setoran Bulan Ini</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
+                Rp {{ number_format($statistik['total_setoran_bulan_ini'], 0, ',', '.') }}
+            </p>
+        </div>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Warga Berpartisipasi</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
+                {{ $statistik['total_warga_aktif'] }} orang
+            </p>
         </div>
     </div>
 

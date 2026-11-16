@@ -10,20 +10,31 @@
 <div class="mx-auto max-w-7xl space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <p class="text-sm font-semibold text-rose-600">Pemantauan tumbuh kembang balita</p>
-            <h1 class="text-2xl font-black text-slate-900">Posyandu Smart RW</h1>
-            <p class="mt-1 text-sm text-slate-500">Pantau berat badan menurut umur menggunakan kurva WHO usia 0-60 bulan.</p>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-slate-100 sm:text-3xl">Posyandu & KMS</h1>
+            <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Pemantauan tumbuh kembang balita sesuai standar kurva WHO usia 0-60 bulan.</p>
         </div>
         @if($canManage)
-            <a href="{{ route('posyandu.create') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-3 text-sm font-bold text-white hover:bg-rose-700"><i class="fa-solid fa-plus"></i> Tambah Balita</a>
+            <a href="{{ route('posyandu.create') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white shadow-xs transition hover:bg-emerald-800">
+                <i class="fa-solid fa-plus"></i> Tambah Balita
+            </a>
         @endif
     </div>
 
-    <section class="grid gap-4 sm:grid-cols-3">
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Terlihat</p><p class="mt-2 text-3xl font-black text-slate-900">{{ $stats['total'] }}</p></div>
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-xs"><p class="text-xs font-bold uppercase tracking-wider text-emerald-600">Balita Aktif</p><p class="mt-2 text-3xl font-black text-emerald-800">{{ $stats['aktif'] }}</p></div>
-        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-xs"><p class="text-xs font-bold uppercase tracking-wider text-amber-600">Perlu Perhatian BB/U</p><p class="mt-2 text-3xl font-black text-amber-800">{{ $stats['perlu_perhatian'] }}</p></div>
-    </section>
+    {{-- 3 KPI Summary Cards --}}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Total Terdata</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">{{ $stats['total'] }}</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Balita Aktif</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 sm:text-3xl">{{ $stats['aktif'] }}</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Perlu Perhatian BB/U</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-amber-600 dark:text-amber-400 sm:text-3xl">{{ $stats['perlu_perhatian'] }}</p>
+        </div>
+    </div>
 
     <form method="GET" action="{{ route('posyandu.index') }}" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs md:grid-cols-[1fr_12rem_12rem_auto]">
         <input name="search" value="{{ $filters['search'] }}" placeholder="Cari nama, NIK, KK, atau orang tua..." class="rounded-xl border-slate-200 text-sm focus:border-rose-500 focus:ring-rose-500">

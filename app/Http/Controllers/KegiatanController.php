@@ -26,9 +26,23 @@ class KegiatanController extends Controller
             $this->applyStatusFilter($query, $status);
         }
 
+        $baseCountQuery = Kegiatan::visibleTo($request->user());
+        $counts = [
+            'mendatang' => (clone $baseCountQuery)->where(function ($q) {
+                $this->applyStatusFilter($q, 'akan_datang');
+            })->count(),
+            'berlangsung' => (clone $baseCountQuery)->where(function ($q) {
+                $this->applyStatusFilter($q, 'berlangsung');
+            })->count(),
+            'selesai' => (clone $baseCountQuery)->where(function ($q) {
+                $this->applyStatusFilter($q, 'selesai');
+            })->count(),
+        ];
+
         return view('kegiatan.index', [
             'kegiatans' => $query->paginate(12)->withQueryString(),
             'status' => $status,
+            'counts' => $counts,
         ]);
     }
 

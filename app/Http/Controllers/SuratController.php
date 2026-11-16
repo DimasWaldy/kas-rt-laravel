@@ -29,10 +29,24 @@ class SuratController extends Controller
             $query->where('status', $request->string('status'));
         }
 
+        $baseCountQuery = Surat::query();
+        if ($user->role_name === 'warga') {
+            $baseCountQuery->where('user_id', $user->id);
+        } else {
+            $baseCountQuery->visibleTo($user);
+        }
+
+        $counts = [
+            'menunggu_rt' => (clone $baseCountQuery)->whereIn('status', ['submitted', 'verified_rt'])->count(),
+            'menunggu_rw' => (clone $baseCountQuery)->where('status', 'approved_rt')->count(),
+            'selesai' => (clone $baseCountQuery)->where('status', 'done')->count(),
+        ];
+
         return view('surat.index', [
             'surats' => $query->paginate(12)->withQueryString(),
             'status' => $request->string('status')->toString(),
             'types' => Surat::TYPES,
+            'counts' => $counts,
         ]);
     }
 

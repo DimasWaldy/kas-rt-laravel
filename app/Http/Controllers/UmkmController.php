@@ -38,15 +38,20 @@ class UmkmController extends Controller
             $query->where('kategori', $kategori);
         }
 
+        $stats = [
+            'terdaftar' => Umkm::where('rw_id', $rwId)->where('status', 'approved')->count(),
+            'pending' => Umkm::where('rw_id', $rwId)->where('status', 'pending')->count(),
+            'kategori' => count($this->categories()),
+        ];
+
         return view('umkm.index', [
             'umkms' => $query->paginate(12)->withQueryString(),
             'status' => $status,
             'kategori' => $kategori,
             'categories' => $this->categories(),
             'canManage' => $canManage,
-            'pendingCount' => $canManage
-                ? Umkm::where('rw_id', $rwId)->where('status', 'pending')->count()
-                : 0,
+            'pendingCount' => $stats['pending'],
+            'stats' => $stats,
         ]);
     }
 
