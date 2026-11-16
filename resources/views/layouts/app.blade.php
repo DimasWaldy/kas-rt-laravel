@@ -65,28 +65,6 @@
                     'visible' => true,
                 ],
                 [
-                    'label' => 'Direktori RW',
-                    'route' => 'direktori-rw.index',
-                    'active' => 'direktori-rw*',
-                    'icon' => 'fa-address-book',
-                    'iconClass' => 'text-emerald-600',
-                    'permission' => 'view-direktori-rw',
-                    'visible' => $user->hasPermission('view-direktori-rw'),
-                ],
-                [
-                    'label' => 'Edit Profil',
-                    'route' => 'profile.edit',
-                    'active' => 'profile',
-                    'icon' => 'fa-user',
-                    'iconClass' => 'text-emerald-600',
-                    'visible' => true,
-                ],
-            ],
-        ],
-        [
-            'label' => 'Menu Khusus Admin',
-            'items' => [
-                [
                     'label' => 'Admin Dashboard',
                     'route' => 'admin.dashboard',
                     'active' => 'admin/dashboard',
@@ -95,26 +73,18 @@
                     'visible' => $user->isAdmin(),
                 ],
                 [
-                    'label' => 'Manajemen Akun',
-                    'route' => 'admin.accounts.create',
-                    'active' => 'admin/accounts*',
-                    'icon' => 'fa-users-gear',
+                    'label' => 'Direktori RW',
+                    'route' => 'direktori-rw.index',
+                    'active' => 'direktori-rw*',
+                    'icon' => 'fa-address-book',
                     'iconClass' => 'text-emerald-600',
-                    'visible' => $user->isGlobalOperator() && $user->isAktif() && $user->hasPermission('admin-only'),
-                ],
-                [
-                    'label' => 'Verifikasi Warga',
-                    'route' => 'verifikasi-warga.index',
-                    'active' => 'verifikasi-warga*',
-                    'icon' => 'fa-user-check',
-                    'iconClass' => 'text-emerald-600',
-                    'permission' => 'manage-warga',
-                    'visible' => $user->hasPermission('manage-warga'),
+                    'permission' => 'view-direktori-rw',
+                    'visible' => $user->hasPermission('view-direktori-rw'),
                 ],
             ],
         ],
         [
-            'label' => $user->isRwOfficial() ? 'Rekap Keuangan RW' : 'Transaksi',
+            'label' => $user->isRwOfficial() ? 'Rekap Keuangan RW' : 'Keuangan & Kas',
             'items' => [
                 [
                     'label' => 'Kas Masuk',
@@ -133,26 +103,13 @@
                     'visible' => ! $user->isRwOfficial() && $user->canViewFinance(),
                 ],
                 [
-                    'label' => 'Tagihan',
+                    'label' => $user->canManageFinance() ? 'Tagihan Warga' : 'Tagihan Iuran',
                     'route' => 'tagihan.index',
-                    'active' => 'tagihan*',
+                    'active' => ['tagihan', 'tagihan/*'],
                     'icon' => 'fa-receipt',
                     'iconClass' => 'text-lime-600',
                     'visible' => ! $user->isRwOfficial(),
                 ],
-                [
-                    'label' => 'Laporan Kas',
-                    'route' => 'laporan-kas.index',
-                    'active' => 'admin/laporan-kas*',
-                    'icon' => 'fa-chart-pie',
-                    'iconClass' => 'text-emerald-600',
-                    'visible' => $user->canViewFinance(),
-                ],
-            ],
-        ],
-        [
-            'label' => 'Pengelolaan RT',
-            'items' => [
                 [
                     'label' => 'Iuran Bulanan',
                     'route' => 'iuran-bulanan.index',
@@ -170,9 +127,76 @@
                     'visible' => $user->hasPermission('manage-finance'),
                 ],
                 [
+                    'label' => 'Verifikasi Tagihan',
+                    'route' => 'tagihan.admin',
+                    'active' => 'admin/tagihan*',
+                    'icon' => 'fa-clipboard-list',
+                    'iconClass' => 'text-green-600',
+                    'visible' => $user->canManageFinance(),
+                ],
+                [
+                    'label' => 'Laporan Kas',
+                    'route' => 'laporan-kas.index',
+                    'active' => 'admin/laporan-kas*',
+                    'icon' => 'fa-chart-pie',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->canViewFinance(),
+                ],
+            ],
+        ],
+        [
+            'label' => 'Kewargaan & Wilayah',
+            'items' => [
+                [
+                    'label' => 'Verifikasi Warga',
+                    'route' => 'verifikasi-warga.index',
+                    'active' => 'verifikasi-warga*',
+                    'icon' => 'fa-user-check',
+                    'iconClass' => 'text-emerald-600',
+                    'permission' => 'manage-warga',
+                    'visible' => $user->hasPermission('manage-warga'),
+                ],
+                [
+                    'label' => 'Data Warga',
+                    'route' => 'admin.warga.index',
+                    'active' => 'admin/warga*',
+                    'icon' => 'fa-users',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->canManageWarga(),
+                ],
+                [
+                    'label' => 'Data Rumah',
+                    'route' => 'admin.rumah.index',
+                    'active' => 'admin/rumah*',
+                    'icon' => 'fa-house-user',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->canManageWarga(),
+                ],
+                [
+                    'label' => 'Manajemen Akun',
+                    'route' => 'admin.accounts.create',
+                    'active' => 'admin/accounts*',
+                    'icon' => 'fa-users-gear',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->isGlobalOperator() && $user->isAktif() && $user->hasPermission('admin-only'),
+                ],
+            ],
+        ],
+        [
+            'label' => 'Layanan & Fasilitas',
+            'items' => [
+                [
+                    'label' => 'Surat Menyurat',
+                    'route' => 'surat.index',
+                    'active' => 'surat*',
+                    'icon' => 'fa-envelope-open-text',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->canViewSurat(),
+                ],
+                [
                     'label' => 'Aset RT',
                     'route' => 'aset.index',
-                    'active' => 'aset*',
+                    'active' => ['aset', 'aset/*'],
                     'icon' => 'fa-boxes-stacked',
                     'iconClass' => 'text-teal-600',
                     'visible' => $user->hasPermission('view-aset'),
@@ -188,7 +212,7 @@
                 [
                     'label' => 'Aset RW',
                     'route' => 'aset-rw.index',
-                    'active' => 'aset-rw*',
+                    'active' => ['aset-rw', 'aset-rw/*'],
                     'icon' => 'fa-building-user',
                     'iconClass' => 'text-teal-600',
                     'visible' => $user->hasPermission('view-aset-rw'),
@@ -202,13 +226,50 @@
                     'visible' => $user->hasPermission('pinjam-aset-rw'),
                 ],
                 [
-                    'label' => 'Verifikasi Tagihan',
-                    'route' => 'tagihan.admin',
-                    'active' => 'admin/tagihan*',
-                    'icon' => 'fa-clipboard-list',
-                    'iconClass' => 'text-green-600',
-                    'visible' => $user->canManageFinance(),
+                    'label' => 'Fasilitas Lingkungan',
+                    'route' => 'fasilitas.index',
+                    'active' => 'fasilitas*',
+                    'icon' => 'fa-building-shield',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('view-fasilitas'),
                 ],
+                [
+                    'label' => 'Pengaduan Fasilitas',
+                    'route' => 'pengaduan-fasilitas.index',
+                    'active' => 'pengaduan-fasilitas*',
+                    'icon' => 'fa-triangle-exclamation',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('lapor-fasilitas'),
+                ],
+                [
+                    'label' => 'Keamanan & Ronda',
+                    'route' => 'keamanan.index',
+                    'active' => 'keamanan*',
+                    'icon' => 'fa-shield-halved',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('manage-fasilitas'),
+                ],
+                [
+                    'label' => 'Pengaduan Warga',
+                    'route' => 'pengaduan.index',
+                    'active' => ['pengaduan', 'pengaduan/*'],
+                    'icon' => 'fa-bullhorn',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => true,
+                ],
+                [
+                    'label' => 'Agenda Kegiatan',
+                    'route' => 'kegiatan.index',
+                    'active' => 'kegiatan*',
+                    'icon' => 'fa-calendar-days',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('view-kegiatan'),
+                ],
+            ],
+        ],
+        [
+            'label' => 'Pemberdayaan & Ekonomi',
+            'items' => [
                 [
                     'label' => 'Koperasi Warga',
                     'route' => 'koperasi.index',
@@ -226,44 +287,7 @@
                     'visible' => $user->hasPermission('manage-koperasi'),
                 ],
                 [
-                    'label' => 'Data Rumah',
-                    'route' => 'admin.rumah.index',
-                    'active' => 'admin/rumah*',
-                    'icon' => 'fa-house-user',
-                    'iconClass' => 'text-teal-600',
-                    'visible' => $user->canManageWarga(),
-                ],
-                [
-                    'label' => 'Data Warga',
-                    'route' => 'admin.warga.index',
-                    'active' => 'admin/warga*',
-                    'icon' => 'fa-users',
-                    'iconClass' => 'text-teal-600',
-                    'visible' => $user->canManageWarga(),
-                ],
-            ],
-        ],
-        [
-            'label' => 'Layanan',
-            'items' => [
-                [
-                    'label' => 'Pengaduan',
-                    'route' => 'pengaduan.index',
-                    'active' => ['pengaduan', 'pengaduan/*'],
-                    'icon' => 'fa-bullhorn',
-                    'iconClass' => 'text-emerald-600',
-                    'visible' => true,
-                ],
-                [
-                    'label' => 'Fasilitas',
-                    'route' => 'fasilitas.index',
-                    'active' => 'fasilitas*',
-                    'icon' => 'fa-building-shield',
-                    'iconClass' => 'text-emerald-600',
-                    'visible' => $user->hasPermission('view-fasilitas'),
-                ],
-                [
-                    'label' => 'UMKM',
+                    'label' => 'Katalog UMKM',
                     'route' => 'umkm.index',
                     'active' => ['umkm', 'umkm/*'],
                     'icon' => 'fa-store',
@@ -279,36 +303,12 @@
                     'visible' => $user->hasPermission('daftar-umkm'),
                 ],
                 [
-                    'label' => 'Pengaduan Fasilitas',
-                    'route' => 'pengaduan-fasilitas.index',
-                    'active' => 'pengaduan-fasilitas*',
-                    'icon' => 'fa-triangle-exclamation',
+                    'label' => 'Bank Sampah',
+                    'route' => 'bank-sampah.index',
+                    'active' => 'bank-sampah*',
+                    'icon' => 'fa-recycle',
                     'iconClass' => 'text-emerald-600',
-                    'visible' => $user->hasPermission('lapor-fasilitas'),
-                ],
-                [
-                    'label' => 'Keamanan',
-                    'route' => 'keamanan.index',
-                    'active' => 'keamanan*',
-                    'icon' => 'fa-shield-halved',
-                    'iconClass' => 'text-emerald-600',
-                    'visible' => $user->hasPermission('manage-fasilitas'),
-                ],
-                [
-                    'label' => 'Surat Menyurat',
-                    'route' => 'surat.index',
-                    'active' => 'surat*',
-                    'icon' => 'fa-envelope-open-text',
-                    'iconClass' => 'text-emerald-600',
-                    'visible' => $user->canViewSurat(),
-                ],
-                [
-                    'label' => 'Kegiatan',
-                    'route' => 'kegiatan.index',
-                    'active' => 'kegiatan*',
-                    'icon' => 'fa-calendar-days',
-                    'iconClass' => 'text-emerald-600',
-                    'visible' => $user->hasPermission('view-kegiatan'),
+                    'visible' => $user->hasPermission('view-bank-sampah'),
                 ],
                 [
                     'label' => 'Posyandu',
@@ -317,14 +317,6 @@
                     'icon' => 'fa-baby',
                     'iconClass' => 'text-rose-500',
                     'visible' => $user->hasPermission('view-posyandu'),
-                ],
-                [
-                    'label' => 'Bank Sampah',
-                    'route' => 'bank-sampah.index',
-                    'active' => 'bank-sampah*',
-                    'icon' => 'fa-recycle',
-                    'iconClass' => 'text-emerald-600',
-                    'visible' => $user->hasPermission('view-bank-sampah'),
                 ],
             ],
         ],
@@ -425,21 +417,26 @@
         </nav>
 
         <div class="border-t border-emerald-100 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
-            <div class="mb-3 rounded-2xl border border-emerald-100 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
-                <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
-                        {{ substr($user->name, 0, 1) }}
+            <a href="{{ route('profile.edit') }}" class="group mb-3 block rounded-2xl border {{ request()->is('profile*') ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/60 dark:border-emerald-500' : 'border-emerald-100 bg-white dark:border-slate-800 dark:bg-slate-900/60' }} p-3 shadow-xs transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:bg-slate-800/80" title="Klik untuk edit profil">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700 transition group-hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
+                            {{ substr($user->name, 0, 1) }}
+                        </div>
+                        <div class="min-w-0">
+                            <p class="truncate text-xs font-bold text-slate-900 transition group-hover:text-emerald-800 dark:text-slate-100 dark:group-hover:text-emerald-300">{{ $user->name }}</p>
+                            <p class="truncate text-[10px] capitalize text-emerald-700 dark:text-emerald-400">{{ $roleLabel }}</p>
+                        </div>
                     </div>
-                    <div class="min-w-0">
-                        <p class="truncate text-xs font-bold text-slate-900">{{ $user->name }}</p>
-                        <p class="truncate text-[10px] capitalize text-emerald-700">{{ $roleLabel }}</p>
+                    <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400 transition group-hover:bg-emerald-100 group-hover:text-emerald-700 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-slate-700 dark:group-hover:text-emerald-300">
+                        <i class="fa-solid fa-gear text-xs"></i>
                     </div>
                 </div>
-            </div>
+            </a>
 
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button class="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100">
+                <button class="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100 dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-400 dark:hover:bg-slate-700">
                     <i class="fa-solid fa-right-from-bracket"></i>
                     <span>Logout</span>
                 </button>
