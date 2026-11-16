@@ -3,33 +3,63 @@
 @section('title', 'Tagihan Saya')
 
 @section('content')
-<div class="flex flex-col gap-6">
-    <div class="bg-white rounded-3xl shadow-xs p-6 border-l-8 border-yellow-500">
-        <h2 class="text-xl font-bold text-slate-800">Tagihan Bulanan</h2>
-        <p class="text-slate-500 mt-2">Berikut tagihan iuran rumah Anda untuk bulan ini dan riwayat tagihan sebelumnya.</p>
-        @if($rumah)
-            <p class="mt-2 text-sm font-semibold text-emerald-700">Rumah: {{ $rumah->label }}</p>
-        @endif
-        @if(auth()->user()->role_name !== 'warga')
-            <div class="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-900">
-                <div class="flex items-start gap-3">
-                    <i class="fa-solid fa-circle-info mt-0.5 text-sky-600"></i>
-                    <div>
-                        <p class="text-sm font-semibold">Informasi Khusus Pengurus / Non-Warga</p>
-                        <p class="mt-0.5 text-xs leading-5 text-sky-700">
-                            Halaman tagihan personal ini diperuntukkan bagi warga penerima tagihan iuran rumah. Akun dengan peran pengurus/petugas tidak memiliki tagihan personal kecuali terdaftar sebagai warga penanggung jawab rumah.
-                            @if(auth()->user()->canManageFinance())
-                                Untuk memantau, memverifikasi, atau mengelola tagihan seluruh warga, silakan buka menu <a href="{{ route('tagihan.admin') }}" class="font-bold underline text-sky-800 hover:text-sky-950">Kelola Tagihan Warga</a>.
-                            @endif
-                        </p>
-                    </div>
-                </div>
+<div class="mx-auto max-w-7xl space-y-6">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-slate-100 sm:text-3xl">Tagihan Iuran</h1>
+            <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
+                Pantau tagihan iuran rumah Anda untuk bulan ini dan riwayat pembayaran sebelumnya.
+                @if($rumah)
+                    <span class="font-bold text-emerald-700 dark:text-emerald-400">· Rumah: {{ $rumah->label }}</span>
+                @endif
+            </p>
+        </div>
+
+        @if(auth()->user()->canManageFinance())
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('tagihan.admin') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white shadow-xs transition hover:bg-emerald-800">
+                    <i class="fa-solid fa-list-check"></i> Kelola Tagihan Seluruh Warga
+                </a>
             </div>
         @endif
-        <div class="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
-            <p class="text-sm font-semibold text-emerald-900">Tagihan dihitung per rumah/unit hunian, bukan per KK.</p>
-            <p class="mt-1 text-xs leading-5 text-emerald-700">Jika satu rumah berisi lebih dari satu KK, tagihan iuran tetap dibuat satu kali untuk rumah tersebut dan dibayarkan oleh penanggung jawab rumah.</p>
+    </div>
+
+    {{-- 3 KPI Summary Cards --}}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Belum Dibayar</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-red-600 dark:text-red-400 sm:text-3xl">{{ $tagihan->where('status', 'belum_bayar')->count() }} tagihan</p>
         </div>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Menunggu Konfirmasi</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-amber-600 dark:text-amber-400 sm:text-3xl">{{ $tagihan->where('status', 'menunggu_konfirmasi')->count() }} tagihan</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Iuran Lunas</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 sm:text-3xl">{{ $tagihan->where('status', 'lunas')->count() }} tagihan</p>
+        </div>
+    </div>
+
+    @if(auth()->user()->role_name !== 'warga')
+        <div class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200">
+            <div class="flex items-start gap-3">
+                <i class="fa-solid fa-circle-info mt-0.5 text-sky-600 dark:text-sky-400"></i>
+                <div>
+                    <p class="text-sm font-semibold">Informasi Khusus Pengurus / Non-Warga</p>
+                    <p class="mt-0.5 text-xs leading-5 text-sky-700 dark:text-sky-300">
+                        Halaman tagihan personal ini diperuntukkan bagi warga penerima tagihan iuran rumah. Akun dengan peran pengurus/petugas tidak memiliki tagihan personal kecuali terdaftar sebagai warga penanggung jawab rumah.
+                        @if(auth()->user()->canManageFinance())
+                            Untuk memantau, memverifikasi, atau mengelola tagihan seluruh warga, silakan buka menu <a href="{{ route('tagihan.admin') }}" class="font-bold underline text-sky-800 hover:text-sky-950 dark:text-sky-300 dark:hover:text-white">Kelola Tagihan Warga</a>.
+                        @endif
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+        <p class="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Tagihan dihitung per rumah/unit hunian, bukan per KK.</p>
+        <p class="mt-1 text-xs leading-5 text-emerald-700 dark:text-emerald-400">Jika satu rumah berisi lebih dari satu KK, tagihan iuran tetap dibuat satu kali untuk rumah tersebut dan dibayarkan oleh penanggung jawab rumah.</p>
     </div>
 
     <x-billing-contact-warning :rumah="$rumah" />

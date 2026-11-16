@@ -62,7 +62,19 @@ class VerifikasiWargaController extends Controller
 
         $pjHouse = session('domisili_rumah_id') ? Rumah::billingVisibleTo($actor)->whereKey(session('domisili_rumah_id'))->needsBillingContact()->first() : null;
 
-        return view('verifikasi_warga.index', compact('antrian', 'wargas', 'domisilis', 'pjHouse'));
+        $stats = [
+            'menunggu' => $antrian->count(),
+            'terverifikasi' => Warga::query()
+                ->where('status_verifikasi', 'verified')
+                ->where(fn (Builder $query) => $this->scopeWargaToActor($query, $actor))
+                ->count(),
+            'ditolak' => Warga::query()
+                ->where('status_verifikasi', 'rejected')
+                ->where(fn (Builder $query) => $this->scopeWargaToActor($query, $actor))
+                ->count(),
+        ];
+
+        return view('verifikasi_warga.index', compact('antrian', 'wargas', 'domisilis', 'pjHouse', 'stats'));
     }
 
     public function showDomisili(Request $request, Warga $warga): View

@@ -6,9 +6,8 @@
 <div class="mx-auto max-w-7xl space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <p class="text-sm font-semibold text-emerald-700">Layanan administrasi Smart RW</p>
-            <h1 class="text-2xl font-black text-slate-900">Surat Menyurat</h1>
-            <p class="mt-1 text-sm text-slate-500">Pantau pengajuan dan proses persetujuan surat warga.</p>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-slate-100 sm:text-3xl">Surat Menyurat</h1>
+            <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Ajukan, setujui pengurus RT dan RW, lalu cetak surat pengantar resmi.</p>
         </div>
 
         @if(auth()->user()->hasPermission('submit-surat'))
@@ -16,12 +15,28 @@
                 type="button"
                 x-data
                 @click="$dispatch('open-modal', 'form-surat')"
-                class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800"
+                class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white shadow-xs transition hover:bg-emerald-800"
             >
                 <i class="fa-solid fa-plus"></i>
                 Ajukan Surat
             </button>
         @endif
+    </div>
+
+    {{-- 3 KPI Summary Cards --}}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Menunggu RT</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">{{ $counts['menunggu_rt'] ?? 0 }}</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Menunggu RW</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">{{ $counts['menunggu_rw'] ?? 0 }}</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">Siap Cetak / Selesai</p>
+            <p class="mt-2 text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 sm:text-3xl">{{ $counts['selesai'] ?? 0 }}</p>
+        </div>
     </div>
 
     @if(session('info'))
