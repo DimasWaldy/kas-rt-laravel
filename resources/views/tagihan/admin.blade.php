@@ -4,14 +4,20 @@
 
 @section('content')
 <div class="mx-auto max-w-7xl space-y-6" x-data="{ showTagihanForm: {{ old('_form') === 'tagihan_manual' ? 'true' : 'false' }} }">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-black text-slate-900 dark:text-slate-100 sm:text-3xl">Iuran & Tagihan Warga</h1>
-            <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Pantau tagihan, verifikasi bukti pembayaran, dan kelola iuran warga lingkungan.</p>
+    <div class="rounded-3xl border border-emerald-100 bg-linear-to-r/srgb from-emerald-700 to-green-600 p-6 text-white shadow-lg shadow-emerald-100 dark:border-emerald-900/40">
+        <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">Verifikasi &amp; Pengelolaan</p>
+                <h1 class="mt-2 text-2xl font-black md:text-3xl">Iuran &amp; Tagihan Warga</h1>
+                <p class="mt-2 max-w-2xl text-sm font-medium leading-6 text-emerald-50">
+                    Pantau tagihan, verifikasi bukti pembayaran, dan kelola iuran warga lingkungan.
+                </p>
+            </div>
+            <button type="button" x-on:click="showTagihanForm = true" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-xs transition hover:bg-emerald-50">
+                <i class="fa-solid fa-plus"></i>
+                <span>Buat Tagihan</span>
+            </button>
         </div>
-        <button type="button" x-on:click="showTagihanForm = true" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white shadow-xs transition hover:bg-emerald-800">
-            <i class="fa-solid fa-plus"></i> Buat Tagihan
-        </button>
     </div>
 
     {{-- 3 KPI Summary Cards --}}
