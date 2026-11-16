@@ -491,7 +491,7 @@
                                 @php
                                     $type = class_basename($notification->type);
                                     [$notifIcon, $notifColor] = match ($type) {
-                                        'PeminjamanDiajukan' => ['fa-hand-holding-box', 'bg-green-50 text-green-700'],
+                                        'PeminjamanDiajukan' => ['fa-hand-holding', 'bg-green-50 text-green-700'],
                                         'PeminjamanDisetujui' => ['fa-circle-check', 'bg-emerald-50 text-emerald-700'],
                                         'PeminjamanDitolak' => ['fa-circle-xmark', 'bg-red-50 text-red-700'],
                                         default => ['fa-money-bill', 'bg-blue-50 text-blue-700'],
@@ -569,7 +569,7 @@
                                 @php
                                     $type = class_basename($notification->type);
                                     [$notifIcon, $notifColor] = match ($type) {
-                                        'PeminjamanDiajukan' => ['fa-hand-holding-box', 'bg-green-50 text-green-700'],
+                                        'PeminjamanDiajukan' => ['fa-hand-holding', 'bg-green-50 text-green-700'],
                                         'PeminjamanDisetujui' => ['fa-circle-check', 'bg-emerald-50 text-emerald-700'],
                                         'PeminjamanDitolak' => ['fa-circle-xmark', 'bg-red-50 text-red-700'],
                                         default => ['fa-money-bill', 'bg-blue-50 text-blue-700'],
