@@ -192,14 +192,14 @@
 <div class="grid grid-cols-2 gap-4 md:grid-cols-4 mb-6">
     <div class="card-fintech p-4">
         <div class="icon-tile bg-green-50">
-            <i class="fa-solid fa-arrow-down-left text-green-600"></i>
+            <i class="fa-solid fa-arrow-down text-green-600"></i>
         </div>
         <p class="mt-3 text-xs font-medium text-slate-400">Total Pemasukan</p>
         <p class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100 truncate">Rp {{ number_format($kasMasuk ?? 0, 0, ',', '.') }}</p>
     </div>
     <div class="card-fintech p-4">
         <div class="icon-tile bg-red-50">
-            <i class="fa-solid fa-arrow-up-right text-red-500"></i>
+            <i class="fa-solid fa-arrow-up text-red-500"></i>
         </div>
         <p class="mt-3 text-xs font-medium text-slate-400">Total Pengeluaran</p>
         <p class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100 truncate">Rp {{ number_format($kasKeluar ?? 0, 0, ',', '.') }}</p>
