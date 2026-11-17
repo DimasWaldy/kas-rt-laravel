@@ -240,3 +240,39 @@ test('verifikasi ktp rfid membatasi izin wilayah, masa berlaku token, dan pencab
     $this->travel(6)->hours();
     ($this->tap)($freshToken, '00112233')->assertUnauthorized();
 });
+
+test('warga dapat melihat kartu digital dan panduan verifikasi rfid di halaman khusus serta shortcut dashboard dan sidebar', function () {
+    $this->get(route('warga.rfid.show'))->assertRedirect(route('login'));
+
+    $this->actingAs($this->wargaUser)
+        ->get(route('warga.rfid.show'))
+        ->assertOk()
+        ->assertSee('Kartu KTP &amp; Verifikasi RFID', false)
+        ->assertSee('Cara Melakukan Verifikasi KTP via RFID')
+        ->assertSee('Belum Di-Tap')
+        ->assertSee('Sesi Alat Belum Dibuka');
+
+    $this->actingAs($this->wargaUser)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee(route('warga.rfid.show'))
+        ->assertSee('Lihat Cara Tap');
+
+    // Ketika KTP sudah diverifikasi
+    RfidCard::create([
+        'user_id' => $this->wargaUser->id,
+        'uid_hash' => RfidCard::hashUid('11223344'),
+        'ktp_verified_at' => now(),
+        'verified_by_rt_id' => $this->rt->id,
+    ]);
+
+    $this->actingAs($this->wargaUser)
+        ->get(route('warga.rfid.show'))
+        ->assertOk()
+        ->assertSee('Terdaftar Resmi');
+
+    $this->actingAs($this->wargaUser)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Kartu Digital');
+});

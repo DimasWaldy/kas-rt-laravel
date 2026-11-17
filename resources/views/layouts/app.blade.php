@@ -158,11 +158,11 @@
                 ],
                 [
                     'label' => 'Verifikasi KTP (RFID)',
-                    'route' => 'admin.warga.rfid.show',
-                    'active' => 'admin/warga/rfid*',
+                    'route' => \App\Support\RfidAccess::canManageWargaKtp($user) ? 'admin.warga.rfid.show' : 'warga.rfid.show',
+                    'active' => \App\Support\RfidAccess::canManageWargaKtp($user) ? 'admin/warga/rfid*' : 'kartu-rfid*',
                     'icon' => 'fa-id-card',
                     'iconClass' => 'text-emerald-600',
-                    'visible' => \App\Support\RfidAccess::canManageWargaKtp($user),
+                    'visible' => true,
                 ],
                 [
                     'label' => 'Data Warga',
