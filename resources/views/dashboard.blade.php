@@ -109,14 +109,14 @@
                     @endphp
                     <div class="mt-3">
                         @if($ktpRfidCard?->ktp_verified_at)
-                            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200">
-                                <i class="fa-solid fa-id-card"></i>
-                                KTP Terdaftar di {{ $ktpRfidCard->verifiedRt?->name ?? 'RT' }} &amp; Sistem (RFID)
-                            </span>
+                            <div class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                                <i class="fa-solid fa-id-card text-emerald-600 dark:text-emerald-400"></i>
+                                <span>KTP Terdaftar di {{ $ktpRfidCard->verifiedRt?->name ?? 'RT' }} &amp; Sistem (RFID Aktif)</span>
+                            </div>
                         @else
                             <div class="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
                                 <p class="font-bold"><i class="fa-solid fa-id-card mr-1"></i> KTP belum diverifikasi via RFID</p>
-                                <p class="mt-0.5">Layanan dasar tetap aktif. Bawa KTP ke petugas RT/Admin untuk tap verifikasi agar terdaftar di RT &amp; dapat mendaftar Koperasi serta Absensi RFID.</p>
+                                <p class="mt-0.5">Layanan dasar tetap aktif. Bawa e-KTP fisik Anda ke petugas RT/Admin untuk 1x tap di alat reader agar akun terverifikasi penuh dan dapat mengakses Koperasi serta Absensi Kegiatan.</p>
                             </div>
                         @endif
                     </div>
@@ -142,6 +142,52 @@
     <a href="{{ route('admin.accounts.create') }}" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800">
         <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Buka Manajemen Akun
     </a>
+</div>
+@endif
+
+@if(\App\Support\RfidAccess::canManageWargaKtp(auth()->user()))
+@php
+    $rfidActor = auth()->user();
+    $rfidScope = \App\Support\RfidAccess::resolveWargaKtpScope($rfidActor);
+    $rfidActiveSession = \App\Models\RfidSession::where('scope_key', $rfidScope['scope_key'])->first();
+    $isRfidSessionOpen = $rfidActiveSession && ! $rfidActiveSession->isExpired();
+    $scopedUserIds = \App\Support\RfidAccess::wargaKtpParticipantsForActor($rfidActor)->select('users.id');
+    $ktpVerifiedCount = \App\Models\RfidCard::whereIn('user_id', $scopedUserIds)->whereNotNull('ktp_verified_at')->count();
+    $totalWargaScoped = \App\Support\RfidAccess::wargaKtpParticipantsForActor($rfidActor)->count();
+@endphp
+<div class="mb-8 rounded-3xl border border-slate-200/80 bg-linear-to-r/srgb from-slate-900 via-emerald-950 to-slate-900 p-6 text-white shadow-lg shadow-emerald-950/20 dark:border-slate-800">
+    <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex items-start gap-4">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <i class="fa-solid fa-id-card text-2xl"></i>
+            </div>
+            <div>
+                <div class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-xs text-emerald-200">
+                    <span class="inline-block h-2 w-2 rounded-full {{ $isRfidSessionOpen ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400' }}"></span>
+                    <span>Sesi Reader ESP32: <strong>{{ $isRfidSessionOpen ? 'Aktif (Terbuka)' : 'Sesi Ditutup' }}</strong></span>
+                </div>
+                <h2 class="mt-2 text-xl font-black text-white sm:text-2xl">Verifikasi KTP Warga (Tap RFID)</h2>
+                <p class="mt-1 text-sm text-slate-300 max-w-2xl leading-relaxed">
+                    Tempelkan fisik e-KTP warga ke reader ESP32 untuk mendaftarkan UID KTP ke RT dan sistem resmi (syarat wajib Koperasi Warga &amp; Absensi Kegiatan).
+                </p>
+                <div class="mt-3 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-300">
+                    <span class="inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                        <strong class="text-white">{{ $ktpVerifiedCount }}</strong> dari {{ $totalWargaScoped }} warga telah terverifikasi KTP
+                    </span>
+                    @if($isRfidSessionOpen && $rfidActiveSession->expires_at)
+                        <span class="text-emerald-300">· Sesi aktif s/d {{ $rfidActiveSession->expires_at->timezone('Asia/Jakarta')->format('H:i') }} WIB</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="flex shrink-0 flex-wrap items-center gap-3">
+            <a href="{{ route('admin.warga.rfid.show') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-slate-950 shadow-xs transition hover:bg-emerald-400">
+                <i class="fa-solid fa-wifi"></i> Buka Layanan Tap KTP
+            </a>
+        </div>
+    </div>
 </div>
 @endif
 
@@ -250,6 +296,7 @@
         ['label' => 'Bayar Iuran', 'route' => 'tagihan.index', 'icon' => 'fa-wallet', 'visible' => ! $u->isRwOfficial()],
         ['label' => 'Laporan Kas', 'route' => 'laporan-kas.index', 'icon' => 'fa-chart-pie', 'visible' => $u->canViewFinance()],
         ['label' => 'Verifikasi Warga', 'route' => 'verifikasi-warga.index', 'icon' => 'fa-user-check', 'visible' => $u->canManageWarga()],
+        ['label' => 'Tap KTP (RFID)', 'route' => 'admin.warga.rfid.show', 'icon' => 'fa-id-card', 'visible' => \App\Support\RfidAccess::canManageWargaKtp($u)],
         ['label' => 'Kas Masuk', 'route' => 'kas-masuk.index', 'icon' => 'fa-money-bill-trend-up', 'visible' => ! $u->isRwOfficial() && $u->canViewFinance()],
         ['label' => 'Kas Keluar', 'route' => 'kas-keluar.index', 'icon' => 'fa-money-bill-transfer', 'visible' => ! $u->isRwOfficial() && $u->canViewFinance()],
         ['label' => 'Iuran Bulanan', 'route' => 'iuran-bulanan.index', 'icon' => 'fa-list-check', 'visible' => $u->canManageFinance() || in_array($u->role_name, ['ketua_rt', 'rt', 'ketua-rt'], true)],
