@@ -90,7 +90,7 @@
         default => 'bg-slate-700 hover:bg-slate-800',
     };
 @endphp
-<div class="mb-6 rounded-2xl border {{ $statusCardClasses }} p-6">
+<div x-data="{ showRfidGuide: false }" class="mb-6 rounded-2xl border {{ $statusCardClasses }} p-6">
     <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div class="flex items-start gap-3">
             <i class="fa-solid {{ $statusIcon }} {{ $statusIconClasses }} mt-1 text-2xl"></i>
@@ -141,10 +141,16 @@
                                         <p class="mt-0.5 text-[11px] text-amber-800 dark:text-amber-300">Layanan dasar tetap aktif. Bawa e-KTP fisik Anda ke petugas RT/Admin untuk 1x tap di alat reader agar akun terverifikasi penuh dan dapat mengakses Koperasi serta Absensi Kegiatan.</p>
                                     </div>
                                 </div>
-                                <a href="{{ route('warga.rfid.show') }}" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-amber-700">
-                                    <i class="fa-solid fa-wifi"></i>
-                                    <span>Lihat Cara Tap</span>
-                                </a>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <button type="button" @click="showRfidGuide = true" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-300 bg-white px-3.5 py-2 text-xs font-bold text-amber-900 shadow-xs transition hover:bg-amber-100 dark:border-amber-500/50 dark:bg-slate-800 dark:text-amber-200">
+                                        <i class="fa-solid fa-circle-question text-amber-600"></i>
+                                        <span>Panduan Tap</span>
+                                    </button>
+                                    <a href="{{ route('warga.rfid.show') }}" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-amber-700">
+                                        <i class="fa-solid fa-wifi"></i>
+                                        <span>Lihat Cara Tap</span>
+                                    </a>
+                                </div>
                             </div>
                         @endif
                     </div>
@@ -155,6 +161,72 @@
                     <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Status Iuran</p>
                     <p class="mt-1 text-sm font-bold capitalize text-slate-700 dark:text-slate-100">{{ str_replace('_', ' ', $userStatus ?? 'Belum Ada Tagihan') }}</p>
             <a href="{{ route('tagihan.index') }}" class="mt-1 inline-block text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">Detail Tagihan</a>
+        </div>
+    </div>
+
+    {{-- Modal Panduan Tap KTP (Alpine.js) --}}
+    <div x-show="showRfidGuide" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" x-transition.opacity>
+        <div @click.away="showRfidGuide = false" class="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 dark:text-white" x-transition.scale.95>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                        <i class="fa-solid fa-id-card text-base"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Panduan Verifikasi e-KTP</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">1x tap untuk verifikasi identitas permanen</p>
+                    </div>
+                </div>
+                <button type="button" @click="showRfidGuide = false" class="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="mt-4 space-y-3 text-xs text-slate-600 dark:text-slate-300">
+                <div class="flex items-start gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-800/60">
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-[11px] font-bold text-white">1</span>
+                    <div>
+                        <p class="font-bold text-slate-900 dark:text-slate-100 text-xs">Siapkan e-KTP Asli Anda</p>
+                        <p class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Semua e-KTP nasional sudah memiliki chip contactless RFID resmi Kemendagri di dalamnya.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-800/60">
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-[11px] font-bold text-white">2</span>
+                    <div>
+                        <p class="font-bold text-slate-900 dark:text-slate-100 text-xs">Temui Pengurus / Datangi Pos RT</p>
+                        <p class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Bawa fisik e-KTP saat sesi alat reader RT dibuka (cek status di halaman Kartu Digital).</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-800/60">
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-[11px] font-bold text-white">3</span>
+                    <div>
+                        <p class="font-bold text-slate-900 dark:text-slate-100 text-xs">Pengurus Mengaktifkan Mode Tap</p>
+                        <p class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Pengurus memilih nama Anda di sistem dan mengaktifkan mode penempelan kartu 2 menit.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-800/60">
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-[11px] font-bold text-white">4</span>
+                    <div>
+                        <p class="font-bold text-slate-900 dark:text-slate-100 text-xs">Tempelkan e-KTP ke Sensor</p>
+                        <p class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Tempelkan e-KTP pada alat reader selama 1 detik sampai berbunyi beep. Akun Anda langsung terverifikasi penuh!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 text-[11px] text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                <i class="fa-solid fa-shield-halved mr-1 text-emerald-600"></i>
+                <strong>Privasi Terjamin:</strong> Sistem hanya membaca kode serial nirkabel unik (UID) kartu untuk verifikasi, tanpa mengakses data sidik jari maupun data biometrik rahasia lainnya.
+            </div>
+
+            <div class="mt-5 flex items-center justify-end gap-2.5">
+                <button type="button" @click="showRfidGuide = false" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                    Tutup
+                </button>
+                <a href="{{ route('warga.rfid.show') }}" class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 shadow-xs">
+                    <i class="fa-solid fa-arrow-right"></i>
+                    <span>Buka Halaman Kartu Warga</span>
+                </a>
+            </div>
         </div>
     </div>
 </div>

@@ -179,6 +179,65 @@
                     </p>
                 </div>
             </div>
+
+            {{-- Tanya Jawab Seputar Verifikasi KTP (FAQ) --}}
+            <div x-data="{ activeFaq: null }" class="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                        <i class="fa-solid fa-circle-question text-base"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Tanya Jawab (FAQ) Verifikasi e-KTP</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Informasi penting seputar keamanan dan penggunaan kartu e-KTP fisik.</p>
+                    </div>
+                </div>
+
+                <div class="divide-y divide-slate-100 dark:divide-slate-800 space-y-1">
+                    {{-- FAQ 1 --}}
+                    <div class="pt-3">
+                        <button type="button" @click="activeFaq = activeFaq === 1 ? null : 1" class="flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200">
+                            <span>Apakah data pribadi saya di e-KTP aman?</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform" :class="activeFaq === 1 ? 'rotate-180' : ''"></i>
+                        </button>
+                        <div x-show="activeFaq === 1" x-cloak x-transition class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Sangat aman. Reader RFID RT hanya membaca kode serial unik nirkabel (UID chip) yang tertanam di kartu KTP Anda sebagai pengenal. Sistem sama sekali tidak mengakses isi chip rahasia seperti sidik jari maupun data biometrik kependudukan.
+                        </div>
+                    </div>
+
+                    {{-- FAQ 2 --}}
+                    <div class="pt-3">
+                        <button type="button" @click="activeFaq = activeFaq === 2 ? null : 2" class="flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200">
+                            <span>Mengapa verifikasi harus lewat tap kartu di alat RT?</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform" :class="activeFaq === 2 ? 'rotate-180' : ''"></i>
+                        </button>
+                        <div x-show="activeFaq === 2" x-cloak x-transition class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Proses tap memastikan bahwa pemilik akun benar-benar memiliki fisik e-KTP yang sah dan hadir di lingkungan RT. Setelah terdaftar, e-KTP Anda berfungsi sebagai kunci kartu pintar untuk absensi kegiatan warga tanpa tanda tangan manual dan syarat masuk ke program Koperasi Warga.
+                        </div>
+                    </div>
+
+                    {{-- FAQ 3 --}}
+                    <div class="pt-3">
+                        <button type="button" @click="activeFaq = activeFaq === 3 ? null : 3" class="flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200">
+                            <span>Bagaimana jika e-KTP saya hilang atau diganti?</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform" :class="activeFaq === 3 ? 'rotate-180' : ''"></i>
+                        </button>
+                        <div x-show="activeFaq === 3" x-cloak x-transition class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Jika e-KTP Anda hilang, segera lapor ke pengurus RT. Pengurus dapat mencabut kartu lama Anda dari sistem dalam 1 klik melalui menu admin agar tidak disalahgunakan, kemudian mendaftarkan kartu e-KTP baru Anda.
+                        </div>
+                    </div>
+
+                    {{-- FAQ 4 --}}
+                    <div class="pt-3">
+                        <button type="button" @click="activeFaq = activeFaq === 4 ? null : 4" class="flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200">
+                            <span>Apakah verifikasi tap KTP harus diulang berkala?</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform" :class="activeFaq === 4 ? 'rotate-180' : ''"></i>
+                        </button>
+                        <div x-show="activeFaq === 4" x-cloak x-transition class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Tidak. Verifikasi tap KTP hanya dilakukan 1 kali saja untuk selamanya. Setelah terverifikasi, status aktif Anda melekat permanen di sistem RT.
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
