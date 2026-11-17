@@ -157,9 +157,17 @@
                     'visible' => $user->hasPermission('manage-warga'),
                 ],
                 [
+                    'label' => 'Verifikasi KTP (RFID)',
+                    'route' => 'admin.warga.rfid.show',
+                    'active' => 'admin/warga/rfid*',
+                    'icon' => 'fa-id-card',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => \App\Support\RfidAccess::canManageWargaKtp($user),
+                ],
+                [
                     'label' => 'Data Warga',
                     'route' => 'admin.warga.index',
-                    'active' => 'admin/warga*',
+                    'active' => ['admin/warga', 'admin/warga/create', 'admin/warga/*/edit'],
                     'icon' => 'fa-users',
                     'iconClass' => 'text-teal-600',
                     'visible' => $user->canManageWarga(),

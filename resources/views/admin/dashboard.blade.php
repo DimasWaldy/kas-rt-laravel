@@ -18,6 +18,9 @@
                 <a href="{{ route('tagihan.admin') }}" class="rounded-2xl bg-white/15 px-4 py-3 font-bold text-white backdrop-blur-sm transition hover:bg-white/25">
                     Verifikasi Tagihan
                 </a>
+                <a href="{{ route('admin.warga.rfid.show') }}" class="rounded-2xl bg-white/15 px-4 py-3 font-bold text-white backdrop-blur-sm transition hover:bg-white/25">
+                    <i class="fa-solid fa-id-card mr-1"></i> Tap KTP (RFID)
+                </a>
                 <a href="{{ route('pengaduan.index', ['filter' => 'pending']) }}" class="rounded-2xl bg-white/15 px-4 py-3 font-bold text-white backdrop-blur-sm transition hover:bg-white/25">
                     Pengaduan Tambahan
                 </a>
