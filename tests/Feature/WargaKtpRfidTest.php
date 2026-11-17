@@ -249,6 +249,7 @@ test('warga dapat melihat kartu digital dan panduan verifikasi rfid di halaman k
         ->assertOk()
         ->assertSee('Kartu KTP &amp; Verifikasi RFID', false)
         ->assertSee('Cara Melakukan Verifikasi KTP via RFID')
+        ->assertSee('Tanya Jawab (FAQ) Verifikasi e-KTP')
         ->assertSee('Belum Di-Tap')
         ->assertSee('Sesi Alat Belum Dibuka');
 
@@ -256,7 +257,15 @@ test('warga dapat melihat kartu digital dan panduan verifikasi rfid di halaman k
         ->get(route('dashboard'))
         ->assertOk()
         ->assertSee(route('warga.rfid.show'))
-        ->assertSee('Lihat Cara Tap');
+        ->assertSee('Lihat Cara Tap')
+        ->assertSee('Panduan Tap')
+        ->assertSee('Panduan Verifikasi e-KTP');
+
+    $this->actingAs($this->ketuaRt)
+        ->get(route('admin.warga.rfid.show'))
+        ->assertOk()
+        ->assertSee('Panduan Petugas &amp; Setup Reader RFID', false)
+        ->assertSee('Setup Alat Reader ESP32');
 
     // Ketika KTP sudah diverifikasi
     RfidCard::create([

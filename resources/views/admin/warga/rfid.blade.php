@@ -34,6 +34,101 @@
         </section>
     @endif
 
+    {{-- Card Panduan Operasional Petugas (Bisa Dibuka/Tutup) --}}
+    <section x-data="{ showGuide: false, guideTab: 'alur' }" class="rounded-3xl border border-emerald-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-4 p-5 sm:p-6 bg-emerald-50/60 dark:bg-emerald-950/20 border-b border-emerald-100 dark:border-emerald-900/40">
+            <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-xs">
+                    <i class="fa-solid fa-book-bookmark text-base"></i>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-slate-900 dark:text-slate-100">Panduan Petugas &amp; Setup Reader RFID</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Petunjuk langkah pendaftaran kartu warga, konfigurasi alat ESP32, dan uji coba simulasi.</p>
+                </div>
+            </div>
+            <button type="button" @click="showGuide = !showGuide" class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-white px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-2xs transition hover:bg-emerald-50 dark:border-emerald-700 dark:bg-slate-800 dark:text-emerald-300">
+                <span x-text="showGuide ? 'Sembunyikan Panduan' : 'Buka Panduan Petugas'">Buka Panduan Petugas</span>
+                <i class="fa-solid text-[10px] transition-transform" :class="showGuide ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            </button>
+        </div>
+
+        <div x-show="showGuide" x-cloak x-transition class="p-5 sm:p-6 space-y-5">
+            {{-- Tab navigasi panduan --}}
+            <div class="flex border-b border-slate-200 dark:border-slate-700 gap-4 text-xs font-bold">
+                <button type="button" @click="guideTab = 'alur'" class="pb-2.5 transition" :class="guideTab === 'alur' ? 'border-b-2 border-emerald-600 text-emerald-700 dark:text-emerald-400 font-extrabold' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'">
+                    <i class="fa-solid fa-list-check mr-1.5"></i> 1. Alur Verifikasi Warga
+                </button>
+                <button type="button" @click="guideTab = 'setup'" class="pb-2.5 transition" :class="guideTab === 'setup' ? 'border-b-2 border-emerald-600 text-emerald-700 dark:text-emerald-400 font-extrabold' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'">
+                    <i class="fa-solid fa-microchip mr-1.5"></i> 2. Setup Alat Reader ESP32
+                </button>
+                <button type="button" @click="guideTab = 'simulasi'" class="pb-2.5 transition" :class="guideTab === 'simulasi' ? 'border-b-2 border-emerald-600 text-emerald-700 dark:text-emerald-400 font-extrabold' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'">
+                    <i class="fa-solid fa-terminal mr-1.5"></i> 3. Uji Coba Tanpa Alat (Simulasi)
+                </button>
+            </div>
+
+            {{-- Isi Tab 1: Alur --}}
+            <div x-show="guideTab === 'alur'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/60">
+                    <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold text-xs mb-1">
+                        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-700 text-white text-[10px]">1</span>
+                        <span>Buka Sesi Reader</span>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Klik tombol <strong>Buka / perbarui sesi</strong> di bawah. Sesi alat akan aktif selama 6 jam untuk menerima penempelan kartu warga di pos RT.
+                    </p>
+                </div>
+                <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/60">
+                    <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold text-xs mb-1">
+                        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-700 text-white text-[10px]">2</span>
+                        <span>Pilih Warga &amp; Enroll</span>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Cari nama warga di daftar tabel, lalu klik tombol hijau <strong>Aktifkan Tap KTP</strong>. Mode pendaftaran akan siaga selama 2 menit.
+                    </p>
+                </div>
+                <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/60">
+                    <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold text-xs mb-1">
+                        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-700 text-white text-[10px]">3</span>
+                        <span>Warga Tap KTP</span>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Arahkan warga menempelkan fisik e-KTP ke sensor ESP32 selama 1 detik. Sistem otomatis mengaitkan UID kartu ke akun warga secara permanen.
+                    </p>
+                </div>
+            </div>
+
+            {{-- Isi Tab 2: Setup Hardware --}}
+            <div x-show="guideTab === 'setup'" x-cloak class="space-y-3 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-800/40 space-y-2">
+                    <p class="font-bold text-slate-800 dark:text-slate-100 text-sm">Langkah Menghubungkan Reader ESP32 ke Jaringan RT:</p>
+                    <ol class="list-decimal list-inside space-y-1.5 text-slate-600 dark:text-slate-300">
+                        <li>Nyalakan reader ESP32 dengan menyambungkan kabel daya USB (charger HP atau adaptor 5V).</li>
+                        <li>Hubungkan HP atau laptop petugas ke hotspot Wi-Fi bawaan alat: <code>SmartRW-RFID</code>.</li>
+                        <li>Buka browser dan masuk ke portal konfigurasi Wi-Fi alat (otomatis muncul captive portal).</li>
+                        <li>Pilih nama Wi-Fi pos RT / modem Anda, lalu masukkan kata sandi Wi-Fi pos RT.</li>
+                        <li>Pada kolom <strong>Bearer Token</strong>, tempelkan token yang didapatkan saat Anda mengklik tombol <em>Buka Sesi</em> di halaman ini.</li>
+                        <li>Simpan konfigurasi. Alat reader akan restart dan otomatis terhubung online ke server Smart RW!</li>
+                    </ol>
+                </div>
+            </div>
+
+            {{-- Isi Tab 3: Simulasi --}}
+            <div x-show="guideTab === 'simulasi'" x-cloak class="space-y-3 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-800/40 space-y-2">
+                    <p class="font-bold text-slate-800 dark:text-slate-100 text-sm">Uji Coba Aktivasi Tanpa Alat Fisik (Simulasi API):</p>
+                    <p>Jika alat fisik ESP32 belum terpasang, petugas dapat menguji langsung melalui terminal atau cURL:</p>
+                    <div class="rounded-xl bg-slate-900 p-3 text-emerald-400 font-mono text-[11px] overflow-x-auto select-all">
+                        curl -X POST {{ route('rfid.tap') }} \<br>
+                        &nbsp;&nbsp;-H "Authorization: Bearer &lt;MASUKKAN_TOKEN_SESI&gt;" \<br>
+                        &nbsp;&nbsp;-H "Content-Type: application/json" \<br>
+                        &nbsp;&nbsp;-d '{"uid": "A1B2C3D4"}'
+                    </div>
+                    <p class="text-[11px] text-slate-500">Ganti <code>&lt;MASUKKAN_TOKEN_SESI&gt;</code> dengan token sesi yang muncul saat Anda mengklik tombol <em>Buka / perbarui sesi</em>.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <div x-data="rfidMonitor" data-status-url="{{ route('admin.warga.rfid.status') }}" class="space-y-6">
         <section class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
             <div class="flex flex-wrap items-start justify-between gap-4">
