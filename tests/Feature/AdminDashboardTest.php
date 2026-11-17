@@ -133,3 +133,16 @@ test('main dashboard remains stable after visiting admin dashboard', function ()
     $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee('Top 5 Rumah');
     $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee('Warga Dashboard');
 });
+
+test('superadmin can access dashboard and see rfid verification in sidebar without mandatory tap', function () {
+    $superAdminRole = Role::where('name', 'super_admin')->firstOrFail();
+    $superAdmin = User::factory()->create([
+        'role_id' => $superAdminRole->id,
+        'status_akun' => 'aktif',
+    ]);
+
+    $this->actingAs($superAdmin)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Verifikasi KTP (RFID)');
+});
