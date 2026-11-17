@@ -36,6 +36,7 @@ use App\Http\Controllers\SuratController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\UmkmController;
 use App\Http\Controllers\VerifikasiWargaController;
+use App\Http\Controllers\WargaKartuRfidController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +56,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/kartu-rfid', [WargaKartuRfidController::class, 'show'])->name('warga.rfid.show');
 
     Route::post('/notifications/{id}/read', function (string $id) {
         Auth::user()->notifications()->findOrFail($id)->markAsRead();

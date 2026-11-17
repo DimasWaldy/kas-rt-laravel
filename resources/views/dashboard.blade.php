@@ -97,26 +97,54 @@
             <div>
                 <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ $statusTitle }}</h2>
                 <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ $statusMessage }}</p>
-                @if($statusCtaUrl)
-                    <a href="{{ $statusCtaUrl }}" class="mt-3 inline-flex items-center gap-2 rounded-xl {{ $statusButtonClasses }} px-4 py-2.5 text-sm font-bold text-white shadow-xs transition">
-                        <i class="fa-solid {{ $statusTone === 'amber' ? 'fa-pen-to-square' : 'fa-house' }}"></i>
-                        {{ $statusCtaLabel }}
+                <div class="mt-3 flex flex-wrap items-center gap-2.5">
+                    @if($statusCtaUrl)
+                        <a href="{{ $statusCtaUrl }}" class="inline-flex items-center gap-2 rounded-xl {{ $statusButtonClasses }} px-4 py-2.5 text-sm font-bold text-white shadow-xs transition">
+                            <i class="fa-solid {{ $statusTone === 'amber' ? 'fa-pen-to-square' : 'fa-house' }}"></i>
+                            {{ $statusCtaLabel }}
+                        </a>
+                    @endif
+                    <a href="{{ route('warga.rfid.show') }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                        <i class="fa-solid fa-id-card text-emerald-600 dark:text-emerald-400"></i>
+                        <span>Verifikasi KTP (RFID)</span>
                     </a>
-                @endif
+                </div>
                 @if($accountStatus === 'aktif' && ! $needsDomicile)
                     @php
                         $ktpRfidCard = \App\Models\RfidCard::where('user_id', auth()->id())->with('verifiedRt:id,name')->first();
                     @endphp
-                    <div class="mt-3">
+                    <div class="mt-4">
                         @if($ktpRfidCard?->ktp_verified_at)
-                            <div class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
-                                <i class="fa-solid fa-id-card text-emerald-600 dark:text-emerald-400"></i>
-                                <span>KTP Terdaftar di {{ $ktpRfidCard->verifiedRt?->name ?? 'RT' }} &amp; Sistem (RFID Aktif)</span>
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-800 dark:bg-emerald-950/40">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                                        <i class="fa-solid fa-id-card"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-emerald-900 dark:text-emerald-100">KTP Terdaftar di {{ $ktpRfidCard->verifiedRt?->name ?? 'RT' }} &amp; Sistem (RFID Aktif)</p>
+                                        <p class="text-[11px] text-emerald-700 dark:text-emerald-300">Siap digunakan untuk Absensi Kegiatan dan pendaftaran Koperasi Warga.</p>
+                                    </div>
+                                </div>
+                                <a href="{{ route('warga.rfid.show') }}" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-700 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-800">
+                                    <i class="fa-solid fa-qrcode"></i>
+                                    <span>Kartu Digital</span>
+                                </a>
                             </div>
                         @else
-                            <div class="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-                                <p class="font-bold"><i class="fa-solid fa-id-card mr-1"></i> KTP belum diverifikasi via RFID</p>
-                                <p class="mt-0.5">Layanan dasar tetap aktif. Bawa e-KTP fisik Anda ke petugas RT/Admin untuk 1x tap di alat reader agar akun terverifikasi penuh dan dapat mengakses Koperasi serta Absensi Kegiatan.</p>
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                                <div class="flex items-start gap-3">
+                                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-xs mt-0.5">
+                                        <i class="fa-solid fa-id-card"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold"><i class="fa-solid fa-circle-exclamation mr-1"></i> KTP belum diverifikasi via RFID</p>
+                                        <p class="mt-0.5 text-[11px] text-amber-800 dark:text-amber-300">Layanan dasar tetap aktif. Bawa e-KTP fisik Anda ke petugas RT/Admin untuk 1x tap di alat reader agar akun terverifikasi penuh dan dapat mengakses Koperasi serta Absensi Kegiatan.</p>
+                                    </div>
+                                </div>
+                                <a href="{{ route('warga.rfid.show') }}" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-amber-700">
+                                    <i class="fa-solid fa-wifi"></i>
+                                    <span>Lihat Cara Tap</span>
+                                </a>
                             </div>
                         @endif
                     </div>
@@ -250,7 +278,7 @@
         ['label' => 'Bayar Iuran', 'route' => 'tagihan.index', 'icon' => 'fa-wallet', 'visible' => ! $u->isRwOfficial()],
         ['label' => 'Laporan Kas', 'route' => 'laporan-kas.index', 'icon' => 'fa-chart-pie', 'visible' => $u->canViewFinance()],
         ['label' => 'Verifikasi Warga', 'route' => 'verifikasi-warga.index', 'icon' => 'fa-user-check', 'visible' => $u->canManageWarga()],
-        ['label' => 'Tap KTP (RFID)', 'route' => 'admin.warga.rfid.show', 'icon' => 'fa-id-card', 'visible' => \App\Support\RfidAccess::canManageWargaKtp($u)],
+        ['label' => \App\Support\RfidAccess::canManageWargaKtp($u) ? 'Tap KTP (RFID)' : 'Verifikasi KTP (RFID)', 'route' => \App\Support\RfidAccess::canManageWargaKtp($u) ? 'admin.warga.rfid.show' : 'warga.rfid.show', 'icon' => 'fa-id-card', 'visible' => true],
         ['label' => 'Kas Masuk', 'route' => 'kas-masuk.index', 'icon' => 'fa-money-bill-trend-up', 'visible' => ! $u->isRwOfficial() && $u->canViewFinance()],
         ['label' => 'Kas Keluar', 'route' => 'kas-keluar.index', 'icon' => 'fa-money-bill-transfer', 'visible' => ! $u->isRwOfficial() && $u->canViewFinance()],
         ['label' => 'Iuran Bulanan', 'route' => 'iuran-bulanan.index', 'icon' => 'fa-list-check', 'visible' => $u->canManageFinance() || in_array($u->role_name, ['ketua_rt', 'rt', 'ketua-rt'], true)],
@@ -319,6 +347,32 @@
                 <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
                     <i class="fa-solid fa-check"></i>
                 </span>
+            </a>
+            @endif
+
+            {{-- Card 3: Kartu KTP & RFID (Tap Kartu) --}}
+            @if(Route::has('warga.rfid.show') && ! \App\Support\RfidAccess::canManageWargaKtp($u))
+            <a href="{{ route('warga.rfid.show') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 border border-emerald-200/50 dark:border-emerald-500/20 text-xl">
+                        <i class="fa-solid fa-id-card"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Verifikasi KTP (RFID)</h4>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                            {{ ($ktpRfidCard ?? null)?->ktp_verified_at ? 'KTP terdaftar resmi di sistem' : 'Belum di-tap di reader RT' }}
+                        </p>
+                    </div>
+                </div>
+                @if(($ktpRfidCard ?? null)?->ktp_verified_at)
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
+                        <i class="fa-solid fa-check"></i>
+                    </span>
+                @else
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white text-xs shadow-xs">
+                        <i class="fa-solid fa-wifi text-[10px]"></i>
+                    </span>
+                @endif
             </a>
             @endif
 
@@ -397,6 +451,7 @@
                         'fa-wallet', 'fa-money-bill-trend-up' => 'text-amber-500',
                         'fa-chart-pie', 'fa-boxes-stacked' => 'text-emerald-600',
                         'fa-user-check', 'fa-users', 'fa-address-book' => 'text-indigo-500',
+                        'fa-id-card' => 'text-emerald-600',
                         'fa-money-bill-transfer' => 'text-rose-500',
                         'fa-list-check', 'fa-clipboard-list' => 'text-blue-500',
                         'fa-hand-holding-heart', 'fa-hand-holding' => 'text-teal-600',
