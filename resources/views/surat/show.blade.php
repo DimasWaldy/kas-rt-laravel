@@ -87,11 +87,20 @@
             @endif
         </div>
 
-        <aside class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs lg:self-start">
-            <h2 class="font-bold text-slate-900">Alur Persetujuan</h2>
+        <aside class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 lg:self-start">
+            <div class="flex items-center gap-2.5 mb-5 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                    <i class="fa-solid fa-route text-sm"></i>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-slate-900 dark:text-slate-100">Lacak Alur Surat</h2>
+                    <p class="text-xs text-slate-400">Status persetujuan pengurus RT &amp; RW</p>
+                </div>
+            </div>
+
             @php
                 $steps = [
-                    ['Pengajuan masuk', $surat->submitted_at, $surat->user->name],
+                    ['Pengajuan masuk dari Warga', $surat->submitted_at, $surat->user->name],
                     ['Verifikasi Sekretaris RT', $surat->verified_rt_at, $surat->verifierRt?->name],
                     ['Persetujuan Ketua RT', $surat->approved_rt_at, $surat->approverRt?->name],
                 ];
@@ -99,12 +108,52 @@
                     $steps[] = ['Verifikasi Sekretaris RW', $surat->verified_rw_at, $surat->verifierRw?->name];
                     $steps[] = ['Persetujuan Ketua RW', $surat->approved_rw_at, $surat->approverRw?->name];
                 }
+
+                // Tentukan step yang sedang aktif menunggu tindakan
+                $currentActiveFound = false;
             @endphp
-            <ol class="mt-5 space-y-5">
+
+            <ol class="relative pl-3 space-y-6 before:absolute before:left-[23px] before:top-4 before:bottom-4 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                 @foreach($steps as [$label, $time, $actor])
-                    <li class="flex gap-3">
-                        <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full {{ $time ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400' }}"><i class="fa-solid {{ $time ? 'fa-check' : 'fa-clock' }} text-[10px]"></i></span>
-                        <div><p class="text-sm font-bold {{ $time ? 'text-slate-800' : 'text-slate-400' }}">{{ $label }}</p>@if($time)<p class="text-xs text-slate-500">{{ $actor }}<br>{{ $time->translatedFormat('d M Y, H:i') }}</p>@endif</div>
+                    @php
+                        $isDone = (bool) $time;
+                        $isCurrent = ! $isDone && ! $currentActiveFound && $surat->status !== 'rejected';
+                        if ($isCurrent) {
+                            $currentActiveFound = true;
+                        }
+                    @endphp
+                    <li class="relative flex items-start gap-3.5 z-10">
+                        @if($isDone)
+                            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs shadow-emerald-500/30">
+                                <i class="fa-solid fa-check text-[11px]"></i>
+                            </span>
+                        @elseif($isCurrent)
+                            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white shadow-xs shadow-amber-500/30 ring-4 ring-amber-100 dark:ring-amber-950/40 animate-pulse">
+                                <i class="fa-solid fa-hourglass-half text-[10px]"></i>
+                            </span>
+                        @else
+                            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400 border border-slate-200 dark:border-slate-700 dark:bg-slate-800">
+                                <i class="fa-solid fa-circle text-[6px]"></i>
+                            </span>
+                        @endif
+
+                        <div class="min-w-0 pt-0.5">
+                            <p class="text-xs font-bold leading-tight {{ $isDone ? 'text-slate-900 dark:text-slate-100' : ($isCurrent ? 'text-amber-700 dark:text-amber-300' : 'text-slate-400') }}">
+                                {{ $label }}
+                            </p>
+                            @if($isDone)
+                                <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                                    <span class="font-medium text-slate-700 dark:text-slate-300">{{ $actor }}</span><br>
+                                    <span class="text-slate-400">{{ $time->translatedFormat('d M Y, H:i') }} WIB</span>
+                                </p>
+                            @elseif($isCurrent)
+                                <span class="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                                    Sedang diproses
+                                </span>
+                            @else
+                                <p class="mt-0.5 text-[10px] text-slate-400">Menunggu tahap sebelumnya</p>
+                            @endif
+                        </div>
                     </li>
                 @endforeach
             </ol>

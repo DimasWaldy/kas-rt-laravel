@@ -658,10 +658,42 @@
             </div>
         @endif
 
-        <main class="min-w-0 p-4 md:p-6 lg:p-8">
+        <main class="min-w-0 p-4 pb-24 md:p-6 lg:p-8 md:pb-8">
             @yield('content')
         </main>
     </div>
+
+    {{-- Mobile Bottom Navigation Bar (Khusus Layanan Mobile / Android) --}}
+    @auth
+    <nav aria-label="Menu Utama Mobile" class="fixed bottom-0 left-0 right-0 z-40 block border-t border-slate-200/90 bg-white/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 md:hidden">
+        <div class="mx-auto flex h-16 max-w-md items-center justify-around px-2">
+            <a href="{{ route('dashboard') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('dashboard') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
+                <i class="fa-solid fa-house text-base"></i>
+                <span class="text-[10px] tracking-tight">Beranda</span>
+            </a>
+            @if(Route::has('tagihan.index') && ! auth()->user()->isRwOfficial())
+            <a href="{{ route('tagihan.index') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('tagihan*') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
+                <i class="fa-solid fa-wallet text-base"></i>
+                <span class="text-[10px] tracking-tight">Iuran</span>
+            </a>
+            @endif
+            @if(Route::has('surat.index') && auth()->user()->canViewSurat())
+            <a href="{{ route('surat.index') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('surat*') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
+                <i class="fa-solid fa-envelope-open-text text-base"></i>
+                <span class="text-[10px] tracking-tight">Surat</span>
+            </a>
+            @endif
+            <a href="{{ \App\Support\RfidAccess::canManageWargaKtp(auth()->user()) ? route('admin.warga.rfid.show') : route('warga.rfid.show') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('*rfid*') || request()->is('kartu-rfid*') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
+                <i class="fa-solid fa-id-card text-base"></i>
+                <span class="text-[10px] tracking-tight">KTP RFID</span>
+            </a>
+            <a href="{{ route('profile.edit') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('profile*') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
+                <i class="fa-solid fa-circle-user text-base"></i>
+                <span class="text-[10px] tracking-tight">Profil</span>
+            </a>
+        </div>
+    </nav>
+    @endauth
 
     <script>
         setTimeout(() => {
