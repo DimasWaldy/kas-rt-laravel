@@ -81,12 +81,86 @@
                     <p class="whitespace-pre-line">{{ $pengaduan->deskripsi }}</p>
                 </div>
 
-                {{-- Foto Bukti --}}
-                @if($pengaduan->foto)
+                {{-- Foto Bukti & Perbandingan Sebelum / Sesudah --}}
+                @if($pengaduan->foto && $pengaduan->foto_selesai)
+                    {{-- BEFORE / AFTER COMPARISON SLIDER --}}
+                    <div x-data="{ sliderPos: 50, viewMode: 'slider' }" class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Hasil Penanganan Pengaduan</p>
+                                <h3 class="text-base font-bold text-slate-900">Perbandingan Sebelum &amp; Sesudah</h3>
+                            </div>
+                            {{-- Mode Selector --}}
+                            <div class="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-bold text-slate-600">
+                                <button type="button" @click="viewMode = 'slider'" class="rounded-lg px-2.5 py-1 transition" :class="viewMode === 'slider' ? 'bg-white text-emerald-700 shadow-xs' : 'hover:text-slate-900'">
+                                    <i class="fa-solid fa-left-right mr-1"></i> Slider
+                                </button>
+                                <button type="button" @click="viewMode = 'side'" class="rounded-lg px-2.5 py-1 transition" :class="viewMode === 'side' ? 'bg-white text-emerald-700 shadow-xs' : 'hover:text-slate-900'">
+                                    <i class="fa-solid fa-table-columns mr-1"></i> Berdampingan
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Slider View --}}
+                        <div x-show="viewMode === 'slider'" class="relative select-none overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 aspect-video max-h-[460px] w-full shadow-lg">
+                            {{-- Image After / Sesudah (Base) --}}
+                            <img src="{{ route('pengaduan.foto-selesai', $pengaduan) }}" alt="Foto Sesudah Penanganan" class="absolute inset-0 h-full w-full object-cover">
+                            <span class="absolute top-4 right-4 z-10 rounded-full bg-emerald-600/90 backdrop-blur-xs px-3 py-1 text-[11px] font-black uppercase tracking-wider text-white shadow-xs">
+                                <i class="fa-solid fa-check mr-1"></i> Sesudah (Hasil Penanganan)
+                            </span>
+
+                            {{-- Image Before / Sebelum (Overlay with clip-path) --}}
+                            <div class="absolute inset-0 overflow-hidden" :style="'clip-path: inset(0 ' + (100 - sliderPos) + '% 0 0)'">
+                                <img src="{{ route('pengaduan.foto', $pengaduan) }}" alt="Foto Sebelum Penanganan" class="absolute inset-0 h-full w-full object-cover">
+                                <span class="absolute top-4 left-4 z-10 rounded-full bg-rose-600/90 backdrop-blur-xs px-3 py-1 text-[11px] font-black uppercase tracking-wider text-white shadow-xs">
+                                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> Sebelum (Aduan Awal)
+                                </span>
+                            </div>
+
+                            {{-- Vertical Divider Line with Draggable Handle --}}
+                            <div class="pointer-events-none absolute top-0 bottom-0 z-20 w-0.5 bg-white shadow-md" :style="'left: ' + sliderPos + '%'">
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-800 shadow-xl border-2 border-slate-300">
+                                    <i class="fa-solid fa-left-right text-xs"></i>
+                                </div>
+                            </div>
+
+                            {{-- Interactive Range Input Slider --}}
+                            <input type="range" min="0" max="100" x-model="sliderPos" aria-label="Geser untuk membandingkan sebelum dan sesudah"
+                                class="absolute inset-0 z-30 h-full w-full cursor-ew-resize opacity-0 m-0 p-0">
+                        </div>
+
+                        {{-- Side-by-Side View --}}
+                        <div x-show="viewMode === 'side'" x-cloak class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <span class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-3 py-1 text-xs font-bold text-rose-700">
+                                    <i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Sebelum (Aduan Awal)
+                                </span>
+                                <img src="{{ route('pengaduan.foto', $pengaduan) }}" alt="Foto Sebelum Penanganan" class="h-64 w-full rounded-2xl object-cover border border-slate-200">
+                            </div>
+                            <div class="space-y-2">
+                                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-700">
+                                    <i class="fa-solid fa-check text-[10px]"></i> Sesudah (Hasil Penanganan)
+                                </span>
+                                <img src="{{ route('pengaduan.foto-selesai', $pengaduan) }}" alt="Foto Sesudah Penanganan" class="h-64 w-full rounded-2xl object-cover border border-slate-200">
+                            </div>
+                        </div>
+
+                        <p class="text-center text-xs text-slate-400">
+                            <i class="fa-solid fa-hand-pointer mr-1"></i> Geser garis pemisah ke kiri dan kanan untuk membandingkan kondisi aduan sebelum vs sesudah penanganan.
+                        </p>
+                    </div>
+                @elseif($pengaduan->foto)
                     <div>
                         <p class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Foto Bukti Terlampir</p>
                         <div class="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
                             <img src="{{ route('pengaduan.foto', $pengaduan) }}" alt="Bukti Aduan" class="w-full object-contain max-h-[450px] mx-auto">
+                        </div>
+                    </div>
+                @elseif($pengaduan->foto_selesai)
+                    <div>
+                        <p class="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-3">Foto Hasil Penanganan</p>
+                        <div class="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
+                            <img src="{{ route('pengaduan.foto-selesai', $pengaduan) }}" alt="Bukti Selesai" class="w-full object-contain max-h-[450px] mx-auto">
                         </div>
                     </div>
                 @endif
@@ -121,7 +195,7 @@
                     <h2 class="text-base font-bold text-slate-800 mb-2">Tanggapan & Solusi Pengurus RT</h2>
                     <p class="text-xs text-slate-400 mb-6">Berikan tanggapan, update penanganan, atau tindak lanjut atas pengaduan warga.</p>
 
-                    <form action="{{ route('pengaduan.status', $pengaduan) }}" method="POST">
+                    <form action="{{ route('pengaduan.status', $pengaduan) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PATCH')
 
@@ -135,6 +209,15 @@
                                     <option value="selesai" {{ $pengaduan->status === 'selesai' ? 'selected' : '' }}>Selesai / Teratasi</option>
                                     <option value="ditolak" {{ $pengaduan->status === 'ditolak' ? 'selected' : '' }}>Ditolak / Diarsipkan</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label for="foto_selesai" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Foto Hasil Penanganan (Opsional)</label>
+                                <input type="file" name="foto_selesai" id="foto_selesai" accept="image/jpeg,image/png,image/jpg"
+                                       class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 p-2 text-xs text-slate-600 file:mr-2 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-1 file:text-xs file:font-bold file:text-white hover:file:bg-blue-700">
+                                <p class="mt-1 text-[11px] text-slate-400">Unggah foto hasil penanganan untuk mengaktifkan slider Sebelum &amp; Sesudah.</p>
+                                @error('foto_selesai')
+                                    <p class="text-xs text-rose-500 mt-1 font-semibold">{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
 

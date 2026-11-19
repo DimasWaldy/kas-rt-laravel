@@ -114,6 +114,24 @@ class PengaduanController extends Controller
         ]);
     }
 
+    public function fotoSelesai(Pengaduan $pengaduan)
+    {
+        abort_unless(Auth::check(), 403);
+        abort_unless($pengaduan->isVisibleTo(Auth::user()), 404);
+
+        if (! $pengaduan->foto_selesai) {
+            abort(404);
+        }
+
+        $disk = Storage::disk('local')->exists($pengaduan->foto_selesai) ? 'local' : 'public';
+
+        abort_unless(Storage::disk($disk)->exists($pengaduan->foto_selesai), 404);
+
+        return response()->file(Storage::disk($disk)->path($pengaduan->foto_selesai), [
+            'Content-Disposition' => 'inline; filename="'.basename($pengaduan->foto_selesai).'"',
+        ]);
+    }
+
     /**
      * Update status pengaduan oleh admin (pending -> proses -> selesai/ditolak) beserta tanggapan.
      */
@@ -124,17 +142,24 @@ class PengaduanController extends Controller
         $request->validate([
             'status' => 'required|string|in:pending,proses,selesai,ditolak',
             'tanggapan' => 'required|string|min:5',
+            'foto_selesai' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], [
             'status.required' => 'Status wajib ditentukan.',
             'tanggapan.required' => 'Tanggapan/solusi wajib diisi agar warga mendapatkan kepastian.',
             'tanggapan.min' => 'Tanggapan minimal berisi 5 karakter.',
         ]);
 
+        $fotoSelesaiPath = $pengaduan->foto_selesai;
+        if ($request->hasFile('foto_selesai')) {
+            $fotoSelesaiPath = $request->file('foto_selesai')->store('pengaduan', 'local');
+        }
+
         $pengaduan->update([
             'status' => $request->status,
             'tanggapan' => $request->tanggapan,
             'tanggapan_oleh' => Auth::id(),
             'tanggapan_at' => now(),
+            'foto_selesai' => $fotoSelesaiPath,
         ]);
 
         return redirect()->route('pengaduan.show', $pengaduan)->with('success', 'Status pengaduan berhasil diperbarui dan tanggapan telah dikirim.');

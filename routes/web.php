@@ -181,6 +181,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/tagihan/{tagihan}/bukti', [TagihanController::class, 'bukti'])->name('tagihan.bukti');
 
     Route::get('/pengaduan/{pengaduan}/foto', [PengaduanController::class, 'foto'])->name('pengaduan.foto');
+    Route::get('/pengaduan/{pengaduan}/foto-selesai', [PengaduanController::class, 'fotoSelesai'])->name('pengaduan.foto-selesai');
     Route::resource('pengaduan', PengaduanController::class)->except(['edit', 'update']);
     Route::patch('/pengaduan/{pengaduan}/status', [PengaduanController::class, 'updateStatus'])
         ->middleware('permission:manage-pengaduan')
@@ -356,6 +357,8 @@ Route::middleware('auth')->group(function () {
             ->name('pengaduan-fasilitas.show');
         Route::get('/pengaduan-fasilitas/{pengaduan}/foto', [PengaduanFasilitasController::class, 'foto'])
             ->name('pengaduan-fasilitas.foto');
+        Route::get('/pengaduan-fasilitas/{pengaduan}/foto-selesai', [PengaduanFasilitasController::class, 'fotoSelesai'])
+            ->name('pengaduan-fasilitas.foto-selesai');
     });
 
     Route::middleware('permission:manage-fasilitas')->group(function () {

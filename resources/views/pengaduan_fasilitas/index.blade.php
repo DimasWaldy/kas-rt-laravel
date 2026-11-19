@@ -44,7 +44,14 @@
                 <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs transition hover:-translate-y-0.5 hover:shadow-lg">
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <span class="rounded-full border px-3 py-1 text-xs font-bold {{ $pengaduan->status_color }}">{{ $pengaduan->status_label }}</span>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="rounded-full border px-3 py-1 text-xs font-bold {{ $pengaduan->status_color }}">{{ $pengaduan->status_label }}</span>
+                                @if($pengaduan->foto && $pengaduan->foto_selesai)
+                                    <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 shadow-2xs">
+                                        <i class="fa-solid fa-left-right text-[9px]"></i> Sebelum &amp; Sesudah
+                                    </span>
+                                @endif
+                            </div>
                             <h2 class="mt-3 text-lg font-black text-slate-900">{{ $pengaduan->fasilitas->nama }}</h2>
                             <p class="text-sm text-slate-500">{{ $pengaduan->fasilitas->lokasi_lengkap ?: 'Lokasi belum diisi' }}</p>
                         </div>
