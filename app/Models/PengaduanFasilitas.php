@@ -16,6 +16,7 @@ class PengaduanFasilitas extends Model
         'jenis_masalah',
         'deskripsi',
         'foto',
+        'foto_selesai',
         'status',
         'catatan_tindak_lanjut',
         'tanggal_selesai',

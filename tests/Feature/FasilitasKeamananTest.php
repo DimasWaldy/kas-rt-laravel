@@ -190,13 +190,17 @@ test('warga tidak bisa melaporkan fasilitas rt lain', function () {
     expect(PengaduanFasilitas::count())->toBe(0);
 });
 
-test('pengurus dapat tindak lanjut dan menyelesaikan pengaduan fasilitas', function () {
+test('pengurus dapat tindak lanjut dan menyelesaikan pengaduan fasilitas dengan foto selesai', function () {
+    Storage::fake('local');
     $fasilitas = ($this->buatFasilitas)(['kondisi' => 'perlu_perhatian']);
+    $fotoAwal = UploadedFile::fake()->image('box-rusak.jpg')->store('pengaduan-fasilitas', 'local');
+
     $pengaduan = PengaduanFasilitas::create([
         'fasilitas_id' => $fasilitas->id,
         'pelapor_id' => $this->warga->id,
         'jenis_masalah' => 'rusak',
         'deskripsi' => 'Penutup box CCTV rusak.',
+        'foto' => $fotoAwal,
         'status' => 'dilaporkan',
     ]);
 
@@ -214,13 +218,32 @@ test('pengurus dapat tindak lanjut dan menyelesaikan pengaduan fasilitas', funct
         ->patch(route('pengaduan-fasilitas.selesai', $pengaduan), [
             'catatan_tindak_lanjut' => 'Box sudah diperbaiki.',
             'update_kondisi_baik' => '1',
+            'foto_selesai' => UploadedFile::fake()->image('box-cctv-selesai.jpg'),
         ])
         ->assertRedirect()
         ->assertSessionHas('success');
 
-    expect($pengaduan->fresh()->status)->toBe('selesai')
-        ->and($pengaduan->fresh()->tanggal_selesai)->not->toBeNull()
+    $pengaduanSelesai = $pengaduan->fresh();
+    expect($pengaduanSelesai->status)->toBe('selesai')
+        ->and($pengaduanSelesai->tanggal_selesai)->not->toBeNull()
+        ->and($pengaduanSelesai->foto_selesai)->not->toBeNull()
         ->and($fasilitas->fresh()->kondisi)->toBe('baik');
+
+    Storage::disk('local')->assertExists($pengaduanSelesai->foto_selesai);
+
+    // Endpoint foto-selesai dapat diakses
+    $this->actingAs($this->warga)
+        ->get(route('pengaduan-fasilitas.foto-selesai', $pengaduanSelesai))
+        ->assertOk();
+
+    // Halaman show menampilkan before / after comparison slider
+    $this->actingAs($this->warga)
+        ->get(route('pengaduan-fasilitas.show', $pengaduanSelesai))
+        ->assertOk()
+        ->assertSee('Perbandingan Sebelum &amp; Sesudah', false)
+        ->assertSee('viewMode === \'slider\'', false)
+        ->assertSee(route('pengaduan-fasilitas.foto', $pengaduanSelesai), false)
+        ->assertSee(route('pengaduan-fasilitas.foto-selesai', $pengaduanSelesai), false);
 });
 
 test('role tanpa manage fasilitas tidak bisa mengakses dashboard keamanan', function () {

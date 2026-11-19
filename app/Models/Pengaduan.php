@@ -17,6 +17,7 @@ class Pengaduan extends Model
         'kategori',
         'deskripsi',
         'foto',
+        'foto_selesai',
         'status',
         'tanggapan',
         'tanggapan_oleh',

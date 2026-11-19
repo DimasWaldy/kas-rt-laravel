@@ -122,6 +122,14 @@ class PengaduanFasilitasController extends Controller
         return Storage::disk('local')->response($pengaduan->foto);
     }
 
+    public function fotoSelesai(Request $request, PengaduanFasilitas $pengaduan)
+    {
+        $this->authorizeVisible($request->user(), $pengaduan);
+        abort_unless($pengaduan->foto_selesai && Storage::disk('local')->exists($pengaduan->foto_selesai), 404);
+
+        return Storage::disk('local')->response($pengaduan->foto_selesai);
+    }
+
     public function tindakLanjut(Request $request, PengaduanFasilitas $pengaduan)
     {
         $this->authorizeManage($request->user(), $pengaduan);
@@ -143,12 +151,22 @@ class PengaduanFasilitasController extends Controller
     {
         $this->authorizeManage($request->user(), $pengaduan);
 
+        $validated = $request->validate([
+            'catatan_tindak_lanjut' => ['nullable', 'string', 'max:1000'],
+            'foto_selesai' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+        ]);
+
+        $fotoSelesaiPath = $pengaduan->foto_selesai;
+        if ($request->hasFile('foto_selesai')) {
+            $fotoSelesaiPath = $request->file('foto_selesai')->store('pengaduan-fasilitas', 'local');
+        }
+
         $pengaduan->update([
             'status' => 'selesai',
             'ditindaklanjuti_oleh' => $request->user()->id,
             'tanggal_selesai' => now(),
-            'catatan_tindak_lanjut' => $request->string('catatan_tindak_lanjut')->toString()
-                ?: $pengaduan->catatan_tindak_lanjut,
+            'foto_selesai' => $fotoSelesaiPath,
+            'catatan_tindak_lanjut' => $validated['catatan_tindak_lanjut'] ?? $pengaduan->catatan_tindak_lanjut,
         ]);
 
         if ($request->boolean('update_kondisi_baik')

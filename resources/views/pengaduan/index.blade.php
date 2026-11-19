@@ -135,9 +135,16 @@
                                         default => 'bg-slate-50 text-slate-700 border-slate-100'
                                     };
                                 @endphp
-                                <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border {{ $catColor }} mb-2">
-                                    {{ $pengaduan->kategori }}
-                                </span>
+                                <div class="flex flex-wrap items-center gap-1.5 mb-2">
+                                    <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border {{ $catColor }}">
+                                        {{ $pengaduan->kategori }}
+                                    </span>
+                                    @if($pengaduan->foto && $pengaduan->foto_selesai)
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-2xs">
+                                            <i class="fa-solid fa-left-right text-[8px]"></i> Sebelum &amp; Sesudah
+                                        </span>
+                                    @endif
+                                </div>
                                 <h3 class="text-base font-bold text-slate-800 truncate" title="{{ $pengaduan->judul }}">
                                     {{ $pengaduan->judul }}
                                 </h3>
@@ -178,6 +185,11 @@
                             @if($pengaduan->foto)
                                 <div class="relative w-full h-40 bg-slate-100 rounded-2xl overflow-hidden mb-4 border border-slate-200">
                                     <img src="{{ route('pengaduan.foto', $pengaduan) }}" alt="Bukti Foto" class="w-full h-full object-cover">
+                                    @if($pengaduan->foto_selesai)
+                                        <div class="absolute bottom-2 right-2 rounded-lg bg-slate-900/80 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-xs">
+                                            <i class="fa-solid fa-left-right mr-1 text-[9px]"></i> Slider Sebelum/Sesudah
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
                         </div>
