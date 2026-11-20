@@ -25,60 +25,155 @@
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {{-- Left: Digital Card Preview & Realtime Status --}}
         <div class="space-y-6 lg:col-span-5">
-            {{-- Visual Smart Card --}}
-            <div class="relative overflow-hidden rounded-3xl border border-slate-700/60 bg-linear-to-br/srgb from-slate-950 via-emerald-950 to-slate-900 p-6 text-white shadow-xl shadow-emerald-950/30">
-                {{-- Decorative pattern --}}
-                <div class="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-emerald-500/10 blur-2xl"></div>
-                <div class="pointer-events-none absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-teal-500/10 blur-2xl"></div>
+            {{-- 3D Flip Smart Card --}}
+            <div x-data="{ isFlipped: false }" class="space-y-3">
+                <div
+                    class="perspective-1000 group cursor-pointer select-none"
+                    tabindex="0"
+                    role="button"
+                    aria-label="Kartu Digital KTP RFID Warga. Tekan untuk membalik tampilan 3D kartu."
+                    @click="isFlipped = !isFlipped"
+                    @keydown.enter="isFlipped = !isFlipped"
+                    @keydown.space.prevent="isFlipped = !isFlipped"
+                >
+                    <div
+                        class="transform-style-3d relative min-h-[240px] w-full rounded-3xl shadow-2xl transition-transform duration-700 ease-in-out"
+                        :class="{ 'rotate-y-180': isFlipped }"
+                    >
+                        {{-- SISI DEPAN (FRONT) --}}
+                        <div class="backface-hidden relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-linear-to-br/srgb from-slate-950 via-emerald-950 to-slate-900 p-6 text-white shadow-xl shadow-emerald-950/40">
+                            {{-- Decorative glows & watermark pattern --}}
+                            <div class="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-emerald-500/15 blur-2xl"></div>
+                            <div class="pointer-events-none absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-teal-500/15 blur-2xl"></div>
+                            <div class="pointer-events-none absolute inset-0 opacity-[0.03] bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
-                <div class="relative z-10 flex flex-col justify-between space-y-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-400">Smart RW Citizen ID</p>
-                            <p class="text-xs font-bold text-white/90">KARTU WARGA &amp; E-KTP</p>
+                            <div class="relative z-10 flex flex-col justify-between space-y-5">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-400">Smart RW Citizen ID</p>
+                                        <p class="text-xs font-bold text-white/90">KARTU WARGA &amp; E-KTP</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold text-emerald-300 backdrop-blur-xs transition group-hover:bg-white/20">
+                                            <i class="fa-solid fa-arrows-rotate text-[8px]"></i> 3D Flip
+                                        </span>
+                                        <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-emerald-300 backdrop-blur-xs">
+                                            <i class="fa-solid fa-wifi rotate-90 text-sm"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Chip visual --}}
+                                <div class="flex items-center gap-3">
+                                    <div class="relative flex h-9 w-12 items-center justify-center rounded-lg border border-amber-300/60 bg-linear-to-br from-amber-200 via-amber-400 to-amber-600 shadow-md">
+                                        <div class="h-5 w-8 rounded border border-amber-700/40 opacity-80"></div>
+                                        <div class="absolute inset-0 rounded-lg bg-linear-to-t from-black/10 to-transparent pointer-events-none"></div>
+                                    </div>
+                                    <span class="font-mono text-[11px] tracking-widest text-white/70">CONTACTLESS NFC / RFID</span>
+                                </div>
+
+                                <div>
+                                    <p class="text-base font-extrabold uppercase tracking-wide text-white">{{ $user->name }}</p>
+                                    <p class="mt-0.5 text-xs text-slate-300">
+                                        {{ $user->rt?->name ?? 'RT Belum Ditentukan' }} · {{ $user->rw?->name ?? 'RW' }}
+                                        @if($user->rumah)
+                                            · Rumah {{ $user->rumah->label }}
+                                        @endif
+                                    </p>
+                                </div>
+
+                                <div class="flex items-center justify-between border-t border-white/15 pt-3 text-xs">
+                                    <div>
+                                        <p class="text-[10px] uppercase text-white/60">Status KTP RFID</p>
+                                        @if($card?->ktp_verified_at)
+                                            <span class="inline-flex items-center gap-1.5 font-bold text-emerald-400">
+                                                <i class="fa-solid fa-circle-check"></i> Terdaftar Resmi
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1.5 font-bold text-amber-400">
+                                                <i class="fa-solid fa-clock"></i> Belum Di-Tap
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-[10px] uppercase text-white/60">Sistem</p>
+                                        <span class="font-mono text-xs text-white/80">RT-KTP-PASS</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-emerald-300 backdrop-blur-xs">
-                            <i class="fa-solid fa-wifi rotate-90 text-sm"></i>
-                        </div>
-                    </div>
 
-                    {{-- Chip visual --}}
-                    <div class="flex items-center gap-3">
-                        <div class="h-9 w-12 rounded-lg border border-amber-300/40 bg-linear-to-br from-amber-200 via-amber-400 to-amber-600 shadow-sm flex items-center justify-center">
-                            <div class="h-5 w-8 rounded border border-amber-700/30 opacity-70"></div>
-                        </div>
-                        <span class="text-[11px] font-mono tracking-widest text-white/60">CONTACTLESS NFC / RFID</span>
-                    </div>
+                        {{-- SISI BELAKANG (BACK) --}}
+                        <div class="backface-hidden rotate-y-180 absolute inset-0 flex h-full w-full flex-col justify-between overflow-hidden rounded-3xl border border-emerald-500/30 bg-linear-to-br/srgb from-slate-950 via-slate-900 to-emerald-950 p-6 text-white shadow-xl shadow-emerald-950/40">
+                            {{-- Magnetic Stripe --}}
+                            <div class="-mx-6 -mt-3 flex h-10 items-center border-y border-white/10 bg-slate-950 px-6">
+                                <div class="h-1.5 w-full bg-linear-to-r from-slate-800 via-slate-700 to-slate-900 rounded-xs opacity-60"></div>
+                            </div>
 
-                    <div>
-                        <p class="text-base font-extrabold uppercase tracking-wide text-white">{{ $user->name }}</p>
-                        <p class="mt-0.5 text-xs text-slate-300">
-                            {{ $user->rt?->name ?? 'RT Belum Ditentukan' }} · {{ $user->rw?->name ?? 'RW' }}
-                            @if($user->rumah)
-                                · Rumah {{ $user->rumah->label }}
-                            @endif
-                        </p>
-                    </div>
+                            {{-- Card Details on Back --}}
+                            <div class="mt-2 space-y-2.5 text-xs">
+                                <div class="flex items-center justify-between rounded-xl bg-white/5 p-2.5 backdrop-blur-xs">
+                                    <div>
+                                        <p class="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">UID Chip Sensor</p>
+                                        <p class="font-mono text-xs font-semibold text-slate-200">
+                                            @if($card?->uid_hash)
+                                                {{ substr($card->uid_hash, 0, 16) }}••••
+                                            @else
+                                                <span class="text-amber-300">Menunggu Penempelan Kartu</span>
+                                            @endif
+                                        </p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-[10px] uppercase font-bold text-slate-400">Waktu Verifikasi</p>
+                                        <p class="text-xs text-slate-200">
+                                            {{ $card?->ktp_verified_at ? $card->ktp_verified_at->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') : 'Belum Terdaftar' }}
+                                        </p>
+                                    </div>
+                                </div>
 
-                    <div class="pt-3 border-t border-white/15 flex items-center justify-between text-xs">
-                        <div>
-                            <p class="text-[10px] uppercase text-white/60">Status KTP RFID</p>
-                            @if($card?->ktp_verified_at)
-                                <span class="inline-flex items-center gap-1.5 font-bold text-emerald-400">
-                                    <i class="fa-solid fa-circle-check"></i> Terdaftar Resmi
+                                <p class="text-[9.5px] leading-relaxed text-slate-400">
+                                    Kartu Identitas Digital Warga berbasis e-KTP fisik. Digunakan sebagai akses nirkabel kegiatan lingkungan, absensi rapat, pos ronda, dan verifikasi Koperasi Warga di {{ $user->rw?->name ?? 'RW' }}.
+                                </p>
+                            </div>
+
+                            {{-- Footer Barcode Sim & Security Hologram --}}
+                            <div class="flex items-end justify-between border-t border-white/10 pt-2.5">
+                                <div class="space-y-1">
+                                    <div class="flex h-5 items-center gap-0.5 opacity-70">
+                                        <span class="h-full w-0.5 bg-white"></span>
+                                        <span class="h-full w-1 bg-white"></span>
+                                        <span class="h-full w-0.5 bg-white"></span>
+                                        <span class="h-full w-1.5 bg-white"></span>
+                                        <span class="h-full w-0.5 bg-white"></span>
+                                        <span class="h-full w-1 bg-white"></span>
+                                        <span class="h-full w-0.5 bg-white"></span>
+                                        <span class="h-full w-2 bg-white"></span>
+                                        <span class="h-full w-0.5 bg-white"></span>
+                                        <span class="h-full w-1 bg-white"></span>
+                                        <span class="h-full w-0.5 bg-white"></span>
+                                        <span class="h-full w-1.5 bg-white"></span>
+                                        <span class="h-full w-0.5 bg-white"></span>
+                                        <span class="h-full w-1 bg-white"></span>
+                                    </div>
+                                    <p class="font-mono text-[9px] text-white/50 tracking-wider">SMART-RW-SECURE-ID</p>
+                                </div>
+                                <span class="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold text-emerald-300 backdrop-blur-xs">
+                                    <i class="fa-solid fa-arrows-rotate text-[8px]"></i> Balik ke Muka
                                 </span>
-                            @else
-                                <span class="inline-flex items-center gap-1.5 font-bold text-amber-400">
-                                    <i class="fa-solid fa-clock"></i> Belum Di-Tap
-                                </span>
-                            @endif
-                        </div>
-                        <div class="text-right">
-                            <p class="text-[10px] uppercase text-white/60">Sistem</p>
-                            <span class="font-mono text-xs text-white/80">RT-KTP-PASS</span>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {{-- Tombol Balik Kartu Interaktif --}}
+                <button
+                    type="button"
+                    @click="isFlipped = !isFlipped"
+                    class="btn-tactile flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200/90 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-emerald-300"
+                >
+                    <i class="fa-solid fa-arrows-rotate text-emerald-600 transition-transform duration-500" :class="{ 'rotate-180': isFlipped }"></i>
+                    <span x-text="isFlipped ? 'Putar ke Muka Depan' : 'Putar Kartu 3D (Lihat Sisi Belakang)'"></span>
+                </button>
             </div>
 
             {{-- Status Alat Reader RT --}}

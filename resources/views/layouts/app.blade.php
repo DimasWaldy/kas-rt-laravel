@@ -362,8 +362,111 @@
     $profileCompletionIssues = ($user->role_name === 'warga' && ! $isRegistrationPending && ! $isOnboardingDomisili)
         ? $user->profileCompletionIssues()
         : [];
+
+    $quickActions = [
+        [
+            'group' => 'Aksi Cepat',
+            'label' => 'Ganti Mode Tampilan (Terang atau Gelap)',
+            'action' => 'toggleTheme',
+            'icon' => 'fa-circle-half-stroke',
+            'iconClass' => 'text-amber-500',
+            'keywords' => 'dark light theme mode tampilan tema',
+            'type' => 'action',
+        ],
+        [
+            'group' => 'Aksi Cepat',
+            'label' => 'Buka atau Lipat Menu Sidebar',
+            'action' => 'toggleDesktopSidebar',
+            'icon' => 'fa-table-columns',
+            'iconClass' => 'text-emerald-500',
+            'keywords' => 'sidebar menu toggle minimize collapse lipat',
+            'type' => 'action',
+        ],
+        [
+            'group' => 'Aksi Cepat',
+            'label' => 'Buka Pengaturan Akun & Profil',
+            'url' => route('profile.edit'),
+            'icon' => 'fa-user-gear',
+            'iconClass' => 'text-blue-500',
+            'keywords' => 'profile account user password setting pengaturan profil',
+            'type' => 'link',
+        ],
+    ];
+
+    if ($user->canManageFinance()) {
+        $quickActions[] = [
+            'group' => 'Aksi Cepat',
+            'label' => 'Catat Kas Masuk Baru',
+            'url' => route('kas-masuk.create'),
+            'icon' => 'fa-circle-plus',
+            'iconClass' => 'text-emerald-600',
+            'keywords' => 'tambah uang kas masuk pemasukan setor',
+            'type' => 'link',
+        ];
+        $quickActions[] = [
+            'group' => 'Aksi Cepat',
+            'label' => 'Catat Kas Keluar Baru',
+            'url' => route('kas-keluar.create'),
+            'icon' => 'fa-circle-minus',
+            'iconClass' => 'text-rose-600',
+            'keywords' => 'tambah kas keluar pengeluaran bayar belanja',
+            'type' => 'link',
+        ];
+        $quickActions[] = [
+            'group' => 'Aksi Cepat',
+            'label' => 'Buat Tagihan Warga Baru',
+            'url' => route('tagihan.create'),
+            'icon' => 'fa-file-invoice-dollar',
+            'iconClass' => 'text-lime-600',
+            'keywords' => 'tagihan iuran buat generate billing warga',
+            'type' => 'link',
+        ];
+    }
+
+    if (\App\Support\RfidAccess::canManageWargaKtp($user)) {
+        $quickActions[] = [
+            'group' => 'Aksi Cepat',
+            'label' => 'Buka Sesi Alat Verifikasi KTP (RFID)',
+            'url' => route('admin.warga.rfid.show'),
+            'icon' => 'fa-id-card-clip',
+            'iconClass' => 'text-emerald-600',
+            'keywords' => 'rfid ktp tap alat esp32 reader sesi enroll buka',
+            'type' => 'link',
+        ];
+    }
+
+    if ($user->hasPermission('create-kegiatan') || $user->hasPermission('manage-kegiatan')) {
+        $quickActions[] = [
+            'group' => 'Aksi Cepat',
+            'label' => 'Tambah Agenda Kegiatan Lingkungan',
+            'url' => route('kegiatan.create'),
+            'icon' => 'fa-calendar-plus',
+            'iconClass' => 'text-emerald-600',
+            'keywords' => 'kegiatan acara agenda rapat gotong royong jadwal',
+            'type' => 'link',
+        ];
+    }
+
+    $paletteItems = collect($quickActions)
+        ->concat(
+            collect($visibleMenuGroups)->flatMap(function ($group) {
+                return collect($group['items'])->map(function ($item) use ($group) {
+                    return [
+                        'group' => $group['label'],
+                        'label' => $item['label'],
+                        'url' => route($item['route']),
+                        'icon' => $item['icon'],
+                        'iconClass' => $item['iconClass'] ?? 'text-emerald-600',
+                        'keywords' => $item['label'] . ' ' . $group['label'],
+                        'type' => 'link',
+                    ];
+                });
+            })
+        )
+        ->values()
+        ->all();
 @endphp
-<body class="bg-fintech font-sans text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100" x-data="appShell()" x-on:keydown.escape.window="mobileMenuOpen = false">
+<body class="bg-fintech font-sans text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100" x-data="appShell()" x-on:keydown.escape.window="mobileMenuOpen = false" @toggle-sidebar.window="toggleDesktopSidebar()" @toggle-theme.window="toggleTheme()">
 
     <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-40 bg-slate-900/35 lg:hidden" x-transition.opacity x-on:click="mobileMenuOpen = false"></div>
     <div x-cloak x-show="navigating" x-transition.opacity class="fixed left-1/2 top-4 z-[9999] -translate-x-1/2 rounded-full bg-emerald-600 px-4 py-2 text-xs font-black text-white shadow-2xl shadow-emerald-900/20">
@@ -475,6 +578,10 @@
                     </p>
                 </div>
 
+                <button type="button" @click="$dispatch('open-command-palette')" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" aria-label="Buka Pencarian Menu (Ctrl + K)">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                </button>
+
                 <button type="button" x-on:click="toggleTheme()" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-amber-300 dark:hover:bg-slate-700" aria-label="Ganti mode terang gelap">
                     <i class="fa-solid" :class="theme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
                 </button>
@@ -551,7 +658,19 @@
                 </h3>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
+                <button
+                    type="button"
+                    @click="$dispatch('open-command-palette')"
+                    class="btn-tactile hidden md:flex items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-500 shadow-2xs transition hover:border-emerald-300 hover:bg-emerald-50/60 hover:text-emerald-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-emerald-700 dark:hover:bg-slate-700 dark:hover:text-emerald-300 active:scale-95"
+                    title="Navigasi Cepat Pengurus (Ctrl + K)"
+                    aria-label="Cari menu atau aksi"
+                >
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 dark:text-slate-400 text-xs"></i>
+                    <span>Cari menu / aksi...</span>
+                    <kbd class="inline-flex items-center gap-0.5 rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] font-bold text-slate-600 shadow-2xs dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300">Ctrl K</kbd>
+                </button>
+
                 <div class="hidden items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-emerald-900 shadow-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 xl:flex">
                     <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-xs dark:bg-slate-900 dark:text-emerald-300">
                         <i class="fa-solid fa-calendar-days"></i>
@@ -723,5 +842,116 @@
             }
         }, 3000);
     </script>
+
+    {{-- Command Palette (Ctrl + K) --}}
+    <div
+        x-data="commandPalette(@js($paletteItems))"
+        @open-command-palette.window="show()"
+        class="relative z-[99999]"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigasi Cepat Pengurus (Command Palette)"
+    >
+        <div
+            x-cloak
+            x-show="open"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"
+            @click="close()"
+        ></div>
+
+        <div
+            x-cloak
+            x-show="open"
+            class="fixed inset-0 overflow-y-auto p-4 pt-16 sm:p-6 sm:pt-24 flex justify-center"
+            @click.self="close()"
+        >
+            <div
+                x-show="open"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 scale-95 -translate-y-2"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95"
+                class="w-full max-w-xl overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-2xl transition-all dark:border-slate-700/80 dark:bg-slate-900"
+            >
+                {{-- Search Header --}}
+                <div class="relative flex items-center border-b border-slate-100 px-5 dark:border-slate-800">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 text-sm mr-3"></i>
+                    <input
+                        x-ref="searchInput"
+                        type="text"
+                        x-model="search"
+                        @keydown.arrow-down.prevent="selectNext()"
+                        @keydown.arrow-up.prevent="selectPrev()"
+                        @keydown.enter.prevent="executeActive()"
+                        @keydown.escape="close()"
+                        placeholder="Ketik untuk mencari menu atau aksi pengurus..."
+                        class="w-full border-0 bg-transparent py-4 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-0 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    />
+                    <kbd class="ml-2 rounded-lg border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-mono font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">ESC</kbd>
+                </div>
+
+                {{-- Results Container --}}
+                <div class="max-h-80 overflow-y-auto p-2.5 space-y-1">
+                    <template x-if="filteredItems.length === 0">
+                        <div class="py-12 text-center text-xs text-slate-500 dark:text-slate-400">
+                            <i class="fa-regular fa-face-meh text-2xl text-slate-400 mb-2 block"></i>
+                            <p class="font-bold text-slate-700 dark:text-slate-300">Tidak ada menu atau aksi yang cocok</p>
+                            <p class="mt-0.5">Coba kata kunci lain seperti "kas", "warga", "rfid", atau "tagihan"</p>
+                        </div>
+                    </template>
+
+                    <template x-for="(item, idx) in filteredItems" :key="item.label + item.group">
+                        <button
+                            type="button"
+                            :data-palette-idx="idx"
+                            @click="execute(item)"
+                            @mouseenter="activeIndex = idx"
+                            class="flex w-full items-center justify-between rounded-2xl px-3.5 py-2.5 text-left text-xs transition duration-150"
+                            :class="activeIndex === idx ? 'bg-emerald-50 text-emerald-950 font-bold dark:bg-emerald-950/50 dark:text-emerald-100' : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800/60'"
+                        >
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span
+                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm"
+                                    :class="activeIndex === idx ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+                                >
+                                    <i :class="'fa-solid ' + item.icon"></i>
+                                </span>
+                                <div class="min-w-0">
+                                    <p class="truncate font-semibold" :class="activeIndex === idx ? 'text-emerald-950 dark:text-emerald-100' : 'text-slate-800 dark:text-slate-200'" x-text="item.label"></p>
+                                    <p class="truncate text-[10px] text-slate-400 dark:text-slate-500" x-text="item.group"></p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 pl-3">
+                                <span
+                                    class="rounded-lg px-2 py-0.5 text-[10px] font-semibold"
+                                    :class="item.type === 'action' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'"
+                                    x-text="item.type === 'action' ? 'Aksi' : 'Buka'"
+                                ></span>
+                                <i x-show="activeIndex === idx" class="fa-solid fa-arrow-turn-down-left text-[11px] text-emerald-600 dark:text-emerald-400"></i>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+
+                {{-- Footer Keyboard Navigation Hints --}}
+                <div class="flex items-center justify-between border-t border-slate-100 bg-slate-50/80 px-4 py-2.5 text-[11px] text-slate-500 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-400">
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex items-center gap-1"><kbd class="rounded border border-slate-200 bg-white px-1 font-mono text-[9px] shadow-2xs dark:border-slate-700 dark:bg-slate-900">↑↓</kbd> Navigasi</span>
+                        <span class="inline-flex items-center gap-1"><kbd class="rounded border border-slate-200 bg-white px-1 font-mono text-[9px] shadow-2xs dark:border-slate-700 dark:bg-slate-900">↵</kbd> Buka</span>
+                        <span class="inline-flex items-center gap-1"><kbd class="rounded border border-slate-200 bg-white px-1 font-mono text-[9px] shadow-2xs dark:border-slate-700 dark:bg-slate-900">ESC</kbd> Tutup</span>
+                    </div>
+                    <span class="font-bold text-emerald-700 dark:text-emerald-400">Smart RW Navigasi</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
