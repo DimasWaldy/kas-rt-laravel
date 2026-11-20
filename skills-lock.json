@@ -1,0 +1,69 @@
+{
+  "version": 2,
+  "skills": {
+    "baseline-ui": {
+      "source": "master5d/claude-design-skills",
+      "commit": "5cf7b695d50a29d93e0336872cbf9a8d5b44b103",
+      "sourceType": "github",
+      "skillPath": "skills/baseline-ui/SKILL.md",
+      "computedHash": "2a363ec09b5be3eb3590772f7d55b5f2121ebbb6be6d46f0b36a02760449a120",
+      "installMode": "copy"
+    },
+    "emil-design-eng": {
+      "source": "master5d/claude-design-skills",
+      "commit": "5cf7b695d50a29d93e0336872cbf9a8d5b44b103",
+      "sourceType": "github",
+      "skillPath": "skills/emil-design-eng/SKILL.md",
+      "computedHash": "2e5e59a85c38f9be5051dcf785a6de8035e3707afe747b9b5a981e69c2a96573",
+      "installMode": "copy"
+    },
+    "fixing-accessibility": {
+      "source": "master5d/claude-design-skills",
+      "commit": "5cf7b695d50a29d93e0336872cbf9a8d5b44b103",
+      "sourceType": "github",
+      "skillPath": "skills/fixing-accessibility/SKILL.md",
+      "computedHash": "50fe52aae0661c5aef2d1ed868bbfcda877ce96a6ec16ffa1c8a77dc83ea9695",
+      "installMode": "copy"
+    },
+    "fixing-metadata": {
+      "source": "master5d/claude-design-skills",
+      "commit": "5cf7b695d50a29d93e0336872cbf9a8d5b44b103",
+      "sourceType": "github",
+      "skillPath": "skills/fixing-metadata/SKILL.md",
+      "computedHash": "b71eee5b670eb1b55ff5f62d65a3e6eed642faf1ade02fb79c2d6c03b36938e2",
+      "installMode": "copy"
+    },
+    "fixing-motion-performance": {
+      "source": "master5d/claude-design-skills",
+      "commit": "5cf7b695d50a29d93e0336872cbf9a8d5b44b103",
+      "sourceType": "github",
+      "skillPath": "skills/fixing-motion-performance/SKILL.md",
+      "computedHash": "f9d9c68f117fdf33701fc8b103bfefda48903aa68bef70e157ae8f455c954daa",
+      "installMode": "copy"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "commit": "e4bb5d960d87126ff3b3a8af1a104b7db67560ba",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "83485963700bcf11d5bf78118facb301676b69d918fee2e45a95e7f1a2840f6c",
+      "installMode": "copy"
+    },
+    "interface-design": {
+      "source": "master5d/claude-design-skills",
+      "commit": "5cf7b695d50a29d93e0336872cbf9a8d5b44b103",
+      "sourceType": "github",
+      "skillPath": "skills/interface-design/SKILL.md",
+      "computedHash": "5de48ee15ad9135696e7551fdc96fac7d89bac9a269f5e70ed6e199d9a58e0ae",
+      "installMode": "copy"
+    },
+    "superdesign": {
+      "source": "superdesigndev/superdesign-skill",
+      "commit": "f9f05cd988c247dce6c072eaf9ac6b162f2ffc4b",
+      "sourceType": "github",
+      "skillPath": "skills/superdesign/SKILL.md",
+      "computedHash": "1bbfd4289a83e3d866f39ce3e76b852db1ea57fa953f23e8e904cdfd1164d4d5",
+      "installMode": "copy"
+    }
+  }
+}

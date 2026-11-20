@@ -3,19 +3,31 @@
 @section('title', 'Ringkasan Statistik')
 
 @push('styles')
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    .font-inter {
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    .civic-card {
+        transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1), border-color 150ms ease-out;
+    }
+    .civic-card:hover {
+        transform: translateY(-1px);
+    }
+    .civic-card:active {
+        transform: scale(0.99);
+    }
+    .btn-tactile {
+        transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms ease-out, box-shadow 120ms ease-out;
+    }
+    .btn-tactile:active {
+        transform: scale(0.97);
     }
 </style>
 @endpush
 
 @section('content')
-<div class="font-inter">
+<div class="space-y-6">
 
+{{-- =============================================
+     WARGA STATUS & IDENTITAS CIVIC
+     ============================================= --}}
 @if(auth()->user()->role_name === 'warga')
 @php
     $accountStatus = auth()->user()->status_akun;
@@ -36,7 +48,7 @@
         $statusTitle = 'Pendaftaran Anda sedang diperiksa';
         $statusMessage = $hasSubmittedProfileDomicile
             ? 'Profil, dokumen, dan domisili Anda sudah dikirim. Menunggu verifikasi dari pengurus RT/Admin/Superadmin.'
-            : 'Lengkapi profil, KK/KTP, serta domisili Anda melalui halaman profil agar pengurus RT/Admin/Superadmin dapat memverifikasi akun Anda sekaligus.';
+            : 'Lengkapi profil, KK/KTP, serta domisili Anda melalui halaman profil agar pengurus dapat memverifikasi akun Anda sekaligus.';
         $statusCtaUrl = route('profile.edit');
         $statusCtaLabel = $hasSubmittedProfileDomicile ? 'Lihat Profil Saya' : 'Lengkapi Profil & Domisili';
     } elseif ($needsDomicile) {
@@ -65,104 +77,122 @@
     } else {
         $statusTone = 'slate';
         $statusIcon = 'fa-circle-check';
-        $statusTitle = 'Akun aktif';
-        $statusMessage = 'Lengkapi data profil Anda agar layanan warga berjalan lancar.';
+        $statusTitle = 'Akun aktif & terverifikasi';
+        $statusMessage = 'Akses layanan warga terbuka. Simpan nomor kontak dan data KK Anda agar tetap mutakhir.';
         $statusCtaUrl = route('profile.edit');
         $statusCtaLabel = 'Kelola profil';
     }
 
-    $statusCardClasses = match($statusTone) {
-        'amber' => 'border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10',
-        'indigo' => 'border-indigo-200 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/10',
-                'emerald' => 'border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/30',
-                default => 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900',
+    $statusCardBorder = match($statusTone) {
+        'amber' => 'border-amber-200/80 bg-amber-50/70 dark:border-amber-500/20 dark:bg-amber-950/20',
+        'indigo' => 'border-indigo-200/80 bg-indigo-50/70 dark:border-indigo-500/20 dark:bg-indigo-950/20',
+        'emerald' => 'border-emerald-200/80 bg-emerald-50/60 dark:border-emerald-500/20 dark:bg-emerald-950/20',
+        default => 'border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900',
     };
-    $statusIconClasses = match($statusTone) {
-        'amber' => 'text-amber-600 dark:text-amber-400',
-        'indigo' => 'text-indigo-600 dark:text-indigo-400',
-        'emerald' => 'text-emerald-600 dark:text-emerald-400',
-        default => 'text-slate-500 dark:text-slate-400',
+    $statusBadge = match($statusTone) {
+        'amber' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200',
+        'indigo' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200',
+        'emerald' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200',
+        default => 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
     };
-    $statusButtonClasses = match($statusTone) {
-        'amber' => 'bg-amber-600 hover:bg-amber-700',
-        'indigo' => 'bg-indigo-600 hover:bg-indigo-700',
-        'emerald' => 'bg-emerald-600 hover:bg-emerald-700',
-        default => 'bg-slate-700 hover:bg-slate-800',
+    $statusBtn = match($statusTone) {
+        'amber' => 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-600/20',
+        'indigo' => 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20',
+        'emerald' => 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20',
+        default => 'bg-slate-800 hover:bg-slate-900 text-white shadow-slate-900/20 dark:bg-slate-700 dark:hover:bg-slate-600',
     };
 @endphp
-<div x-data="{ showRfidGuide: false }" class="mb-6 rounded-2xl border {{ $statusCardClasses }} p-6">
-    <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div class="flex items-start gap-3">
-            <i class="fa-solid {{ $statusIcon }} {{ $statusIconClasses }} mt-1 text-2xl"></i>
+<div x-data="{ showRfidGuide: false }" class="rounded-3xl border {{ $statusCardBorder }} p-6 sm:p-7 shadow-xs">
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex items-start gap-4">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl {{ $statusBadge }} text-xl shadow-2xs">
+                <i class="fa-solid {{ $statusIcon }}"></i>
+            </div>
             <div>
-                <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ $statusTitle }}</h2>
-                <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ $statusMessage }}</p>
-                <div class="mt-3 flex flex-wrap items-center gap-2.5">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h2 class="text-base font-bold text-slate-900 dark:text-slate-100">{{ $statusTitle }}</h2>
+                    <span class="rounded-full px-2.5 py-0.5 text-[11px] font-semibold {{ $statusBadge }}">
+                        {{ auth()->user()->rt ? 'RT '.str_pad(auth()->user()->rt->nomor ?? '0', 2, '0', STR_PAD_LEFT) : 'Warga RW' }}
+                    </span>
+                </div>
+                <p class="mt-1 text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">{{ $statusMessage }}</p>
+                
+                <div class="mt-4 flex flex-wrap items-center gap-2.5">
                     @if($statusCtaUrl)
-                        <a href="{{ $statusCtaUrl }}" class="inline-flex items-center gap-2 rounded-xl {{ $statusButtonClasses }} px-4 py-2.5 text-sm font-bold text-white shadow-xs transition">
+                        <a href="{{ $statusCtaUrl }}" class="btn-tactile inline-flex items-center gap-2 rounded-xl {{ $statusBtn }} px-4 py-2 text-xs font-bold shadow-xs">
                             <i class="fa-solid {{ $statusTone === 'amber' ? 'fa-pen-to-square' : 'fa-house' }}"></i>
-                            {{ $statusCtaLabel }}
+                            <span>{{ $statusCtaLabel }}</span>
                         </a>
                     @endif
-                    <a href="{{ route('warga.rfid.show') }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                    <a href="{{ route('warga.rfid.show') }}" class="btn-tactile inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
                         <i class="fa-solid fa-id-card text-emerald-600 dark:text-emerald-400"></i>
                         <span>Verifikasi KTP (RFID)</span>
                     </a>
                 </div>
-                @if($accountStatus === 'aktif' && ! $needsDomicile)
-                    @php
-                        $ktpRfidCard = \App\Models\RfidCard::where('user_id', auth()->id())->with('verifiedRt:id,name')->first();
-                    @endphp
-                    <div class="mt-4">
-                        @if($ktpRfidCard?->ktp_verified_at)
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-800 dark:bg-emerald-950/40">
-                                <div class="flex items-center gap-3">
-                                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
-                                        <i class="fa-solid fa-id-card"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs font-bold text-emerald-900 dark:text-emerald-100">KTP Terdaftar di {{ $ktpRfidCard->verifiedRt?->name ?? 'RT' }} &amp; Sistem (RFID Aktif)</p>
-                                        <p class="text-[11px] text-emerald-700 dark:text-emerald-300">Siap digunakan untuk Absensi Kegiatan dan pendaftaran Koperasi Warga.</p>
-                                    </div>
-                                </div>
-                                <a href="{{ route('warga.rfid.show') }}" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-700 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-800">
-                                    <i class="fa-solid fa-qrcode"></i>
-                                    <span>Kartu Digital</span>
-                                </a>
-                            </div>
-                        @else
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-                                <div class="flex items-start gap-3">
-                                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-xs mt-0.5">
-                                        <i class="fa-solid fa-id-card"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs font-bold"><i class="fa-solid fa-circle-exclamation mr-1"></i> KTP belum diverifikasi via RFID</p>
-                                        <p class="mt-0.5 text-[11px] text-amber-800 dark:text-amber-300">Layanan dasar tetap aktif. Bawa e-KTP fisik Anda ke petugas RT/Admin untuk 1x tap di alat reader agar akun terverifikasi penuh dan dapat mengakses Koperasi serta Absensi Kegiatan.</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0">
-                                    <button type="button" @click="showRfidGuide = true" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-300 bg-white px-3.5 py-2 text-xs font-bold text-amber-900 shadow-xs transition hover:bg-amber-100 dark:border-amber-500/50 dark:bg-slate-800 dark:text-amber-200">
-                                        <i class="fa-solid fa-circle-question text-amber-600"></i>
-                                        <span>Panduan Tap</span>
-                                    </button>
-                                    <a href="{{ route('warga.rfid.show') }}" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-amber-700">
-                                        <i class="fa-solid fa-wifi"></i>
-                                        <span>Lihat Cara Tap</span>
-                                    </a>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                @endif
             </div>
         </div>
-        <div class="shrink-0 rounded-xl border border-black/5 bg-white/60 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                    <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Status Iuran</p>
-                    <p class="mt-1 text-sm font-bold capitalize text-slate-700 dark:text-slate-100">{{ str_replace('_', ' ', $userStatus ?? 'Belum Ada Tagihan') }}</p>
-            <a href="{{ route('tagihan.index') }}" class="mt-1 inline-block text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">Detail Tagihan</a>
+
+        {{-- Widget Status Tagihan Warga --}}
+        <div class="shrink-0 rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-2xs dark:border-slate-700/60 dark:bg-slate-800/80 min-w-[200px]">
+            <span class="text-[11px] font-medium text-slate-400 dark:text-slate-400 block">Status Iuran Anda</span>
+            <div class="mt-1 flex items-center gap-2">
+                <span class="inline-block h-2 w-2 rounded-full {{ ($userStatus ?? '') === 'lunas' ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
+                <span class="text-sm font-bold capitalize text-slate-800 dark:text-slate-100">{{ str_replace('_', ' ', $userStatus ?? 'Belum Ada Tagihan') }}</span>
+            </div>
+            <a href="{{ route('tagihan.index') }}" class="mt-2.5 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300">
+                <span>Rincian Tagihan</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
         </div>
     </div>
+
+    {{-- Kartu Status RFID Banner --}}
+    @if($accountStatus === 'aktif' && ! $needsDomicile)
+        @php
+            $ktpRfidCard = \App\Models\RfidCard::where('user_id', auth()->id())->with('verifiedRt:id,name')->first();
+        @endphp
+        <div class="mt-5 pt-4 border-t border-slate-200/60 dark:border-slate-800">
+            @if($ktpRfidCard?->ktp_verified_at)
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/70 px-4 py-3 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                            <i class="fa-solid fa-id-card"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-emerald-900 dark:text-emerald-100">KTP Terdaftar di {{ $ktpRfidCard->verifiedRt?->name ?? 'RT' }} &amp; Sistem (RFID Aktif)</p>
+                            <p class="text-[11px] text-emerald-700 dark:text-emerald-300">Siap digunakan untuk Absensi Kegiatan dan pendaftaran Koperasi Warga.</p>
+                        </div>
+                    </div>
+                    <a href="{{ route('warga.rfid.show') }}" class="btn-tactile inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-700 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-800">
+                        <i class="fa-solid fa-qrcode"></i>
+                        <span>Kartu Digital</span>
+                    </a>
+                </div>
+            @else
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/70 px-4 py-3 dark:border-amber-900/60 dark:bg-amber-950/30">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-xs mt-0.5">
+                            <i class="fa-solid fa-id-card"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-amber-900 dark:text-amber-100"><i class="fa-solid fa-circle-exclamation mr-1"></i> KTP belum diverifikasi via RFID</p>
+                            <p class="text-[11px] text-amber-800 dark:text-amber-300">Layanan dasar tetap aktif. Cukup 1x tap e-KTP fisik di alat pos RT untuk mengaktifkan akses Koperasi &amp; Absensi Kegiatan.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button" @click="showRfidGuide = true" class="btn-tactile inline-flex items-center gap-1.5 rounded-xl border border-amber-300/80 bg-white px-3.5 py-2 text-xs font-bold text-amber-900 shadow-2xs hover:bg-amber-50 dark:border-amber-700 dark:bg-slate-800 dark:text-amber-200">
+                            <i class="fa-solid fa-circle-question text-amber-600"></i>
+                            <span>Panduan Tap</span>
+                        </button>
+                        <a href="{{ route('warga.rfid.show') }}" class="btn-tactile inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-amber-700">
+                            <i class="fa-solid fa-wifi"></i>
+                            <span>Lihat Cara Tap</span>
+                        </a>
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endif
 
     {{-- Modal Panduan Tap KTP (Alpine.js) --}}
     <div x-show="showRfidGuide" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" x-transition.opacity>
@@ -219,10 +249,10 @@
             </div>
 
             <div class="mt-5 flex items-center justify-end gap-2.5">
-                <button type="button" @click="showRfidGuide = false" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                <button type="button" @click="showRfidGuide = false" class="btn-tactile rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                     Tutup
                 </button>
-                <a href="{{ route('warga.rfid.show') }}" class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 shadow-xs">
+                <a href="{{ route('warga.rfid.show') }}" class="btn-tactile inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 shadow-xs">
                     <i class="fa-solid fa-arrow-right"></i>
                     <span>Buka Halaman Kartu Warga</span>
                 </a>
@@ -232,118 +262,190 @@
 </div>
 @endif
 
+{{-- =============================================
+     ADMIN QUICK CALLOUT
+     ============================================= --}}
 @if(auth()->user()->isGlobalOperator() && auth()->user()->isAktif() && auth()->user()->hasPermission('admin-only'))
-<div class="mb-8 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-800 dark:bg-emerald-950/40 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-        <p class="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Administrasi Sistem</p>
-        <h2 class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">Manajemen Akun</h2>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Buat akun pengurus dan tempatkan sesuai wilayah tugas. Akun warga mengikuti alur data rumah dan KK.</p>
+<div class="flex flex-col gap-4 rounded-3xl border border-emerald-200/80 bg-emerald-50/50 p-5 dark:border-emerald-800/60 dark:bg-emerald-950/20 sm:flex-row sm:items-center sm:justify-between shadow-2xs">
+    <div class="flex items-center gap-3.5">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-xs">
+            <i class="fa-solid fa-users-gear text-lg"></i>
+        </div>
+        <div>
+            <div class="flex items-center gap-2">
+                <h2 class="text-sm font-bold text-slate-900 dark:text-slate-100">Manajemen Akun &amp; Wilayah</h2>
+                <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">Operator</span>
+            </div>
+            <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Kelola penempatan pengurus RT/RW dan verifikasi dokumen kependudukan warga.</p>
+        </div>
     </div>
-    <a href="{{ route('admin.accounts.create') }}" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800">
-        <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Buka Manajemen Akun
+    <a href="{{ route('admin.accounts.create') }}" class="btn-tactile inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-800 shadow-xs">
+        <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+        <span>Kelola Akun Pengurus</span>
     </a>
 </div>
 @endif
 
 {{-- =============================================
-     SECTION 1: KEUANGAN KESELURUHAN
+     SECTION 1: KEUANGAN KESELURUHAN (CIVIC LEDGER)
      ============================================= --}}
 @php
     $u = auth()->user();
     $canViewFinance = $u->canViewFinance();
     $isLockedAccount = ! $u->isAktif() || ($u->role_name === 'warga' && $u->onboarding_domisili && ! $u->rumah_id);
+    $saldo = ($kasMasuk ?? 0) - ($kasKeluar ?? 0);
 @endphp
 
 @if($canViewFinance && ! $isLockedAccount)
-<div class="mb-2">
-    <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-        {{ $u->isRwOfficial() ? 'Rekap Keuangan RW' : ($u->role_name === 'warga' ? 'Ringkasan Keuangan RT' : 'Keuangan RT') }}
-    </p>
-</div>
-{{-- ===== MAIN BALANCE CARD ===== --}}
-@php
-    $saldo = ($kasMasuk ?? 0) - ($kasKeluar ?? 0);
-@endphp
-<div class="balance-card mb-6 p-6 md:p-8">
-    <div class="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+<div>
+    <div class="mb-3 flex items-center justify-between">
         <div>
-            <div class="flex items-center gap-2">
-                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
-                    <i class="fa-solid fa-wallet text-white"></i>
+            <h2 class="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {{ $u->isRwOfficial() ? 'Rekap Keuangan RW' : ($u->role_name === 'warga' ? 'Transparansi Keuangan RT' : 'Laporan Keuangan RT') }}
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Pembukuan kas warga dan pergerakan dana kas lingkungan</p>
+        </div>
+        @if(Route::has('laporan-kas.index'))
+            <a href="{{ route('laporan-kas.index') }}" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 inline-flex items-center gap-1">
+                <span>Buka Buku Kas</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
+        @endif
+    </div>
+
+    {{-- Main Financial Card: Dignified Civic Balance --}}
+    <div class="mb-4 overflow-hidden rounded-3xl bg-linear-to-br from-emerald-900 via-emerald-800 to-teal-900 p-6 sm:p-8 text-white shadow-xl shadow-emerald-950/10 ring-1 ring-white/10 relative">
+        <div class="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5 blur-2xl pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <div class="flex items-center gap-2 text-emerald-200">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10">
+                        <i class="fa-solid fa-wallet text-xs"></i>
+                    </span>
+                    <span class="text-xs font-semibold tracking-wide">Saldo Kas {{ $u->isRwOfficial() ? 'RW' : 'RT' }} Tersedia</span>
+                </div>
+                <div class="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums">
+                    Rp {{ number_format($saldo, 0, ',', '.') }}
+                </div>
+                <p class="mt-1.5 text-xs text-emerald-200/80">Saldo riil dihitung dari total kas masuk dikurangi total kas keluar.</p>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+                <div class="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-md min-w-[130px] border border-white/10">
+                    <span class="text-[11px] font-medium text-emerald-200 block">Total Masuk</span>
+                    <span class="mt-0.5 text-base font-bold text-white tabular-nums block">Rp {{ number_format($kasMasuk ?? 0, 0, ',', '.') }}</span>
+                </div>
+                <div class="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-md min-w-[130px] border border-white/10">
+                    <span class="text-[11px] font-medium text-emerald-200 block">Total Keluar</span>
+                    <span class="mt-0.5 text-base font-bold text-white tabular-nums block">Rp {{ number_format($kasKeluar ?? 0, 0, ',', '.') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Financial Statistics Indicators --}}
+    <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <div class="civic-card rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Masuk</span>
+                <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400 text-xs">
+                    <i class="fa-solid fa-arrow-down"></i>
                 </span>
-                <p class="text-sm font-medium text-white/80">Saldo Kas {{ $u->isRwOfficial() ? 'RW' : 'RT' }} Saat Ini</p>
             </div>
-            <p class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Rp {{ number_format($saldo, 0, ',', '.') }}</p>
-            <p class="mt-2 text-xs font-medium text-white/70">Saldo = Kas Masuk − Kas Keluar (seluruh waktu)</p>
-        </div>
-        <div class="flex flex-wrap gap-4">
-            <div class="rounded-2xl bg-white/10 px-4 py-3 text-center backdrop-blur-sm">
-                <p class="text-[10px] font-medium uppercase tracking-wider text-white/70">Total Masuk</p>
-                <p class="mt-1 text-sm font-bold text-white">Rp {{ number_format($kasMasuk ?? 0, 0, ',', '.') }}</p>
+            <div class="mt-2 text-base font-bold text-slate-900 dark:text-slate-100 tabular-nums truncate">
+                Rp {{ number_format($kasMasuk ?? 0, 0, ',', '.') }}
             </div>
-            <div class="rounded-2xl bg-white/10 px-4 py-3 text-center backdrop-blur-sm">
-                <p class="text-[10px] font-medium uppercase tracking-wider text-white/70">Total Keluar</p>
-                <p class="mt-1 text-sm font-bold text-white">Rp {{ number_format($kasKeluar ?? 0, 0, ',', '.') }}</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Iuran &amp; donasi warga</p>
+        </div>
+
+        <div class="civic-card rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Keluar</span>
+                <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 text-xs">
+                    <i class="fa-solid fa-arrow-up"></i>
+                </span>
             </div>
+            <div class="mt-2 text-base font-bold text-slate-900 dark:text-slate-100 tabular-nums truncate">
+                Rp {{ number_format($kasKeluar ?? 0, 0, ',', '.') }}
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Operasional &amp; fasilitas</p>
         </div>
-    </div>
-</div>
-{{-- ===== FINANCIAL STATISTICS CARDS ===== --}}
-<div class="grid grid-cols-2 gap-4 md:grid-cols-4 mb-6">
-    <div class="card-fintech p-4">
-        <div class="icon-tile bg-green-50">
-            <i class="fa-solid fa-arrow-down text-green-600"></i>
+
+        <div class="civic-card rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Iuran Lunas</span>
+                <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400 text-xs">
+                    <i class="fa-solid fa-check"></i>
+                </span>
+            </div>
+            <div class="mt-2 text-base font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+                {{ $totalPaidTagihan ?? 0 }} <span class="text-xs font-normal text-slate-400">tagihan</span>
+            </div>
+            <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">Terkonfirmasi lunas</p>
         </div>
-        <p class="mt-3 text-xs font-medium text-slate-400">Total Pemasukan</p>
-        <p class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100 truncate">Rp {{ number_format($kasMasuk ?? 0, 0, ',', '.') }}</p>
-    </div>
-    <div class="card-fintech p-4">
-        <div class="icon-tile bg-red-50">
-            <i class="fa-solid fa-arrow-up text-red-500"></i>
+
+        <div class="civic-card rounded-2xl border {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'border-amber-200/90 bg-amber-50/30 dark:border-amber-900/40' : 'border-slate-200/80 bg-white' }} p-4 shadow-2xs dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-amber-800 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400' }}">Belum Bayar</span>
+                <span class="flex h-7 w-7 items-center justify-center rounded-lg {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300' : 'bg-slate-100 text-slate-500' }} text-xs">
+                    <i class="fa-solid fa-clock"></i>
+                </span>
+            </div>
+            <div class="mt-2 text-base font-bold {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-amber-900 dark:text-amber-200' : 'text-slate-900 dark:text-slate-100' }} tabular-nums">
+                {{ $totalUnpaidTagihan ?? 0 }} <span class="text-xs font-normal text-slate-400">tagihan</span>
+            </div>
+            <p class="text-[11px] {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-400' }} mt-0.5">Menunggu pembayaran</p>
         </div>
-        <p class="mt-3 text-xs font-medium text-slate-400">Total Pengeluaran</p>
-        <p class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100 truncate">Rp {{ number_format($kasKeluar ?? 0, 0, ',', '.') }}</p>
-    </div>
-    <div class="card-fintech p-4">
-        <div class="icon-tile bg-emerald-50">
-            <i class="fa-solid fa-circle-check text-emerald-600"></i>
-        </div>
-        <p class="mt-3 text-xs font-medium text-slate-400">Iuran Lunas</p>
-        <p class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100 truncate">{{ $totalPaidTagihan ?? 0 }} tagihan</p>
-    </div>
-    <div class="card-fintech p-4">
-        <div class="icon-tile {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'bg-amber-50' : 'bg-slate-50' }}">
-            <i class="fa-solid fa-clock {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-amber-600' : 'text-slate-400' }}"></i>
-        </div>
-        <p class="mt-3 text-xs font-medium text-slate-400">Iuran Belum Bayar</p>
-        <p class="mt-1 text-lg font-bold truncate {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-slate-100' }}">{{ $totalUnpaidTagihan ?? 0 }} tagihan</p>
     </div>
 </div>
 @else
 @if(! $isLockedAccount)
-<div class="mb-2">
-    <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Ringkasan Tagihan</p>
-</div>
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-    <div class="card-fintech p-4">
-        <div class="icon-tile bg-emerald-50">
-            <i class="fa-solid fa-receipt text-emerald-600"></i>
-        </div>
-        <p class="mt-3 text-xs font-medium text-slate-400">Tagihan Bulan Ini</p>
-        <p class="mt-1 text-lg font-bold capitalize text-slate-900 dark:text-slate-100 truncate">{{ str_replace('_', ' ', $userStatus ?? 'Belum Ada Tagihan') }}</p>
+<div>
+    <div class="mb-3">
+        <h2 class="text-sm font-bold text-slate-900 dark:text-slate-100">Ringkasan Tagihan Iuran</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Status kewajiban iuran rutin warga untuk lingkungan</p>
     </div>
-    <div class="card-fintech p-4">
-        <div class="icon-tile {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'bg-amber-50' : 'bg-slate-50' }}">
-            <i class="fa-solid fa-clock {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-amber-600' : 'text-slate-400' }}"></i>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="civic-card rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Bulan Ini</span>
+                    <h3 class="mt-1 text-lg font-bold capitalize text-slate-900 dark:text-slate-100">{{ str_replace('_', ' ', $userStatus ?? 'Belum Ada Tagihan') }}</h3>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                    <i class="fa-solid fa-receipt text-base"></i>
+                </div>
+            </div>
+            <a href="{{ route('tagihan.index') }}" class="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400">
+                <span>Buka Detail Tagihan</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
         </div>
-        <p class="mt-3 text-xs font-medium text-slate-400">Iuran Belum Bayar</p>
-        <p class="mt-1 text-lg font-bold truncate {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-slate-100' }}">{{ $totalUnpaidTagihan ?? 0 }} tagihan</p>
+        <div class="civic-card rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Tertunggak</span>
+                    <h3 class="mt-1 text-lg font-bold {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100' }} tabular-nums">
+                        {{ $totalUnpaidTagihan ?? 0 }} <span class="text-xs font-normal text-slate-400">tagihan</span>
+                    </h3>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400' : 'bg-slate-50 text-slate-400' }}">
+                    <i class="fa-solid fa-clock text-base"></i>
+                </div>
+            </div>
+            <a href="{{ route('tagihan.index') }}" class="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400">
+                <span>Periksa Daftar Iuran</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
+        </div>
     </div>
 </div>
 @endif
 @endif
 
-{{-- ===== QUICK ACTIONS ===== --}}
+{{-- ==========================================
+     MENU CEPAT: RESPONSIVE CIVIC ACTIONS
+     ========================================== --}}
 @if(! $isLockedAccount)
 @php
     $quickActions = [
@@ -375,414 +477,327 @@
     }));
 @endphp
 @if(count($quickActions) > 0)
-{{-- ==========================================
-     MENU CEPAT: HANYA TAMPIL DI MOBILE / ANDROID
-     (GAYA BPJS JMO - DI DESKTOP DISEMBUNYIKAN)
-     ========================================== --}}
-<div class="block md:hidden mb-6" x-data="{ showMorePrograms: false }">
-    <span class="sr-only">Menu Cepat</span>
-    {{-- Section 1: Program Layanan --}}
-    <div class="mb-5">
-        <div class="mb-3 flex items-center justify-between">
-            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Program Layanan</h3>
-        </div>
-
-        <div class="space-y-2.5">
-            {{-- Card 1: Iuran & Kas Warga (Style JHT) --}}
-            <a href="{{ route('tagihan.index') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-200/50 dark:border-amber-500/20 text-xl">
-                        <i class="fa-solid fa-hand-holding-dollar"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Iuran Warga RT</h4>
-                        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">Anda sudah terdaftar di layanan ini</p>
-                    </div>
-                </div>
-                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
-                    <i class="fa-solid fa-check"></i>
-                </span>
-            </a>
-
-            {{-- Card 2: Administrasi & Surat (Style JKK) --}}
-            @if(Route::has('surat.index'))
-            <a href="{{ route('surat.index') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500 border border-blue-200/50 dark:border-blue-500/20 text-xl">
-                        <i class="fa-solid fa-file-shield"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Administrasi Surat Digital</h4>
-                        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">Anda sudah terdaftar di layanan ini</p>
-                    </div>
-                </div>
-                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
-                    <i class="fa-solid fa-check"></i>
-                </span>
-            </a>
-            @endif
-
-            {{-- Card 3: Kartu KTP & RFID (Tap Kartu) --}}
-            @if(Route::has('warga.rfid.show') && ! \App\Support\RfidAccess::canManageWargaKtp($u))
-            <a href="{{ route('warga.rfid.show') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 border border-emerald-200/50 dark:border-emerald-500/20 text-xl">
-                        <i class="fa-solid fa-id-card"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Verifikasi KTP (RFID)</h4>
-                        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
-                            {{ ($ktpRfidCard ?? null)?->ktp_verified_at ? 'KTP terdaftar resmi di sistem' : 'Belum di-tap di reader RT' }}
-                        </p>
-                    </div>
-                </div>
-                @if(($ktpRfidCard ?? null)?->ktp_verified_at)
-                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
-                        <i class="fa-solid fa-check"></i>
-                    </span>
-                @else
-                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white text-xs shadow-xs">
-                        <i class="fa-solid fa-wifi text-[10px]"></i>
-                    </span>
-                @endif
-            </a>
-            @endif
-
-            {{-- Program Tambahan (Expandable) --}}
-            <div x-show="showMorePrograms" x-cloak class="space-y-2.5 pt-0.5" x-transition>
-                @if(Route::has('bank-sampah.index'))
-                <a href="{{ route('bank-sampah.index') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 border border-teal-200/50 dark:border-teal-500/20 text-xl">
-                            <i class="fa-solid fa-recycle"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Bank Sampah Digital</h4>
-                            <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">Anda sudah terdaftar di layanan ini</p>
-                        </div>
-                    </div>
-                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
-                        <i class="fa-solid fa-check"></i>
-                    </span>
-                </a>
-                @endif
-
-                @if(Route::has('posyandu.index'))
-                <a href="{{ route('posyandu.index') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-500/10 text-pink-500 border border-pink-200/50 dark:border-pink-500/20 text-xl">
-                            <i class="fa-solid fa-baby"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Posyandu &amp; Balita</h4>
-                            <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">Anda sudah terdaftar di layanan ini</p>
-                        </div>
-                    </div>
-                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
-                        <i class="fa-solid fa-check"></i>
-                    </span>
-                </a>
-                @endif
-
-                @if(Route::has('koperasi.index'))
-                <a href="{{ route('koperasi.index') }}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-200/50 dark:border-amber-500/20 text-xl">
-                            <i class="fa-solid fa-wallet"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">Koperasi Simpan Pinjam</h4>
-                            <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">Anda sudah terdaftar di layanan ini</p>
-                        </div>
-                    </div>
-                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs shadow-xs">
-                        <i class="fa-solid fa-check"></i>
-                    </span>
-                </a>
-                @endif
-            </div>
-
-            {{-- Tombol Program Lainnya (Style JMO) --}}
-            <button type="button" x-on:click="showMorePrograms = !showMorePrograms" class="flex w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50/70 py-2.5 text-center text-xs font-bold text-emerald-800 transition active:scale-[0.99] dark:border-emerald-800/40 dark:bg-emerald-950/30 dark:text-emerald-300">
-                <span x-text="showMorePrograms ? 'Tutup Program' : 'Program Lainnya'">Program Lainnya</span>
-                <i class="fa-solid text-[10px]" :class="showMorePrograms ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-            </button>
+<div>
+    <div class="mb-3 flex items-center justify-between">
+        <div>
+            <h2 class="text-sm font-bold text-slate-900 dark:text-slate-100">Akses Cepat Layanan</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Jalan pintas ke modul utama yang sering digunakan</p>
         </div>
     </div>
 
-    {{-- Section 2: Layanan Lainnya (Grid 4 Kolom Style JMO) --}}
-    <div>
-        <div class="mb-3">
-            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Layanan Lainnya</h3>
-        </div>
-
-        <div class="grid grid-cols-4 gap-y-4 gap-x-2 rounded-2xl border border-slate-100 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            @foreach($quickActions as $qa)
-                @php
-                    $mobileIconColor = match($qa['icon']) {
-                        'fa-wallet', 'fa-money-bill-trend-up' => 'text-amber-500',
-                        'fa-chart-pie', 'fa-boxes-stacked' => 'text-emerald-600',
-                        'fa-user-check', 'fa-users', 'fa-address-book' => 'text-indigo-500',
-                        'fa-id-card' => 'text-emerald-600',
-                        'fa-money-bill-transfer' => 'text-rose-500',
-                        'fa-list-check', 'fa-clipboard-list' => 'text-blue-500',
-                        'fa-hand-holding-heart', 'fa-hand-holding' => 'text-teal-600',
-                        'fa-bullhorn' => 'text-teal-500',
-                        'fa-building-shield', 'fa-shield-halved' => 'text-cyan-600',
-                        'fa-store' => 'text-emerald-600',
-                        'fa-envelope-open-text' => 'text-emerald-500',
-                        'fa-calendar-days' => 'text-violet-500',
-                        'fa-baby' => 'text-pink-500',
-                        'fa-recycle' => 'text-teal-500',
-                        default => 'text-emerald-600',
-                    };
-                @endphp
-                <a href="{{ route($qa['route']) }}" class="flex flex-col items-center gap-1.5 p-1 transition active:scale-95 group">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50/80 shadow-2xs group-hover:scale-105 transition dark:border-slate-700/80 dark:bg-slate-800">
-                        <i class="fa-solid {{ $qa['icon'] }} text-lg {{ $mobileIconColor }}"></i>
-                    </div>
-                    <span class="text-center text-[10.5px] leading-tight font-medium text-slate-700 dark:text-slate-300 line-clamp-2">
-                        {{ $qa['label'] }}
-                    </span>
-                </a>
-            @endforeach
-        </div>
+    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+        @foreach($quickActions as $qa)
+            @php
+                $colorAccent = match($qa['icon']) {
+                    'fa-wallet', 'fa-money-bill-trend-up' => 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300',
+                    'fa-chart-pie', 'fa-boxes-stacked' => 'text-teal-700 bg-teal-50 dark:bg-teal-950/40 dark:text-teal-300',
+                    'fa-user-check', 'fa-users', 'fa-address-book' => 'text-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-300',
+                    'fa-id-card' => 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300',
+                    'fa-money-bill-transfer' => 'text-rose-700 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-300',
+                    'fa-list-check', 'fa-clipboard-list' => 'text-blue-700 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-300',
+                    'fa-hand-holding-heart', 'fa-hand-holding' => 'text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300',
+                    'fa-bullhorn' => 'text-cyan-700 bg-cyan-50 dark:bg-cyan-950/40 dark:text-cyan-300',
+                    'fa-envelope-open-text' => 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300',
+                    'fa-calendar-days' => 'text-violet-700 bg-violet-50 dark:bg-violet-950/40 dark:text-violet-300',
+                    'fa-baby' => 'text-pink-700 bg-pink-50 dark:bg-pink-950/40 dark:text-pink-300',
+                    'fa-recycle' => 'text-teal-700 bg-teal-50 dark:bg-teal-950/40 dark:text-teal-300',
+                    default => 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300',
+                };
+            @endphp
+            <a href="{{ route($qa['route']) }}" class="civic-card flex flex-col items-center justify-center p-3 rounded-2xl border border-slate-200/80 bg-white text-center shadow-2xs hover:border-emerald-300/80 dark:border-slate-800 dark:bg-slate-900 group">
+                <div class="flex h-11 w-11 items-center justify-center rounded-xl {{ $colorAccent }} transition-transform duration-150 group-hover:scale-105">
+                    <i class="fa-solid {{ $qa['icon'] }} text-base"></i>
+                </div>
+                <span class="mt-2 text-center text-[11px] font-semibold text-slate-700 dark:text-slate-300 line-clamp-2 leading-tight">
+                    {{ $qa['label'] }}
+                </span>
+            </a>
+        @endforeach
     </div>
 </div>
 @endif
 @endif
+
 {{-- =============================================
-     SECTION 2: DATA WARGA
+     SECTION 2: DATA WARGA & KEPENDUDUKAN
      ============================================= --}}
-<div class="mb-2">
-    <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Data warga</p>
-</div>
-
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-
-    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-        <div class="bg-indigo-50 w-9 h-9 rounded-xl flex items-center justify-center mb-3">
-            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
-        </div>
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ auth()->user()->isRwOfficial() ? 'Total Warga RW' : 'Warga RT' }}</p>
-        <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mt-0.5">{{ $totalWarga ?? 0 }}</p>
-        <p class="text-xs text-slate-400 mt-1">orang terdaftar</p>
+<div>
+    <div class="mb-3">
+        <h2 class="text-sm font-bold text-slate-900 dark:text-slate-100">Kependudukan Lingkungan</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Rekapitulasi warga dan hunian rumah resmi terdaftar</p>
     </div>
 
-    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-        <div class="bg-amber-50 w-9 h-9 rounded-xl flex items-center justify-center mb-3">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"/></svg>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div class="civic-card rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">{{ auth()->user()->isRwOfficial() ? 'Total Warga RW' : 'Warga RT' }}</span>
+                <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 text-xs">
+                    <i class="fa-solid fa-users"></i>
+                </span>
+            </div>
+            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+                {{ $totalWarga ?? 0 }}
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">jiwa tercatat</p>
         </div>
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Rumah terdaftar</p>
-        <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mt-0.5">{{ $totalKK ?? 0 }}</p>
-        <p class="text-xs text-slate-400 mt-1">unit hunian</p>
-    </div>
 
-    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-        <div class="bg-emerald-50 dark:bg-emerald-500/10 w-9 h-9 rounded-xl flex items-center justify-center mb-3">
-                    <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+        <div class="civic-card rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Rumah Terdaftar</span>
+                <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400 text-xs">
+                    <i class="fa-solid fa-building-user"></i>
+                </span>
+            </div>
+            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+                {{ $totalKK ?? 0 }}
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">unit hunian fisik</p>
         </div>
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Rumah aktif</p>
-        <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mt-0.5">{{ $kepalaKeluargaAktif ?? 0 }}</p>
-        <p class="text-xs text-slate-400 mt-1">dari {{ $totalKK ?? 0 }} rumah</p>
-    </div>
 
-    {{-- Card Belum Bayar - border merah kalau ada tunggakan --}}
-    <div class="bg-white dark:bg-slate-900 rounded-2xl border p-5 {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'border-red-200' : 'border-slate-200 dark:border-slate-700' }}">
-        <div class="{{ ($totalUnpaidTagihan ?? 0) > 0 ? 'bg-red-50' : 'bg-slate-50 dark:bg-slate-800' }} w-9 h-9 rounded-xl flex items-center justify-center mb-3">
-            <svg class="w-5 h-5 {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-500' : 'text-slate-400' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0M3.124 7.5A8.969 8.969 0 015.292 3m13.416 0a8.969 8.969 0 012.168 4.5"/></svg>
+        <div class="civic-card rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Rumah Berpenghuni</span>
+                <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400 text-xs">
+                    <i class="fa-solid fa-house-chimney-user"></i>
+                </span>
+            </div>
+            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+                {{ $kepalaKeluargaAktif ?? 0 }}
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">dari {{ $totalKK ?? 0 }} rumah terdata</p>
         </div>
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Belum bayar</p>
-        <p class="text-2xl font-semibold mt-0.5 {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-600' : 'text-slate-900 dark:text-slate-100' }}">{{ $totalUnpaidTagihan ?? 0 }}</p>
-        <p class="text-xs text-slate-400 mt-1">tagihan tertunggak</p>
-    </div>
 
+        <div class="civic-card rounded-2xl border {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'border-rose-200/90 bg-rose-50/20 dark:border-rose-900/40' : 'border-slate-200/80 bg-white' }} p-4 sm:p-5 shadow-2xs dark:bg-slate-900 dark:border-slate-800">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400' }}">Tagihan Tertunggak</span>
+                <span class="flex h-8 w-8 items-center justify-center rounded-xl {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400' : 'bg-slate-100 text-slate-500' }} text-xs">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </span>
+            </div>
+            <div class="mt-2 text-2xl font-bold {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100' }} tabular-nums">
+                {{ $totalUnpaidTagihan ?? 0 }}
+            </div>
+            <p class="text-xs {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-rose-600/80 dark:text-rose-400/80' : 'text-slate-400' }} mt-0.5">perlu penagihan</p>
+        </div>
+    </div>
 </div>
 
 {{-- =============================================
      SECTION 3: DETAIL BULAN INI + AKTIVITAS
      ============================================= --}}
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
     {{-- Kolom kiri: ringkasan bulan ini + top rumah --}}
     <div class="flex flex-col gap-6">
 
         {{-- Ringkasan bulan ini + alert pending --}}
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+        <div class="civic-card rounded-3xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-xs">
             <div class="flex items-center justify-between mb-4">
-                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Ringkasan bulan ini</p>
-                <span class="text-xs font-medium bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Kinerja Kas Bulan Ini</h3>
+                    <p class="text-xs text-slate-400">Target dan realisasi pembayaran warga</p>
+                </div>
+                <span class="text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
                     {{ now()->translatedFormat('F Y') }}
                 </span>
             </div>
 
-            <div class="space-y-3 mb-4">
+            <div class="space-y-4 mb-4">
                 <div>
-                    <div class="flex justify-between items-center text-xs mb-1">
-                        <span class="text-slate-500 dark:text-slate-400">Pendapatan masuk</span>
-                        <span class="font-medium text-slate-800 dark:text-slate-200">Rp {{ number_format($monthlyRevenue ?? 0, 0, ',', '.') }}</span>
+                    <div class="flex justify-between items-center text-xs mb-1.5">
+                        <span class="text-slate-600 dark:text-slate-300 font-medium">Realisasi Penerimaan Kas</span>
+                        <span class="font-bold text-slate-900 dark:text-slate-100 tabular-nums">Rp {{ number_format($monthlyRevenue ?? 0, 0, ',', '.') }}</span>
                     </div>
-                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
                         @php
                             $maxVal = max($monthlyRevenue ?? 0, 1);
                             $pctMasuk = min(100, round((($monthlyRevenue ?? 0) / $maxVal) * 100));
                         @endphp
-                        <div class="h-full bg-green-500 rounded-full" style="width: {{ $pctMasuk }}%"></div>
+                        <div class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: {{ $pctMasuk }}%"></div>
                     </div>
                 </div>
+
                 <div>
-                    <div class="flex justify-between items-center text-xs mb-1">
-                        <span class="text-slate-500 dark:text-slate-400">Tagihan lunas</span>
-                        <span class="font-medium text-slate-800 dark:text-slate-200">{{ $totalPaidTagihan ?? 0 }} tagihan</span>
+                    <div class="flex justify-between items-center text-xs mb-1.5">
+                        <span class="text-slate-600 dark:text-slate-300 font-medium">Tagihan Lunas</span>
+                        <span class="font-bold text-slate-900 dark:text-slate-100 tabular-nums">{{ $totalPaidTagihan ?? 0 }} tagihan</span>
                     </div>
-                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
                         @php
                             $totalTagihan = ($totalPaidTagihan ?? 0) + ($totalUnpaidTagihan ?? 0);
                             $pctLunas = $totalTagihan > 0 ? min(100, round((($totalPaidTagihan ?? 0) / $totalTagihan) * 100)) : 0;
                         @endphp
-                        <div class="h-full bg-blue-500 rounded-full" style="width: {{ $pctLunas }}%"></div>
+                        <div class="h-full bg-teal-500 rounded-full transition-all duration-500" style="width: {{ $pctLunas }}%"></div>
                     </div>
                 </div>
+
                 <div>
-                    <div class="flex justify-between items-center text-xs mb-1">
-                        <span class="text-slate-500 dark:text-slate-400">Tagihan belum bayar</span>
-                        <span class="font-medium {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-red-600' : 'text-slate-800 dark:text-slate-200' }}">{{ $totalUnpaidTagihan ?? 0 }} tagihan</span>
+                    <div class="flex justify-between items-center text-xs mb-1.5">
+                        <span class="text-slate-600 dark:text-slate-300 font-medium">Tagihan Belum Lunas</span>
+                        <span class="font-bold {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100' }} tabular-nums">{{ $totalUnpaidTagihan ?? 0 }} tagihan</span>
                     </div>
-                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
                         @php
                             $pctUnpaid = $totalTagihan > 0 ? min(100, round((($totalUnpaidTagihan ?? 0) / $totalTagihan) * 100)) : 0;
                         @endphp
-                        <div class="h-full bg-red-400 rounded-full" style="width: {{ $pctUnpaid }}%"></div>
+                        <div class="h-full bg-amber-400 rounded-full transition-all duration-500" style="width: {{ $pctUnpaid }}%"></div>
                     </div>
                 </div>
             </div>
 
             {{-- Alert bukti transfer pending --}}
             @if(auth()->user()->canManageFinance() && ($pendingTransferCount ?? 0) > 0)
-                <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                    <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="flex items-start gap-3 bg-amber-50/80 border border-amber-200/80 rounded-2xl p-3.5 dark:bg-amber-950/30 dark:border-amber-900/50 mt-4">
+                    <i class="fa-solid fa-clock-rotate-left text-amber-600 mt-0.5"></i>
                     <div>
-                        <p class="text-xs font-semibold text-amber-800">{{ $pendingTransferCount }} bukti transfer menunggu verifikasi</p>
-                        <p class="text-xs text-amber-700 mt-0.5">Segera tindaklanjuti agar pembayaran warga tercatat.</p>
+                        <p class="text-xs font-bold text-amber-900 dark:text-amber-200">{{ $pendingTransferCount }} bukti transfer menunggu verifikasi Anda</p>
+                        <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">Periksa bukti transfer warga agar kas tercatat tepat waktu.</p>
                     </div>
                 </div>
             @endif
 
             {{-- Shortcut Iuran Bulanan untuk Ketua RT & Bendahara --}}
             @if(in_array(auth()->user()->role_name, ['ketua_rt', 'rt', 'ketua-rt']) || auth()->user()->canManageFinance())
-                <a href="{{ route('iuran-bulanan.index') }}"
-                   class="flex items-center justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50 dark:bg-teal-900/20 dark:border-teal-700 p-3 transition hover:bg-teal-100 dark:hover:bg-teal-900/40">
-                    <div class="flex items-center gap-2.5">
-                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-100 dark:bg-teal-800">
-                            <svg class="h-4 w-4 text-teal-700 dark:text-teal-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                            </svg>
-                        </span>
-                        <div>
-                            <p class="text-xs font-semibold text-teal-800 dark:text-teal-200">Iuran Bulanan</p>
-                            <p class="text-[11px] text-teal-600 dark:text-teal-400">Generate & kelola tagihan warga</p>
+                <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <a href="{{ route('iuran-bulanan.index') }}"
+                       class="btn-tactile flex items-center justify-between gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-800/50 p-3.5 transition hover:bg-emerald-100/70">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                                <i class="fa-solid fa-file-invoice-dollar text-sm"></i>
+                            </span>
+                            <div>
+                                <p class="text-xs font-bold text-emerald-900 dark:text-emerald-100">Kelola Tagihan Bulanan</p>
+                                <p class="text-[11px] text-emerald-700 dark:text-emerald-300">Generate otomatis &amp; pantau pembayaran tiap KK</p>
+                            </div>
                         </div>
-                    </div>
-                    <svg class="h-4 w-4 shrink-0 text-teal-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </a>
+                        <i class="fa-solid fa-arrow-right text-xs text-emerald-700 dark:text-emerald-400"></i>
+                    </a>
+                </div>
             @endif
         </div>
 
-        {{-- Top 5 rumah --}}
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-            <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Top 5 Rumah - total iuran</p>
+        {{-- Top 5 Rumah --}}
+        <div class="civic-card rounded-3xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Top 5 Rumah — Kontribusi Iuran Terbanyak</h3>
+                    <p class="text-xs text-slate-400">Apresiasi warga paling tertib membayar iuran lingkungan</p>
+                </div>
+                <i class="fa-solid fa-award text-amber-500 text-lg"></i>
+            </div>
 
-            @forelse($topKKIuran as $topKK)
-                <div class="flex items-center justify-between gap-3 py-2.5 {{ !$loop->last ? 'border-b border-slate-100 dark:border-slate-800' : '' }}">
-                    <div class="flex items-center gap-3">
-                        <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0
-                            {{ $loop->first ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500 dark:text-slate-400' }}">
-                            {{ $loop->iteration }}
-                        </span>
-                        <div>
-                            <p class="text-sm font-medium text-slate-800 dark:text-slate-200">{{ $topKK['kepala_keluarga'] }}</p>
-                            <p class="text-xs text-slate-400">Rumah {{ $topKK['no_kk'] }}</p>
+            <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                @forelse($topKKIuran as $topKK)
+                    <div class="flex items-center justify-between gap-3 py-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 px-2 rounded-xl transition-colors">
+                        <div class="flex items-center gap-3">
+                            <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0
+                                {{ $loop->first ? 'bg-amber-400 text-amber-950 shadow-xs' : ($loop->iteration === 2 ? 'bg-slate-200 text-slate-700' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300') }}">
+                                {{ $loop->iteration }}
+                            </span>
+                            <div>
+                                <p class="text-sm font-bold text-slate-900 dark:text-slate-100">{{ $topKK['kepala_keluarga'] }}</p>
+                                <p class="text-xs text-slate-400">No. Rumah / KK: {{ $topKK['no_kk'] }}</p>
+                            </div>
                         </div>
+                        <span class="text-sm font-bold text-slate-900 dark:text-slate-100 tabular-nums shrink-0">
+                            Rp {{ number_format($topKK['total_iuran'], 0, ',', '.') }}
+                        </span>
                     </div>
-                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 shrink-0">
-                        Rp {{ number_format($topKK['total_iuran'], 0, ',', '.') }}
-                    </p>
-                </div>
-            @empty
-                <div class="text-center py-6">
-                    <p class="text-sm text-slate-400">Belum ada data iuran.</p>
-                </div>
-            @endforelse
+                @empty
+                    <div class="text-center py-8">
+                        <i class="fa-solid fa-receipt text-3xl text-slate-300 mb-2 block"></i>
+                        <p class="text-xs text-slate-400">Belum ada data iuran yang tercatat.</p>
+                    </div>
+                @endforelse
+            </div>
         </div>
     </div>
 
-    {{-- Kolom kanan: grafik + log aktivitas --}}
+    {{-- Kolom kanan: grafik + log aktivitas / panduan warga --}}
     <div class="flex flex-col gap-6">
 
         {{-- Chart tren pembayaran --}}
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+        <div class="civic-card rounded-3xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-xs">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Tren pembayaran</p>
-                    <p class="text-xs text-slate-400 mt-0.5">Kas masuk & keluar per hari</p>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Tren Kas Masuk &amp; Keluar</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Pergerakan arus kas harian di bulan berjalan</p>
                 </div>
-                <span class="text-xs font-medium bg-slate-100 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-full">Bulan ini</span>
+                <span class="text-xs font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-3 py-1 rounded-full">
+                    Bulan ini
+                </span>
             </div>
-            <div class="h-56">
+            <div class="h-60">
                 <canvas id="kasChart" class="w-full h-full"></canvas>
             </div>
         </div>
 
         @if(auth()->user()->role_name !== 'warga')
             {{-- Aktivitas terakhir --}}
-            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Aktivitas terakhir</p>
+            <div class="civic-card rounded-3xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-xs">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Log Aktivitas Terakhir</h3>
+                        <p class="text-xs text-slate-400">Audit trail perubahan data oleh pengurus</p>
+                    </div>
+                    <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+                </div>
 
-                @forelse($recentAuditLogs as $log)
-                    <div class="py-2.5 {{ !$loop->last ? 'border-b border-slate-100 dark:border-slate-800' : '' }}">
-                        <div class="flex items-start justify-between gap-2">
-                            <p class="text-sm font-medium text-slate-800 dark:text-slate-200 leading-snug">{{ $log['event'] }}</p>
-                            <span class="text-xs text-slate-400 shrink-0 mt-0.5">{{ $log['created_at_human'] }}</span>
+                <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                    @forelse($recentAuditLogs as $log)
+                        <div class="py-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 px-2 rounded-xl transition-colors">
+                            <div class="flex items-start justify-between gap-2">
+                                <p class="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">{{ $log['event'] }}</p>
+                                <span class="text-[11px] text-slate-400 shrink-0">{{ $log['created_at_human'] }}</span>
+                            </div>
+                            @if($log['notes'])
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ $log['notes'] }}</p>
+                            @endif
+                            <p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-user text-[10px] mr-1"></i>Oleh: {{ $log['user_name'] ?? 'Sistem' }}</p>
                         </div>
-                        @if($log['notes'])
-                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ $log['notes'] }}</p>
-                        @endif
-                        <p class="text-xs text-slate-400 mt-1">Oleh: {{ $log['user_name'] ?? 'Sistem' }}</p>
-                    </div>
-                @empty
-                    <div class="text-center py-6">
-                        <p class="text-sm text-slate-400">Belum ada aktivitas tercatat.</p>
-                    </div>
-                @endforelse
+                    @empty
+                        <div class="text-center py-8">
+                            <i class="fa-solid fa-list-check text-3xl text-slate-300 mb-2 block"></i>
+                            <p class="text-xs text-slate-400">Belum ada aktivitas tercatat minggu ini.</p>
+                        </div>
+                    @endforelse
+                </div>
             </div>
         @else
             {{-- Tampilan Alternatif untuk Warga: Panduan Pembayaran --}}
-            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+            <div class="civic-card rounded-3xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-xs">
                 <div class="flex items-center justify-between mb-4">
-                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Panduan Pembayaran</p>
-                    <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Panduan Pembayaran Iuran</h3>
+                        <p class="text-xs text-slate-400">Pilihan kanal pembayaran resmi RT</p>
+                    </div>
+                    <i class="fa-solid fa-circle-question text-emerald-600 text-lg"></i>
                 </div>
 
-                <div class="space-y-4">
-                    <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800">
-                        <p class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Metode Transfer</p>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                            Silakan transfer ke rekening <strong>BCA 1234-567-890</strong> a/n Bendahara RT. Pastikan simpan bukti transfer untuk diunggah di menu Tagihan.
+                <div class="space-y-3.5">
+                    <div class="p-4 bg-slate-50 dark:bg-slate-800/70 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-building-columns text-emerald-600 text-xs"></i>
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Transfer Bank Resmi</span>
+                        </div>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Transfer ke rekening <strong>BCA 1234-567-890</strong> a/n Bendahara RT. Unggah foto bukti transfer di halaman tagihan agar diverifikasi pengurus.
                         </p>
                     </div>
 
-                    <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800">
-                        <p class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Metode Offline</p>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                            Pembayaran tunai dapat diserahkan langsung kepada Bendahara atau Ketua RT pada jam kerja pengurus (19:00 - 21:00).
+                    <div class="p-4 bg-slate-50 dark:bg-slate-800/70 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-hand-holding-dollar text-emerald-600 text-xs"></i>
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Setor Tunai Langsung</span>
+                        </div>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Dapat diserahkan langsung ke Bendahara atau Ketua RT saat jam pelayanan (pukul 19.00 – 21.00 WIB) untuk dicatat langsung di sistem.
                         </p>
                     </div>
 
-                    <a href="{{ route('tagihan.index') }}" class="flex items-center justify-center gap-2 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs shadow-indigo-100">
-                        <span>Cek Tagihan Sekarang</span>
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                    <a href="{{ route('tagihan.index') }}" class="btn-tactile flex items-center justify-center gap-2 w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-2xl shadow-xs shadow-emerald-700/20">
+                        <span>Lihat &amp; Bayar Tagihan Sekarang</span>
+                        <i class="fa-solid fa-arrow-right text-[11px]"></i>
                     </a>
                 </div>
             </div>
@@ -792,7 +807,7 @@
 </div>
 
 {{-- =============================================
-     CHART.JS
+     CHART.JS SCRIPT
      ============================================= --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -812,7 +827,7 @@
                 {
                     label: 'Kas Masuk',
                     data: masuk,
-                    backgroundColor: '#22c55e',
+                    backgroundColor: '#10b981',
                     borderRadius: 6,
                     borderSkipped: false,
                     barPercentage: 0.65,
@@ -821,7 +836,7 @@
                 {
                     label: 'Kas Keluar',
                     data: keluar,
-                    backgroundColor: '#f87171',
+                    backgroundColor: '#f43f5e',
                     borderRadius: 6,
                     borderSkipped: false,
                     barPercentage: 0.65,
@@ -838,7 +853,7 @@
                     labels: {
                         usePointStyle: true,
                         pointStyle: 'circle',
-                        font: { size: 11, weight: '500' },
+                        font: { size: 11, weight: '600' },
                         color: '#64748b',
                         padding: 16
                     }

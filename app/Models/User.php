@@ -23,14 +23,6 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * Send the password reset notification in Indonesian.
-     */
-    public function sendPasswordResetNotification($token): void
-    {
-        $this->notify(new ResetPasswordNotification($token));
-    }
-
     protected static function booted(): void
     {
         static::saving(function (User $user) {
