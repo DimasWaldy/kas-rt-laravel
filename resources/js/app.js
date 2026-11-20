@@ -1,7 +1,9 @@
 import './bootstrap';
 
 import Alpine from 'alpinejs';
+import lottie from 'lottie-web/build/player/lottie_light';
 import { rfidMonitor } from './rfid-monitor';
+import sidebarAnimationData from './sidebar-animation.json';
 
 window.Alpine = Alpine;
 Alpine.data('rfidMonitor', rfidMonitor);
@@ -27,8 +29,42 @@ if (revealTargets.length > 0) {
     revealTargets.forEach((target) => io.observe(target));
 }
 
+// Lottie Sidebar Toggle Component
+Alpine.data('sidebarLottie', (stateGetter = null) => ({
+    anim: null,
+    init() {
+        this.anim = lottie.loadAnimation({
+            container: this.$el,
+            renderer: 'svg',
+            loop: false,
+            autoplay: false,
+            animationData: sidebarAnimationData,
+        });
+
+        this.anim.setSpeed(1.25);
+        this.anim.goToAndStop(0, true);
+
+        if (typeof stateGetter === 'function') {
+            let isFirst = true;
+            this.$watch(stateGetter, () => {
+                if (isFirst) {
+                    isFirst = false;
+                    return;
+                }
+                this.play();
+            });
+        }
+    },
+    play() {
+        if (this.anim) {
+            this.anim.goToAndPlay(0, true);
+        }
+    },
+}));
+
 Alpine.data('appShell', () => ({
     mobileMenuOpen: false,
+    desktopSidebarCollapsed: localStorage.getItem('smart-rw-desktop-sidebar') === 'collapsed',
     navigating: false,
     theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
     now: new Date(),
@@ -38,6 +74,15 @@ Alpine.data('appShell', () => ({
         this.clockTimer = setInterval(() => {
             this.now = new Date();
         }, 1000);
+    },
+
+    toggleMobileMenu() {
+        this.mobileMenuOpen = !this.mobileMenuOpen;
+    },
+
+    toggleDesktopSidebar() {
+        this.desktopSidebarCollapsed = !this.desktopSidebarCollapsed;
+        localStorage.setItem('smart-rw-desktop-sidebar', this.desktopSidebarCollapsed ? 'collapsed' : 'expanded');
     },
 
     get formattedDate() {

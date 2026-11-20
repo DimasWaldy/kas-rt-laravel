@@ -396,4 +396,14 @@
             transition: none;
         }
     }
+
+    /* ---- Lottie Sidebar Toggle Icon ---- */
+    .lottie-sidebar-icon svg {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+    }
+    .lottie-sidebar-icon svg path {
+        stroke: currentColor !important;
+    }
 }

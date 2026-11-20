@@ -371,8 +371,13 @@
     </div>
 
     <aside
-        class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] -translate-x-full flex-col border-r border-slate-100 bg-white text-slate-700 shadow-xl shadow-slate-900/10 transition-transform duration-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 lg:translate-x-0"
-        :class="{ 'translate-x-0': mobileMenuOpen, '-translate-x-full': !mobileMenuOpen }"
+        class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] lg:w-72 flex-col border-r border-slate-100 bg-white text-slate-700 shadow-xl shadow-slate-900/10 transition-transform duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+        :class="{
+            'translate-x-0': mobileMenuOpen,
+            '-translate-x-full': !mobileMenuOpen,
+            'lg:translate-x-0': !desktopSidebarCollapsed,
+            'lg:-translate-x-full': desktopSidebarCollapsed
+        }"
         aria-label="Navigasi utama"
     >
         <div class="flex items-center justify-between border-b border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 lg:p-6">
@@ -452,11 +457,14 @@
         </div>
     </aside>
 
-    <div class="min-h-screen lg:pl-72">
+    <div
+        class="min-h-screen transition-[padding] duration-300 ease-in-out"
+        :class="{ 'lg:pl-72': !desktopSidebarCollapsed, 'lg:pl-0': desktopSidebarCollapsed }"
+    >
         <header class="sticky top-0 z-30 border-b bg-white/95 px-4 py-3 shadow-xs backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/95 lg:hidden">
             <div class="flex items-center justify-between gap-3">
-                <button type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-xs shadow-emerald-500/30" x-on:click="mobileMenuOpen = true" aria-label="Buka menu">
-                    <i class="fa-solid fa-bars text-lg"></i>
+                <button type="button" class="btn-tactile flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/30 transition hover:bg-emerald-700 active:scale-95" x-on:click="toggleMobileMenu()" aria-label="Buka menu navigasi">
+                    <div class="lottie-sidebar-icon h-6 w-6 pointer-events-none text-white" x-data="sidebarLottie(() => mobileMenuOpen)"></div>
                 </button>
 
                 <div class="min-w-0 flex-1">
@@ -528,8 +536,17 @@
         </header>
 
         <header class="hidden h-20 items-center justify-between border-b bg-white px-8 shadow-xs dark:border-slate-800 dark:bg-slate-900 lg:flex">
-            <div class="flex min-w-0 items-center gap-2">
-                <h3 class="truncate text-lg font-bold capitalize text-slate-700">
+            <div class="flex min-w-0 items-center gap-3">
+                <button
+                    type="button"
+                    class="btn-tactile flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50 text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-emerald-700 dark:hover:bg-slate-700 dark:hover:text-emerald-300 shadow-2xs active:scale-95"
+                    x-on:click="toggleDesktopSidebar()"
+                    :title="desktopSidebarCollapsed ? 'Buka Sidebar' : 'Tutup Sidebar'"
+                    aria-label="Buka/Tutup Sidebar"
+                >
+                    <div class="lottie-sidebar-icon h-5 w-5 pointer-events-none" x-data="sidebarLottie(() => desktopSidebarCollapsed)"></div>
+                </button>
+                <h3 class="truncate text-lg font-bold capitalize text-slate-800 dark:text-slate-100">
                     @yield('title', 'Dashboard')
                 </h3>
             </div>
