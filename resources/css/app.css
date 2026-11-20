@@ -421,4 +421,27 @@
     .rotate-y-180 {
         transform: rotateY(180deg);
     }
+
+    /* ---- Toast Notification Entrance ---- */
+    .toast-entrance {
+        animation: toastEntrance 240ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    }
+    @keyframes toastEntrance {
+        from {
+            opacity: 0;
+            transform: translateY(-14px) scale(0.96);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* ---- Hold To Confirm Fill ---- */
+    .hold-confirm-bar {
+        transition: width 1800ms linear;
+    }
+    .hold-confirm-bar.resetting {
+        transition: width 160ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
 }

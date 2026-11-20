@@ -490,7 +490,7 @@
                 </span>
                 <span class="truncate text-xl font-extrabold tracking-wider text-slate-900 dark:text-slate-100">Smart RW</span>
             </a>
-            <button type="button" class="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-emerald-100 hover:text-emerald-950 lg:hidden" x-on:click="mobileMenuOpen = false" aria-label="Tutup menu">
+            <button type="button" class="btn-tactile flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-emerald-100 hover:text-emerald-950 active:scale-92 transition lg:hidden" x-on:click="mobileMenuOpen = false" aria-label="Tutup menu">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
@@ -596,7 +596,18 @@
                         @endif
                     </button>
 
-                    <div x-cloak x-show="open" x-transition x-on:click.outside="open = false" class="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800">
+                    <div
+                        x-cloak
+                        x-show="open"
+                        x-transition:enter="transition ease-out duration-160"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-120"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        x-on:click.outside="open = false"
+                        class="absolute right-0 top-12 z-50 w-80 origin-top-right overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800"
+                    >
                         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
                             <p class="text-sm font-black text-slate-800 dark:text-slate-100">Notifikasi</p>
                             @if($visibleUnreadCount)
@@ -695,7 +706,18 @@
                         @endif
                     </button>
 
-                    <div x-cloak x-show="open" x-transition x-on:click.outside="open = false" class="absolute right-0 top-14 z-50 w-96 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800">
+                    <div
+                        x-cloak
+                        x-show="open"
+                        x-transition:enter="transition ease-out duration-160"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-120"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        x-on:click.outside="open = false"
+                        class="absolute right-0 top-14 z-50 w-96 origin-top-right overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800"
+                    >
                         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
                             <p class="text-sm font-black text-slate-800 dark:text-slate-100">Notifikasi</p>
                             @if($visibleUnreadCount)
@@ -789,8 +811,16 @@
         @endif
 
         @if(session('success') || session('error'))
-            <div id="notif" class="fixed left-4 right-4 top-20 z-50 mx-auto flex max-w-sm items-center rounded-2xl p-4 text-white shadow-2xl {{ session('success') ? 'bg-green-600' : 'bg-red-600' }} md:left-auto md:right-5 md:top-5">
-                <div class="text-sm font-bold">{{ session('success') ?? session('error') }}</div>
+            <div id="notif" class="toast-entrance fixed left-4 right-4 top-20 z-50 mx-auto flex max-w-sm items-center justify-between gap-3 rounded-2xl p-4 text-white shadow-2xl {{ session('success') ? 'bg-emerald-600 shadow-emerald-950/20' : 'bg-red-600 shadow-red-950/20' }} md:left-auto md:right-5 md:top-5 border border-white/15 backdrop-blur-xs">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/20 text-xs">
+                        <i class="fa-solid {{ session('success') ? 'fa-circle-check' : 'fa-circle-exclamation' }}"></i>
+                    </span>
+                    <div class="text-sm font-bold truncate">{{ session('success') ?? session('error') }}</div>
+                </div>
+                <button type="button" onclick="const n=document.getElementById('notif');if(n){n.style.transition='opacity 160ms cubic-bezier(0.23,1,0.32,1), transform 160ms cubic-bezier(0.23,1,0.32,1)';n.style.opacity='0';n.style.transform='translateY(-12px) scale(0.96)';setTimeout(()=>n.remove(),160);}" class="btn-tactile -mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/80 hover:bg-white/20 hover:text-white" aria-label="Tutup notifikasi">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
             </div>
         @endif
 
@@ -835,12 +865,12 @@
         setTimeout(() => {
             const notif = document.getElementById('notif');
             if (notif) {
-                notif.style.transition = 'all 0.5s ease';
+                notif.style.transition = 'opacity 180ms cubic-bezier(0.23, 1, 0.32, 1), transform 180ms cubic-bezier(0.23, 1, 0.32, 1)';
                 notif.style.opacity = '0';
-                notif.style.transform = 'translateY(-8px)';
-                setTimeout(() => notif.remove(), 500);
+                notif.style.transform = 'translateY(-12px) scale(0.96)';
+                setTimeout(() => notif.remove(), 180);
             }
-        }, 3000);
+        }, 3200);
     </script>
 
     {{-- Command Palette (Ctrl + K) --}}
