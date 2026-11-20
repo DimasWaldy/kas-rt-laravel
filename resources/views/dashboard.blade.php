@@ -480,7 +480,7 @@
 <div>
     <div class="mb-3 flex items-center justify-between">
         <div>
-            <h2 class="text-sm font-bold text-slate-900 dark:text-slate-100">Akses Cepat Layanan</h2>
+            <h2 class="text-sm font-bold text-slate-900 dark:text-slate-100">Menu Cepat</h2>
             <p class="text-xs text-slate-500 dark:text-slate-400">Jalan pintas ke modul utama yang sering digunakan</p>
         </div>
     </div>
