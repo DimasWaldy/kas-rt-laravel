@@ -207,7 +207,7 @@
                         <p class="text-xs text-slate-500 dark:text-slate-400">1x tap untuk verifikasi identitas permanen</p>
                     </div>
                 </div>
-                <button type="button" @click="showRfidGuide = false" class="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                <button type="button" @click="showRfidGuide = false" class="btn-tactile rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 active:scale-92 transition" aria-label="Tutup panduan">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>

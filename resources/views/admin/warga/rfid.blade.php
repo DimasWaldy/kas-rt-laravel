@@ -205,9 +205,53 @@
                     </div>
                     <div class="flex flex-wrap gap-2">
                         @if($user->rfidCard)
-                            <form method="POST" action="{{ route('admin.warga.rfid.revoke') }}" x-data x-on:submit="if (!confirm('Cabut KTP / kartu RFID warga ini dari RT dan sistem?')) $event.preventDefault()">
-                                @csrf <input type="hidden" name="user_id" value="{{ $user->id }}">
-                                <button class="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 dark:text-red-300">Cabut KTP / Kartu</button>
+                            <form
+                                method="POST"
+                                action="{{ route('admin.warga.rfid.revoke') }}"
+                                x-data="{
+                                    holding: false,
+                                    timer: null,
+                                    progress: 0,
+                                    start() {
+                                        this.holding = true;
+                                        this.progress = 100;
+                                        this.timer = setTimeout(() => {
+                                            if (this.holding) {
+                                                this.$el.submit();
+                                            }
+                                        }, 1800);
+                                    },
+                                    cancel() {
+                                        if (this.holding) {
+                                            this.holding = false;
+                                            this.progress = 0;
+                                            clearTimeout(this.timer);
+                                        }
+                                    }
+                                }"
+                            >
+                                @csrf
+                                <input type="hidden" name="user_id" value="{{ $user->id }}">
+                                <button
+                                    type="button"
+                                    @pointerdown="start()"
+                                    @pointerup="cancel()"
+                                    @pointerleave="cancel()"
+                                    @keydown.enter.prevent="if (confirm('Cabut KTP / kartu RFID warga ini dari RT dan sistem?')) $el.closest('form').submit()"
+                                    class="relative overflow-hidden rounded-xl border border-red-200 bg-white px-3.5 py-2 text-xs font-bold text-red-700 shadow-2xs transition hover:border-red-300 active:scale-97 select-none dark:border-red-800/60 dark:bg-slate-800 dark:text-red-400"
+                                    title="Tahan tombol selama 2 detik untuk mencabut kartu"
+                                >
+                                    {{-- Hold Progress Fill Bar --}}
+                                    <div
+                                        class="absolute inset-0 bg-red-600/20 dark:bg-red-500/20 pointer-events-none"
+                                        :class="holding ? 'hold-confirm-bar' : 'hold-confirm-bar resetting'"
+                                        :style="'width: ' + progress + '%'"
+                                    ></div>
+                                    <span class="relative z-10 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-trash-can text-xs" :class="holding ? 'animate-pulse text-red-600' : ''"></i>
+                                        <span x-text="holding ? 'Tahan untuk mencabut...' : 'Cabut KTP / Kartu'">Cabut KTP / Kartu</span>
+                                    </span>
+                                </button>
                             </form>
                         @else
                             <form method="POST" action="{{ route('admin.warga.rfid.enroll') }}">

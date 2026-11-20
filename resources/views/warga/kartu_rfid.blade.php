@@ -290,45 +290,61 @@
                 <div class="divide-y divide-slate-100 dark:divide-slate-800 space-y-1">
                     {{-- FAQ 1 --}}
                     <div class="pt-3">
-                        <button type="button" @click="activeFaq = activeFaq === 1 ? null : 1" class="flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200">
+                        <button type="button" @click="activeFaq = activeFaq === 1 ? null : 1" class="btn-tactile flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 transition hover:text-emerald-700 dark:text-slate-200 dark:hover:text-emerald-400">
                             <span>Apakah data pribadi saya di e-KTP aman?</span>
-                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform" :class="activeFaq === 1 ? 'rotate-180' : ''"></i>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200" :class="activeFaq === 1 ? 'rotate-180 text-emerald-600' : ''"></i>
                         </button>
-                        <div x-show="activeFaq === 1" x-cloak x-transition class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                            Sangat aman. Reader RFID RT hanya membaca kode serial unik nirkabel (UID chip) yang tertanam di kartu KTP Anda sebagai pengenal. Sistem sama sekali tidak mengakses isi chip rahasia seperti sidik jari maupun data biometrik kependudukan.
+                        <div class="grid transition-[grid-template-rows] duration-220 ease-[cubic-bezier(0.23,1,0.32,1)]" :class="activeFaq === 1 ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
+                            <div class="overflow-hidden">
+                                <div class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed transition-opacity duration-200" :class="activeFaq === 1 ? 'opacity-100' : 'opacity-0'">
+                                    Sangat aman. Reader RFID RT hanya membaca kode serial unik nirkabel (UID chip) yang tertanam di kartu KTP Anda sebagai pengenal. Sistem sama sekali tidak mengakses isi chip rahasia seperti sidik jari maupun data biometrik kependudukan.
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     {{-- FAQ 2 --}}
                     <div class="pt-3">
-                        <button type="button" @click="activeFaq = activeFaq === 2 ? null : 2" class="flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200">
+                        <button type="button" @click="activeFaq = activeFaq === 2 ? null : 2" class="btn-tactile flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 transition hover:text-emerald-700 dark:text-slate-200 dark:hover:text-emerald-400">
                             <span>Mengapa verifikasi harus lewat tap kartu di alat RT?</span>
-                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform" :class="activeFaq === 2 ? 'rotate-180' : ''"></i>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200" :class="activeFaq === 2 ? 'rotate-180 text-emerald-600' : ''"></i>
                         </button>
-                        <div x-show="activeFaq === 2" x-cloak x-transition class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                            Proses tap memastikan bahwa pemilik akun benar-benar memiliki fisik e-KTP yang sah dan hadir di lingkungan RT. Setelah terdaftar, e-KTP Anda berfungsi sebagai kunci kartu pintar untuk absensi kegiatan warga tanpa tanda tangan manual dan syarat masuk ke program Koperasi Warga.
+                        <div class="grid transition-[grid-template-rows] duration-220 ease-[cubic-bezier(0.23,1,0.32,1)]" :class="activeFaq === 2 ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
+                            <div class="overflow-hidden">
+                                <div class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed transition-opacity duration-200" :class="activeFaq === 2 ? 'opacity-100' : 'opacity-0'">
+                                    Proses tap memastikan bahwa pemilik akun benar-benar memiliki fisik e-KTP yang sah dan hadir di lingkungan RT. Setelah terdaftar, e-KTP Anda berfungsi sebagai kunci kartu pintar untuk absensi kegiatan warga tanpa tanda tangan manual dan syarat masuk ke program Koperasi Warga.
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     {{-- FAQ 3 --}}
                     <div class="pt-3">
-                        <button type="button" @click="activeFaq = activeFaq === 3 ? null : 3" class="flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200">
+                        <button type="button" @click="activeFaq = activeFaq === 3 ? null : 3" class="btn-tactile flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 transition hover:text-emerald-700 dark:text-slate-200 dark:hover:text-emerald-400">
                             <span>Bagaimana jika e-KTP saya hilang atau diganti?</span>
-                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform" :class="activeFaq === 3 ? 'rotate-180' : ''"></i>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200" :class="activeFaq === 3 ? 'rotate-180 text-emerald-600' : ''"></i>
                         </button>
-                        <div x-show="activeFaq === 3" x-cloak x-transition class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                            Jika e-KTP Anda hilang, segera lapor ke pengurus RT. Pengurus dapat mencabut kartu lama Anda dari sistem dalam 1 klik melalui menu admin agar tidak disalahgunakan, kemudian mendaftarkan kartu e-KTP baru Anda.
+                        <div class="grid transition-[grid-template-rows] duration-220 ease-[cubic-bezier(0.23,1,0.32,1)]" :class="activeFaq === 3 ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
+                            <div class="overflow-hidden">
+                                <div class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed transition-opacity duration-200" :class="activeFaq === 3 ? 'opacity-100' : 'opacity-0'">
+                                    Jika e-KTP Anda hilang, segera lapor ke pengurus RT. Pengurus dapat mencabut kartu lama Anda dari sistem dalam 1 klik melalui menu admin agar tidak disalahgunakan, kemudian mendaftarkan kartu e-KTP baru Anda.
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     {{-- FAQ 4 --}}
                     <div class="pt-3">
-                        <button type="button" @click="activeFaq = activeFaq === 4 ? null : 4" class="flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 dark:text-slate-200">
+                        <button type="button" @click="activeFaq = activeFaq === 4 ? null : 4" class="btn-tactile flex w-full items-center justify-between py-2 text-left text-xs font-bold text-slate-800 transition hover:text-emerald-700 dark:text-slate-200 dark:hover:text-emerald-400">
                             <span>Apakah verifikasi tap KTP harus diulang berkala?</span>
-                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform" :class="activeFaq === 4 ? 'rotate-180' : ''"></i>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200" :class="activeFaq === 4 ? 'rotate-180 text-emerald-600' : ''"></i>
                         </button>
-                        <div x-show="activeFaq === 4" x-cloak x-transition class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                            Tidak. Verifikasi tap KTP hanya dilakukan 1 kali saja untuk selamanya. Setelah terverifikasi, status aktif Anda melekat permanen di sistem RT.
+                        <div class="grid transition-[grid-template-rows] duration-220 ease-[cubic-bezier(0.23,1,0.32,1)]" :class="activeFaq === 4 ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
+                            <div class="overflow-hidden">
+                                <div class="pb-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed transition-opacity duration-200" :class="activeFaq === 4 ? 'opacity-100' : 'opacity-0'">
+                                    Tidak. Verifikasi tap KTP hanya dilakukan 1 kali saja untuk selamanya. Setelah terverifikasi, status aktif Anda melekat permanen di sistem RT.
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
