@@ -585,84 +585,167 @@
 {{-- =============================================
      SECTION 3: DETAIL BULAN INI + AKTIVITAS
      ============================================= --}}
+@php
+    $humanizeEvent = function($event) {
+        $labels = [
+            'mass_tagihan_generated' => 'Penerbitan Tagihan Massal',
+            'tagihan_generated' => 'Penerbitan Tagihan Iuran',
+            'tagihan_paid' => 'Tagihan Terbayar Lunas',
+            'tagihan_cancelled' => 'Pembatalan Tagihan',
+            'pembayaran_diverifikasi' => 'Verifikasi Pembayaran Kas',
+            'pembayaran_ditolak' => 'Penolakan Pembayaran Warga',
+            'warga_diverifikasi' => 'Verifikasi Berkas Warga',
+            'warga_ditolak' => 'Penolakan Berkas Warga',
+            'perbaikan_diminta' => 'Permintaan Perbaikan Berkas',
+            'warga_registered' => 'Pendaftaran Warga Baru',
+            'rfid_assigned' => 'Aktivasi Kartu RFID',
+            'rfid_revoked' => 'Pencabutan Kartu RFID',
+            'kas_masuk_created' => 'Pencatatan Kas Masuk',
+            'kas_keluar_created' => 'Pencatatan Kas Keluar',
+            'user_created' => 'Pembuatan Akun Baru',
+            'user_updated' => 'Pembaruan Data Akun',
+            'user_deleted' => 'Penghapusan Akun',
+            'rumah_created' => 'Pendaftaran Rumah Baru',
+            'created' => 'Penambahan Data Baru',
+            'updated' => 'Pembaruan Data',
+            'deleted' => 'Penghapusan Data',
+        ];
+        return $labels[$event] ?? ucwords(str_replace(['_', '-'], ' ', $event));
+    };
+
+    $getEventIcon = function($event) {
+        if (str_contains($event, 'tagihan') || str_contains($event, 'mass') || str_contains($event, 'iuran')) {
+            return ['icon' => 'fa-file-invoice-dollar', 'color' => 'text-teal-600 bg-teal-50 dark:bg-teal-950/50 dark:text-teal-400 border-teal-200/60 dark:border-teal-800/50'];
+        }
+        if (str_contains($event, 'verifikasi') || str_contains($event, 'paid') || str_contains($event, 'lunas')) {
+            return ['icon' => 'fa-circle-check', 'color' => 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/50'];
+        }
+        if (str_contains($event, 'warga') || str_contains($event, 'user') || str_contains($event, 'rfid')) {
+            return ['icon' => 'fa-user-check', 'color' => 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 dark:text-indigo-400 border-indigo-200/60 dark:border-indigo-800/50'];
+        }
+        if (str_contains($event, 'kas') || str_contains($event, 'uang')) {
+            return ['icon' => 'fa-wallet', 'color' => 'text-sky-600 bg-sky-50 dark:bg-sky-950/50 dark:text-sky-400 border-sky-200/60 dark:border-sky-800/50'];
+        }
+        if (str_contains($event, 'batal') || str_contains($event, 'tolak') || str_contains($event, 'deleted')) {
+            return ['icon' => 'fa-circle-xmark', 'color' => 'text-rose-600 bg-rose-50 dark:bg-rose-950/50 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/50'];
+        }
+        return ['icon' => 'fa-clock-rotate-left', 'color' => 'text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 border-slate-200/60 dark:border-slate-700/50'];
+    };
+@endphp
+
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
     {{-- Kolom kiri: ringkasan bulan ini + top rumah --}}
     <div class="flex flex-col gap-6">
 
         {{-- Ringkasan bulan ini + alert pending --}}
-        <div class="civic-card rounded-3xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-xs">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Kinerja Kas Bulan Ini</h3>
-                    <p class="text-xs text-slate-400">Target dan realisasi pembayaran warga</p>
-                </div>
-                <span class="text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
-                    {{ now()->translatedFormat('F Y') }}
-                </span>
-            </div>
-
-            <div class="space-y-4 mb-4">
-                <div>
-                    <div class="flex justify-between items-center text-xs mb-1.5">
-                        <span class="text-slate-600 dark:text-slate-300 font-medium">Realisasi Penerimaan Kas</span>
-                        <span class="font-bold text-slate-900 dark:text-slate-100 tabular-nums">Rp {{ number_format($monthlyRevenue ?? 0, 0, ',', '.') }}</span>
+        <div class="civic-card rounded-3xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-xs flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50 text-base shadow-2xs">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Kinerja Kas Bulan Ini</h3>
+                            <p class="text-xs text-slate-400">Target dan realisasi pembayaran warga</p>
+                        </div>
                     </div>
-                    <div class="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
-                        @php
-                            $maxVal = max($monthlyRevenue ?? 0, 1);
-                            $pctMasuk = min(100, round((($monthlyRevenue ?? 0) / $maxVal) * 100));
-                        @endphp
-                        <div class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: {{ $pctMasuk }}%"></div>
-                    </div>
+                    <span class="text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-3 py-1 rounded-full border border-slate-200/60 dark:border-slate-700/60">
+                        {{ now()->translatedFormat('F Y') }}
+                    </span>
                 </div>
 
-                <div>
-                    <div class="flex justify-between items-center text-xs mb-1.5">
-                        <span class="text-slate-600 dark:text-slate-300 font-medium">Tagihan Lunas</span>
-                        <span class="font-bold text-slate-900 dark:text-slate-100 tabular-nums">{{ $totalPaidTagihan ?? 0 }} tagihan</span>
-                    </div>
-                    <div class="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
+                {{-- Hero Metric: Realisasi Kas --}}
+                <div class="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800 mb-5">
+                    <div class="flex items-baseline justify-between gap-2">
+                        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Realisasi Penerimaan Kas</span>
                         @php
                             $totalTagihan = ($totalPaidTagihan ?? 0) + ($totalUnpaidTagihan ?? 0);
                             $pctLunas = $totalTagihan > 0 ? min(100, round((($totalPaidTagihan ?? 0) / $totalTagihan) * 100)) : 0;
+                            $pctUnpaid = 100 - $pctLunas;
                         @endphp
-                        <div class="h-full bg-teal-500 rounded-full transition-all duration-500" style="width: {{ $pctLunas }}%"></div>
+                        <span class="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
+                            {{ $pctLunas }}% Terbayar
+                        </span>
+                    </div>
+                    <div class="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tabular-nums tracking-tight">
+                        Rp {{ number_format($monthlyRevenue ?? 0, 0, ',', '.') }}
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                        Dari total {{ $totalTagihan }} tagihan aktif periode ini
+                    </p>
+                </div>
+
+                {{-- Stacked Progress Bar of Collections --}}
+                <div class="space-y-3 mb-5">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-medium text-slate-600 dark:text-slate-300">Penyelesaian Tagihan</span>
+                        <span class="text-slate-500 dark:text-slate-400 tabular-nums font-semibold">{{ $totalPaidTagihan ?? 0 }} / {{ $totalTagihan }} Terbayar</span>
+                    </div>
+
+                    {{-- Unified segmented bar --}}
+                    <div class="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex p-0.5 gap-0.5">
+                        @if($pctLunas > 0)
+                            <div class="h-full bg-emerald-500 rounded-l-full transition-all duration-700" style="width: {{ $pctLunas }}%" title="Lunas: {{ $totalPaidTagihan }} tagihan ({{ $pctLunas }}%)"></div>
+                        @endif
+                        @if($pctUnpaid > 0)
+                            <div class="h-full bg-amber-400 {{ $pctLunas == 0 ? 'rounded-l-full' : '' }} rounded-r-full transition-all duration-700" style="width: {{ $pctUnpaid }}%" title="Belum Lunas: {{ $totalUnpaidTagihan }} tagihan ({{ $pctUnpaid }}%)"></div>
+                        @endif
+                        @if($totalTagihan == 0)
+                            <div class="h-full bg-slate-200 dark:bg-slate-700 rounded-full w-full"></div>
+                        @endif
+                    </div>
+
+                    {{-- Legend & Values breakdown --}}
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <div class="min-w-0">
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Tagihan Lunas</p>
+                                <p class="text-xs font-bold text-slate-900 dark:text-slate-100 tabular-nums truncate">
+                                    {{ $totalPaidTagihan ?? 0 }} tagihan <span class="text-[10px] text-slate-400 font-normal">({{ $pctLunas }}%)</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
+                            <div class="min-w-0">
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Tagihan Belum Lunas</p>
+                                <p class="text-xs font-bold {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100' }} tabular-nums truncate">
+                                    {{ $totalUnpaidTagihan ?? 0 }} tagihan <span class="text-[10px] text-slate-400 font-normal">({{ $pctUnpaid }}%)</span>
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div>
-                    <div class="flex justify-between items-center text-xs mb-1.5">
-                        <span class="text-slate-600 dark:text-slate-300 font-medium">Tagihan Belum Lunas</span>
-                        <span class="font-bold {{ ($totalUnpaidTagihan ?? 0) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100' }} tabular-nums">{{ $totalUnpaidTagihan ?? 0 }} tagihan</span>
+                {{-- Alert bukti transfer pending --}}
+                @if(auth()->user()->canManageFinance() && ($pendingTransferCount ?? 0) > 0)
+                    <div class="flex items-center justify-between gap-3 bg-amber-50/90 border border-amber-200/80 rounded-2xl p-3.5 dark:bg-amber-950/30 dark:border-amber-900/50 mb-4 transition-all">
+                        <div class="flex items-start gap-3">
+                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300 text-xs mt-0.5">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </span>
+                            <div>
+                                <p class="text-xs font-bold text-amber-900 dark:text-amber-200">{{ $pendingTransferCount }} bukti transfer menunggu verifikasi</p>
+                                <p class="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">Periksa bukti transfer warga agar kas tercatat tepat waktu.</p>
+                            </div>
+                        </div>
+                        <a href="{{ route('tagihan.index') }}" class="btn-tactile shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-2xs">
+                            Verifikasi
+                        </a>
                     </div>
-                    <div class="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
-                        @php
-                            $pctUnpaid = $totalTagihan > 0 ? min(100, round((($totalUnpaidTagihan ?? 0) / $totalTagihan) * 100)) : 0;
-                        @endphp
-                        <div class="h-full bg-amber-400 rounded-full transition-all duration-500" style="width: {{ $pctUnpaid }}%"></div>
-                    </div>
-                </div>
+                @endif
             </div>
-
-            {{-- Alert bukti transfer pending --}}
-            @if(auth()->user()->canManageFinance() && ($pendingTransferCount ?? 0) > 0)
-                <div class="flex items-start gap-3 bg-amber-50/80 border border-amber-200/80 rounded-2xl p-3.5 dark:bg-amber-950/30 dark:border-amber-900/50 mt-4">
-                    <i class="fa-solid fa-clock-rotate-left text-amber-600 mt-0.5"></i>
-                    <div>
-                        <p class="text-xs font-bold text-amber-900 dark:text-amber-200">{{ $pendingTransferCount }} bukti transfer menunggu verifikasi Anda</p>
-                        <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">Periksa bukti transfer warga agar kas tercatat tepat waktu.</p>
-                    </div>
-                </div>
-            @endif
 
             {{-- Shortcut Iuran Bulanan untuk Ketua RT & Bendahara --}}
             @if(in_array(auth()->user()->role_name, ['ketua_rt', 'rt', 'ketua-rt']) || auth()->user()->canManageFinance())
-                <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
                     <a href="{{ route('iuran-bulanan.index') }}"
-                       class="btn-tactile flex items-center justify-between gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-800/50 p-3.5 transition hover:bg-emerald-100/70">
+                       class="btn-tactile group flex items-center justify-between gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-800/50 p-3.5 transition hover:bg-emerald-100/70">
                         <div class="flex items-center gap-3">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs group-hover:scale-105 transition-transform">
                                 <i class="fa-solid fa-file-invoice-dollar text-sm"></i>
                             </span>
                             <div>
@@ -670,7 +753,7 @@
                                 <p class="text-[11px] text-emerald-700 dark:text-emerald-300">Generate otomatis &amp; pantau pembayaran tiap KK</p>
                             </div>
                         </div>
-                        <i class="fa-solid fa-arrow-right text-xs text-emerald-700 dark:text-emerald-400"></i>
+                        <i class="fa-solid fa-arrow-right text-xs text-emerald-700 dark:text-emerald-400 group-hover:translate-x-1 transition-transform"></i>
                     </a>
                 </div>
             @endif
@@ -678,30 +761,54 @@
 
         {{-- Top 5 Rumah --}}
         <div class="civic-card rounded-3xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-xs">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Top 5 Rumah — Kontribusi Iuran Terbanyak</h3>
-                    <p class="text-xs text-slate-400">Apresiasi warga paling tertib membayar iuran lingkungan</p>
+            <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/50 text-base shadow-2xs">
+                        <i class="fa-solid fa-award"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Top 5 Rumah — Kontribusi Iuran Terbanyak</h3>
+                        <p class="text-xs text-slate-400">Apresiasi warga paling tertib membayar iuran lingkungan</p>
+                    </div>
                 </div>
-                <i class="fa-solid fa-award text-amber-500 text-lg"></i>
+                <span class="text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-3 py-1 rounded-full border border-slate-200/60 dark:border-slate-700/60">
+                    Leaderboard
+                </span>
             </div>
 
-            <div class="divide-y divide-slate-100 dark:divide-slate-800">
+            <div class="space-y-2.5">
                 @forelse($topKKIuran as $topKK)
-                    <div class="flex items-center justify-between gap-3 py-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 px-2 rounded-xl transition-colors">
-                        <div class="flex items-center gap-3">
-                            <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0
-                                {{ $loop->first ? 'bg-amber-400 text-amber-950 shadow-xs' : ($loop->iteration === 2 ? 'bg-slate-200 text-slate-700' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300') }}">
+                    <div class="flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors">
+                        <div class="flex items-center gap-3.5 min-w-0">
+                            @php
+                                $rankStyle = match($loop->iteration) {
+                                    1 => 'bg-amber-400 text-amber-950 ring-2 ring-amber-300/60 shadow-xs font-extrabold',
+                                    2 => 'bg-slate-200 text-slate-800 ring-2 ring-slate-300/60 font-bold',
+                                    3 => 'bg-amber-700 text-amber-100 ring-2 ring-amber-600/40 font-bold',
+                                    default => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 font-semibold',
+                                };
+                            @endphp
+                            <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs shrink-0 {{ $rankStyle }}">
                                 {{ $loop->iteration }}
                             </span>
-                            <div>
-                                <p class="text-sm font-bold text-slate-900 dark:text-slate-100">{{ $topKK['kepala_keluarga'] }}</p>
-                                <p class="text-xs text-slate-400">No. Rumah / KK: {{ $topKK['no_kk'] }}</p>
+                            <div class="min-w-0">
+                                <p class="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                                    {{ $topKK['kepala_keluarga'] }}
+                                </p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-200/70 dark:bg-slate-800 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+                                        No. {{ $topKK['no_kk'] }}
+                                    </span>
+                                    <span class="text-[10px] text-slate-400 hidden sm:inline">Warga Tertib</span>
+                                </div>
                             </div>
                         </div>
-                        <span class="text-sm font-bold text-slate-900 dark:text-slate-100 tabular-nums shrink-0">
-                            Rp {{ number_format($topKK['total_iuran'], 0, ',', '.') }}
-                        </span>
+                        <div class="text-right shrink-0">
+                            <span class="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                Rp {{ number_format($topKK['total_iuran'], 0, ',', '.') }}
+                            </span>
+                            <p class="text-[10px] text-slate-400">Total iuran</p>
+                        </div>
                     </div>
                 @empty
                     <div class="text-center py-8">
@@ -718,16 +825,28 @@
 
         {{-- Chart tren pembayaran --}}
         <div class="civic-card rounded-3xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-xs">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Tren Kas Masuk &amp; Keluar</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Pergerakan arus kas harian di bulan berjalan</p>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-400 border border-sky-200/50 dark:border-sky-800/50 text-base shadow-2xs">
+                        <i class="fa-solid fa-chart-column"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Tren Kas Masuk &amp; Keluar</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Pergerakan arus kas harian di bulan berjalan</p>
+                    </div>
                 </div>
-                <span class="text-xs font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-3 py-1 rounded-full">
-                    Bulan ini
-                </span>
+                <div class="flex items-center gap-2 self-start sm:self-auto">
+                    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>Masuk: Rp {{ number_format(array_sum($dataMasuk ?? []), 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-800/40 text-[11px] font-semibold text-rose-700 dark:text-rose-300">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                        <span>Keluar: Rp {{ number_format(array_sum($dataKeluar ?? []), 0, ',', '.') }}</span>
+                    </div>
+                </div>
             </div>
-            <div class="h-60">
+            <div class="h-64 relative">
                 <canvas id="kasChart" class="w-full h-full"></canvas>
             </div>
         </div>
@@ -735,25 +854,52 @@
         @if(auth()->user()->role_name !== 'warga')
             {{-- Aktivitas terakhir --}}
             <div class="civic-card rounded-3xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-xs">
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Log Aktivitas Terakhir</h3>
-                        <p class="text-xs text-slate-400">Audit trail perubahan data oleh pengurus</p>
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50 text-base shadow-2xs">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Log Aktivitas Terakhir</h3>
+                            <p class="text-xs text-slate-400">Audit trail perubahan data oleh pengurus</p>
+                        </div>
                     </div>
-                    <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+                    <span class="text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-3 py-1 rounded-full border border-slate-200/60 dark:border-slate-700/60">
+                        Audit Trail
+                    </span>
                 </div>
 
-                <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                <div class="space-y-3">
                     @forelse($recentAuditLogs as $log)
-                        <div class="py-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 px-2 rounded-xl transition-colors">
-                            <div class="flex items-start justify-between gap-2">
-                                <p class="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">{{ $log['event'] }}</p>
-                                <span class="text-[11px] text-slate-400 shrink-0">{{ $log['created_at_human'] }}</span>
+                        @php
+                            $eventConfig = $getEventIcon($log['event'] ?? '');
+                            $humanTitle = $humanizeEvent($log['event'] ?? '');
+                        @endphp
+                        <div class="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors">
+                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-xs mt-0.5 {{ $eventConfig['color'] }}">
+                                <i class="fa-solid {{ $eventConfig['icon'] }}"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-start justify-between gap-2">
+                                    <p class="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">
+                                        {{ $humanTitle }}
+                                    </p>
+                                    <span class="text-[10px] font-medium text-slate-400 shrink-0 tabular-nums">
+                                        {{ $log['created_at_human'] }}
+                                    </span>
+                                </div>
+                                @if(!empty($log['notes']))
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                                        {{ $log['notes'] }}
+                                    </p>
+                                @endif
+                                <div class="flex items-center gap-2 mt-1.5">
+                                    <span class="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium">
+                                        <i class="fa-solid fa-user-pen text-[10px]"></i>
+                                        <span>{{ $log['user_name'] ?? 'Sistem' }}</span>
+                                    </span>
+                                </div>
                             </div>
-                            @if($log['notes'])
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ $log['notes'] }}</p>
-                            @endif
-                            <p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-user text-[10px] mr-1"></i>Oleh: {{ $log['user_name'] ?? 'Sistem' }}</p>
                         </div>
                     @empty
                         <div class="text-center py-8">
@@ -828,41 +974,56 @@
                     label: 'Kas Masuk',
                     data: masuk,
                     backgroundColor: '#10b981',
-                    borderRadius: 6,
+                    hoverBackgroundColor: '#059669',
+                    borderRadius: 4,
                     borderSkipped: false,
-                    barPercentage: 0.65,
-                    categoryPercentage: 0.55
+                    barPercentage: 0.7,
+                    categoryPercentage: 0.65
                 },
                 {
                     label: 'Kas Keluar',
                     data: keluar,
                     backgroundColor: '#f43f5e',
-                    borderRadius: 6,
+                    hoverBackgroundColor: '#e11d48',
+                    borderRadius: 4,
                     borderSkipped: false,
-                    barPercentage: 0.65,
-                    categoryPercentage: 0.55
+                    barPercentage: 0.7,
+                    categoryPercentage: 0.65
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
             plugins: {
                 legend: {
                     position: 'top',
+                    align: 'end',
                     labels: {
                         usePointStyle: true,
                         pointStyle: 'circle',
-                        font: { size: 11, weight: '600' },
+                        font: { size: 11, weight: '600', family: 'Inter, system-ui, sans-serif' },
                         color: '#64748b',
-                        padding: 16
+                        padding: 12
                     }
                 },
                 tooltip: {
+                    backgroundColor: '#0f172a',
+                    titleColor: '#f8fafc',
+                    bodyColor: '#e2e8f0',
+                    titleFont: { size: 12, weight: 'bold', family: 'Inter, system-ui, sans-serif' },
+                    bodyFont: { size: 11, family: 'Inter, system-ui, sans-serif' },
+                    padding: 10,
+                    cornerRadius: 8,
+                    boxPadding: 4,
                     callbacks: {
                         label: function (context) {
                             const val = context.parsed.y ?? 0;
-                            return ' Rp ' + val.toLocaleString('id-ID');
+                            return ' ' + context.dataset.label + ': Rp ' + val.toLocaleString('id-ID');
                         }
                     }
                 }
@@ -872,22 +1033,26 @@
                     grid: { display: false },
                     border: { display: false },
                     ticks: {
-                        font: { size: 10 },
+                        maxRotation: 0,
+                        minRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 8,
+                        font: { size: 11, family: 'Inter, system-ui, sans-serif' },
                         color: '#94a3b8'
                     }
                 },
                 y: {
                     beginAtZero: true,
-                    grid: { color: '#f1f5f9' },
+                    grid: { color: 'rgba(241, 245, 249, 0.8)' },
                     border: { display: false, dash: [4, 4] },
                     ticks: {
                         callback: function (value) {
                             if (value === 0) return 'Rp 0';
-                            if (value >= 1000000) return 'Rp ' + (value / 1000000).toFixed(1) + 'jt';
-                            if (value >= 1000) return 'Rp ' + (value / 1000).toFixed(0) + 'rb';
+                            if (value >= 1000000) return 'Rp ' + (value / 1000000).toFixed(value % 1000000 === 0 ? 0 : 1) + ' jt';
+                            if (value >= 1000) return 'Rp ' + (value / 1000).toFixed(0) + ' rb';
                             return 'Rp ' + value.toLocaleString('id-ID');
                         },
-                        font: { size: 10 },
+                        font: { size: 10, family: 'Inter, system-ui, sans-serif' },
                         color: '#94a3b8',
                         maxTicksLimit: 5
                     }
