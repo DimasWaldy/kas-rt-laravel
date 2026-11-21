@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\RfidCard;
 use App\Models\RfidSession;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class WargaKartuRfidController extends Controller
@@ -25,6 +26,128 @@ class WargaKartuRfidController extends Controller
                 ->first();
         }
 
-        return view('warga.kartu_rfid', compact('user', 'card', 'activeSession'));
+        $isEnrolled = $activeSession && (int) $activeSession->enrollment_user_id === (int) $user->id && $activeSession->enrollment_expires_at?->isFuture();
+        $remainingSeconds = $isEnrolled ? max(0, (int) now()->diffInSeconds($activeSession->enrollment_expires_at, false)) : 0;
+
+        return view('warga.kartu_rfid', compact('user', 'card', 'activeSession', 'isEnrolled', 'remainingSeconds'));
+    }
+
+    public function openSession(Request $request)
+    {
+        $user = $request->user();
+        abort_unless($user->isAktif(), 403);
+
+        if ($user->warga && $user->warga->status_verifikasi !== 'terverifikasi') {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun warga Anda harus berstatus terverifikasi terlebih dahulu sebelum dapat mendaftarkan e-KTP.',
+                ], 422);
+            }
+
+            return back()->with('error', 'Akun warga Anda harus berstatus terverifikasi terlebih dahulu sebelum dapat mendaftarkan e-KTP.');
+        }
+
+        if (RfidCard::where('user_id', $user->id)->whereNotNull('ktp_verified_at')->exists()) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'e-KTP fisik Anda sudah terdaftar resmi di RT dan sistem.',
+                ], 422);
+            }
+
+            return back()->with('error', 'e-KTP fisik Anda sudah terdaftar resmi di RT dan sistem.');
+        }
+
+        $scopeKey = $user->rt_id ? 'warga:rt:'.$user->rt_id : 'warga:global';
+        $rwId = $user->assignedRwId() ?? $user->rt?->rw_id;
+
+        $session = RfidSession::where('scope_key', $scopeKey)->first();
+
+        if ($session) {
+            // Keep existing token so configured ESP32 device continues to work seamlessly
+            $session->update([
+                'expires_at' => now()->addHours(6),
+                'enrollment_user_id' => $user->id,
+                'enrollment_expires_at' => now()->addMinutes(3),
+            ]);
+        } else {
+            $creator = User::where('rt_id', $user->rt_id)
+                ->whereHas('role', fn ($q) => $q->whereIn('name', ['ketua_rt', 'rt']))
+                ->first()
+                ?? User::whereHas('role', fn ($q) => $q->whereIn('name', ['super_admin', 'superadmin', 'admin']))->first()
+                ?? $user;
+
+            $token = bin2hex(random_bytes(32));
+
+            RfidSession::create([
+                'scope_key' => $scopeKey,
+                'scope_type' => 'warga',
+                'created_by' => $creator->id,
+                'rw_id' => $rwId,
+                'rt_id' => $user->rt_id,
+                'token_hash' => hash('sha256', $token),
+                'expires_at' => now()->addHours(6),
+                'enrollment_user_id' => $user->id,
+                'enrollment_expires_at' => now()->addMinutes(3),
+            ]);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Sesi tap e-KTP mandiri aktif selama 3 menit. Silakan tempelkan e-KTP Anda ke alat reader RT sekarang.',
+                'remaining_seconds' => 180,
+            ]);
+        }
+
+        return back()->with('success', 'Sesi tap e-KTP mandiri aktif selama 3 menit. Silakan tempelkan e-KTP Anda ke alat reader RT sekarang.');
+    }
+
+    public function cancelSession(Request $request)
+    {
+        $user = $request->user();
+        $scopeKey = $user->rt_id ? 'warga:rt:'.$user->rt_id : 'warga:global';
+
+        $session = RfidSession::where('scope_key', $scopeKey)
+            ->where('enrollment_user_id', $user->id)
+            ->first();
+
+        if ($session) {
+            $session->update([
+                'enrollment_user_id' => null,
+                'enrollment_expires_at' => null,
+            ]);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Sesi tap e-KTP dibatalkan.',
+            ]);
+        }
+
+        return back()->with('success', 'Sesi tap e-KTP dibatalkan.');
+    }
+
+    public function status(Request $request)
+    {
+        $user = $request->user();
+        $scopeKey = $user->rt_id ? 'warga:rt:'.$user->rt_id : 'warga:global';
+
+        $session = RfidSession::where('scope_key', $scopeKey)->first();
+        $card = RfidCard::where('user_id', $user->id)->first();
+
+        $isEnrolled = $session && (int) $session->enrollment_user_id === (int) $user->id && $session->enrollment_expires_at?->isFuture();
+        $remainingSeconds = $isEnrolled ? max(0, (int) now()->diffInSeconds($session->enrollment_expires_at, false)) : 0;
+
+        return response()->json([
+            'is_enrolling' => $isEnrolled,
+            'remaining_seconds' => $remainingSeconds,
+            'is_verified' => $card && $card->ktp_verified_at !== null,
+            'verified_at' => $card?->ktp_verified_at?->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i'),
+            'uid_preview' => $card?->uid_hash ? substr($card->uid_hash, 0, 16).'••••' : null,
+            'reader_active' => $session && $session->expires_at->isFuture(),
+        ]);
     }
 }

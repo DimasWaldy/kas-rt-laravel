@@ -4,6 +4,7 @@ use App\Models\Kegiatan;
 use App\Models\KegiatanHadir;
 use App\Models\KoperasiMember;
 use App\Models\RfidCard;
+use App\Models\RfidSession;
 use App\Models\Role;
 use App\Models\Rt;
 use App\Models\Rumah;
@@ -284,4 +285,86 @@ test('warga dapat melihat kartu digital dan panduan verifikasi rfid di halaman k
         ->get(route('dashboard'))
         ->assertOk()
         ->assertSee('Kartu Digital');
+});
+
+test('warga dapat membuka sesi tap e-ktp mandiri dan melakukan verifikasi langsung dari alat reader esp32', function () {
+    // 1. Warga belum diverifikasi membuka sesi mandiri
+    $response = $this->actingAs($this->wargaUser)
+        ->postJson(route('warga.rfid.open'))
+        ->assertOk()
+        ->assertJson([
+            'success' => true,
+            'remaining_seconds' => 180,
+        ]);
+
+    // 2. Status mencerminkan warga sedang mendaftar (enrolling)
+    $this->actingAs($this->wargaUser)
+        ->getJson(route('warga.rfid.status'))
+        ->assertOk()
+        ->assertJson([
+            'is_enrolling' => true,
+            'is_verified' => false,
+        ]);
+
+    // 3. Reader ESP32 yang terhubung ke RT dapat melakukan tap e-KTP dan sukses mendaftarkan KTP warga
+    $scopeKey = 'warga:rt:'.$this->wargaUser->rt_id;
+    $session = RfidSession::where('scope_key', $scopeKey)->first();
+    expect($session)->not->toBeNull();
+    expect($session->enrollment_user_id)->toBe($this->wargaUser->id);
+
+    // Dapatkan token bearer dari sesi (simulasi alat ESP32)
+    // Untuk tes, kita set token 64-hex yang diketahui
+    $deviceToken = str_repeat('a', 64);
+    $session->update(['token_hash' => hash('sha256', $deviceToken)]);
+
+    $tapResponse = ($this->tap)($deviceToken, 'A1B2C3D4');
+    $tapResponse->assertOk()->assertJson([
+        'status' => 'ktp_registered',
+        'message' => 'KTP warga berhasil didaftarkan dan tercatat di RT serta sistem.',
+    ]);
+
+    // 4. KTP warga langsung terverifikasi resmi di database
+    $card = RfidCard::where('user_id', $this->wargaUser->id)->first();
+    expect($card)->not->toBeNull();
+    expect($card->ktp_verified_at)->not->toBeNull();
+    expect($card->uid_hash)->toBe(RfidCard::hashUid('A1B2C3D4'));
+
+    // 5. Status endpoint sekarang mengembalikan is_verified = true
+    $this->actingAs($this->wargaUser)
+        ->getJson(route('warga.rfid.status'))
+        ->assertOk()
+        ->assertJson([
+            'is_enrolling' => false,
+            'is_verified' => true,
+        ]);
+
+    // 6. Warga yang sudah terverifikasi tidak bisa membuka sesi lagi
+    $this->actingAs($this->wargaUser)
+        ->postJson(route('warga.rfid.open'))
+        ->assertStatus(422);
+
+    // 7. Warga dengan akun belum diverifikasi tidak bisa buka sesi mandiri (403 Forbidden dari active middleware)
+    $this->actingAs($this->pendingWargaUser)
+        ->postJson(route('warga.rfid.open'))
+        ->assertStatus(403);
+});
+
+test('warga dapat membatalkan sesi tap mandiri', function () {
+    $this->actingAs($this->wargaUser)
+        ->postJson(route('warga.rfid.open'))
+        ->assertOk();
+
+    $this->actingAs($this->wargaUser)
+        ->postJson(route('warga.rfid.cancel'))
+        ->assertOk()
+        ->assertJson([
+            'success' => true,
+        ]);
+
+    $this->actingAs($this->wargaUser)
+        ->getJson(route('warga.rfid.status'))
+        ->assertOk()
+        ->assertJson([
+            'is_enrolling' => false,
+        ]);
 });
