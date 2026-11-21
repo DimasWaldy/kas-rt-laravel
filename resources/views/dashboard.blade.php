@@ -477,7 +477,7 @@
     }));
 @endphp
 @if(count($quickActions) > 0)
-<div>
+<div class="block lg:hidden">
     <div class="mb-3 flex items-center justify-between">
         <div>
             <h2 class="text-sm font-bold text-slate-900 dark:text-slate-100">Menu Cepat</h2>
