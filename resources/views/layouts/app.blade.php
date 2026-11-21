@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Smart RW - Dashboard</title>
-    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <script>
         (() => {
             const storedTheme = localStorage.getItem('smart-rw-theme');
@@ -484,10 +488,8 @@
         aria-label="Navigasi utama"
     >
         <div class="flex items-center justify-between border-b border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 lg:p-6">
-            <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-3">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500 shadow-xs shadow-emerald-500/30">
-                    <i class="fa-solid fa-wallet text-lg text-white"></i>
-                </span>
+            <a href="{{ route('dashboard') }}" class="group flex min-w-0 items-center gap-3">
+                <img src="{{ asset('images/logo.svg') }}" alt="Logo Smart RW" class="h-10 w-10 shrink-0 rounded-xl shadow-xs shadow-emerald-500/30 transition-transform duration-200 group-hover:scale-105">
                 <span class="truncate text-xl font-extrabold tracking-wider text-slate-900 dark:text-slate-100">Smart RW</span>
             </a>
             <button type="button" class="btn-tactile flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-emerald-100 hover:text-emerald-950 active:scale-92 transition lg:hidden" x-on:click="mobileMenuOpen = false" aria-label="Tutup menu">

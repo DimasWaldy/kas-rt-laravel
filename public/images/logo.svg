@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="srwBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="55%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+
+    <!-- Top Highlight -->
+    <linearGradient id="srwHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+    </linearGradient>
+
+    <!-- Core Diamond Gradient -->
+    <linearGradient id="srwGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="50%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+
+    <!-- Soft Drop Shadow -->
+    <filter id="srwShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#064e3b" flood-opacity="0.3" />
+    </filter>
+
+    <!-- Glow for Smart Core -->
+    <filter id="srwGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Squircle Base Canvas -->
+  <rect x="28" y="28" width="456" height="456" rx="120" fill="url(#srwBg)" filter="url(#srwShadow)" />
+  
+  <!-- Subtle Inner Border Highlight -->
+  <rect x="30" y="30" width="452" height="452" rx="118" fill="none" stroke="#6ee7b7" stroke-width="3" stroke-opacity="0.45" />
+
+  <!-- Glass Light Reflection -->
+  <path d="M 28 148 C 28 81.7 81.7 28 148 28 L 364 28 C 430.3 28 484 81.7 484 148 L 484 210 C 370 170 210 260 28 200 Z" fill="url(#srwHighlight)" />
+
+  <!-- ================= SMART RW EMBLEM ================= -->
+  <!-- 1. Wireless / Smart RFID Signal Arcs (Top) -->
+  <g fill="none" stroke-linecap="round">
+    <!-- Outer Smart Signal Arc -->
+    <path d="M 180 185 A 145 145 0 0 1 332 185" stroke="#a7f3d0" stroke-width="16" opacity="0.85" />
+    <!-- Inner Smart Signal Arc -->
+    <path d="M 215 210 A 100 100 0 0 1 297 210" stroke="#ffffff" stroke-width="15" opacity="0.95" />
+  </g>
+
+  <!-- 2. Architectural Community Roof (White Canopy) -->
+  <path d="M 256 182 L 396 288 L 356 322 L 256 244 L 156 322 L 116 288 Z" 
+        fill="#ffffff" 
+        filter="drop-shadow(0 4px 6px rgba(4, 120, 87, 0.4))" />
+
+  <!-- 3. Twin Residential Pillars / Civic Gateway -->
+  <path d="M 166 332 L 214 294 L 214 400 L 166 400 Z" fill="#ffffff" fill-opacity="0.95" />
+  <path d="M 298 294 L 346 332 L 346 400 L 298 400 Z" fill="#ffffff" fill-opacity="0.85" />
+
+  <!-- 4. Modern Base Foundation Bar (Mint) -->
+  <rect x="146" y="412" width="220" height="22" rx="11" fill="#a7f3d0" />
+
+  <!-- 5. Central Smart RFID Core / Golden Treasury Node -->
+  <polygon points="256,298 290,340 256,382 222,340" fill="url(#srwGold)" filter="url(#srwGlow)" />
+  <polygon points="256,314 274,340 256,366 238,340" fill="#ffffff" opacity="0.75" />
+</svg>
