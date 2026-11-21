@@ -10,6 +10,7 @@ use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
 use App\Models\Warga;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
@@ -26,13 +27,64 @@ class DashboardController extends Controller
             $kasMasuk = $canViewGlobalFinance ? KasMasuk::visibleTo($user)->sum('jumlah') : null;
             $kasKeluar = $canViewGlobalFinance ? KasKeluar::visibleTo($user)->sum('jumlah') : null;
 
-            $tanggal = $canViewGlobalFinance ? KasMasuk::visibleTo($user)->pluck('tanggal')->all() : [];
-            $dataMasuk = $canViewGlobalFinance
-                ? KasMasuk::visibleTo($user)->pluck('jumlah')->map(fn ($jumlah) => (int) $jumlah)->all()
-                : [];
-            $dataKeluar = $canViewGlobalFinance
-                ? KasKeluar::visibleTo($user)->pluck('jumlah')->map(fn ($jumlah) => (int) $jumlah)->all()
-                : [];
+            $tanggal = [];
+            $dataMasuk = [];
+            $dataKeluar = [];
+
+            if ($canViewGlobalFinance) {
+                $startOfMonth = now()->startOfMonth();
+                $endOfMonth = now()->endOfMonth();
+                $daysInMonth = now()->daysInMonth;
+
+                $masukRecords = KasMasuk::visibleTo($user)
+                    ->whereMonth('tanggal', now()->month)
+                    ->whereYear('tanggal', now()->year)
+                    ->get(['jumlah', 'tanggal']);
+
+                $keluarRecords = KasKeluar::visibleTo($user)
+                    ->whereMonth('tanggal', now()->month)
+                    ->whereYear('tanggal', now()->year)
+                    ->get(['jumlah', 'tanggal']);
+
+                if ($masukRecords->isEmpty() && $keluarRecords->isEmpty()) {
+                    $latestDate = KasMasuk::visibleTo($user)->latest('tanggal')->value('tanggal')
+                        ?? KasKeluar::visibleTo($user)->latest('tanggal')->value('tanggal');
+
+                    if ($latestDate) {
+                        $targetDate = Carbon::parse($latestDate);
+                        $startOfMonth = $targetDate->copy()->startOfMonth();
+                        $endOfMonth = $targetDate->copy()->endOfMonth();
+                        $daysInMonth = $targetDate->daysInMonth;
+
+                        $masukRecords = KasMasuk::visibleTo($user)
+                            ->whereMonth('tanggal', $targetDate->month)
+                            ->whereYear('tanggal', $targetDate->year)
+                            ->get(['jumlah', 'tanggal']);
+
+                        $keluarRecords = KasKeluar::visibleTo($user)
+                            ->whereMonth('tanggal', $targetDate->month)
+                            ->whereYear('tanggal', $targetDate->year)
+                            ->get(['jumlah', 'tanggal']);
+                    }
+                }
+
+                $masukByDate = $masukRecords
+                    ->groupBy(fn ($item) => substr((string) $item->tanggal, 0, 10))
+                    ->map(fn ($group) => (int) $group->sum('jumlah'));
+
+                $keluarByDate = $keluarRecords
+                    ->groupBy(fn ($item) => substr((string) $item->tanggal, 0, 10))
+                    ->map(fn ($group) => (int) $group->sum('jumlah'));
+
+                for ($day = 1; $day <= $daysInMonth; $day++) {
+                    $date = $startOfMonth->copy()->day($day);
+                    $dateKey = $date->toDateString();
+
+                    $tanggal[] = $date->format('d M');
+                    $dataMasuk[] = (int) ($masukByDate[$dateKey] ?? 0);
+                    $dataKeluar[] = (int) ($keluarByDate[$dateKey] ?? 0);
+                }
+            }
 
             $totalWarga = User::visibleTo($user)->whereRelation('role', 'name', 'warga')->count();
             $totalRumah = Rumah::visibleTo($user)->count();
