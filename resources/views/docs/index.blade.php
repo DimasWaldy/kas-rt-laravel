@@ -76,13 +76,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Panduan penggunaan Smart RW untuk warga dan pengurus.">
     <title>Dokumentasi Smart RW | Panduan Warga dan Pengurus</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-white font-sans text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
     <nav class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
         <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
             <a href="{{ url('/') }}" class="flex items-center gap-3" aria-label="Smart RW - Beranda">
-                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-200/50"><i class="fa-solid fa-city"></i></span>
+                <img src="{{ asset('images/logo.svg') }}" alt="Logo Smart RW" class="h-9 w-9 shrink-0 rounded-xl shadow-lg shadow-emerald-500/20">
                 <span class="font-black tracking-tight text-slate-900 dark:text-white">Smart <span class="text-emerald-600">RW</span> <span class="ml-1 font-semibold text-slate-400">Docs</span></span>
             </a>
             <div class="flex items-center gap-2">
