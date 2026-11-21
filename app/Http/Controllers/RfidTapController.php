@@ -140,22 +140,33 @@ class RfidTapController extends Controller
             $session = RfidSession::whereKey($initial->id)->lockForUpdate()->firstOrFail();
             abort_unless($session->scope_type === 'warga' && hash_equals($session->token_hash, $hash) && $session->expires_at->isFuture(), 401);
             $actor = User::find($session->created_by);
-            abort_unless($actor && RfidAccess::canManageWargaKtp($actor) && RfidAccess::matchesWargaKtpScope($actor, $session), 403);
+
+            $hasPermission = $actor && RfidAccess::canManageWargaKtp($actor) && RfidAccess::matchesWargaKtpScope($actor, $session);
+            $isSelfEnrollment = $session->enrollment_user_id && $session->enrollment_expires_at?->isFuture();
+            abort_unless($hasPermission || $isSelfEnrollment, 403);
+
             $uidHash = RfidCard::hashUid($uid);
 
             if ($session->enrollment_user_id) {
                 if (! $session->enrollment_expires_at?->isFuture()) {
-                    throw ValidationException::withMessages(['uid' => 'Pendaftaran KTP kedaluwarsa. Petugas harus membatalkan atau memulai ulang.']);
+                    throw ValidationException::withMessages(['uid' => 'Pendaftaran KTP kedaluwarsa. Silakan mulai ulang sesi tap.']);
                 }
                 $user = RfidAccess::wargaKtpParticipants($session)->whereKey($session->enrollment_user_id)->lockForUpdate()->firstOrFail();
                 if (RfidCard::where('user_id', $user->id)->orWhere('uid_hash', $uidHash)->exists()) {
                     throw ValidationException::withMessages(['uid' => 'KTP atau warga sudah terdaftar. Cabut kartu lama terlebih dahulu.']);
                 }
+
+                $verifierId = ($actor && RfidAccess::canManageWargaKtp($actor))
+                    ? $actor->id
+                    : (User::where('rt_id', $user->rt_id)->whereHas('role', fn ($q) => $q->whereIn('name', ['ketua_rt', 'rt']))->value('id')
+                        ?? User::whereHas('role', fn ($q) => $q->whereIn('name', ['super_admin', 'superadmin', 'admin']))->value('id')
+                        ?? $user->id);
+
                 RfidCard::create([
                     'user_id' => $user->id,
                     'uid_hash' => $uidHash,
                     'ktp_verified_at' => now(),
-                    'verified_by' => $actor->id,
+                    'verified_by' => $verifierId,
                     'verified_rt_id' => $user->rt_id,
                     'koperasi_verified_at' => now(),
                 ]);

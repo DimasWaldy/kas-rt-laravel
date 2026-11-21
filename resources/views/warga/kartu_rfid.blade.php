@@ -176,6 +176,151 @@
                 </button>
             </div>
 
+            {{-- Panel Aktivasi Tap e-KTP Mandiri Warga --}}
+            <div
+                x-data="wargaRfidTap({
+                    isEnrolled: {{ ($isEnrolled ?? false) ? 'true' : 'false' }},
+                    remainingSeconds: {{ $remainingSeconds ?? 0 }},
+                    isVerified: {{ ($card && $card->ktp_verified_at) ? 'true' : 'false' }},
+                    csrfToken: '{{ csrf_token() }}',
+                    openUrl: '{{ route('warga.rfid.open') }}',
+                    cancelUrl: '{{ route('warga.rfid.cancel') }}',
+                    statusUrl: '{{ route('warga.rfid.status') }}'
+                })"
+                x-init="init()"
+                class="overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            >
+                {{-- Header Status --}}
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors"
+                            :class="isVerified ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' : (isEnrolling ? 'bg-amber-100 text-amber-700 animate-pulse dark:bg-amber-950/60 dark:text-amber-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300')"
+                        >
+                            <i class="fa-solid text-base" :class="isVerified ? 'fa-id-card-clip' : (isEnrolling ? 'fa-tower-broadcast' : 'fa-wifi')"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">
+                                <span x-show="isVerified">e-KTP Fisik Terverifikasi</span>
+                                <span x-show="!isVerified && isEnrolling">Sesi Tap Mandiri Aktif</span>
+                                <span x-show="!isVerified && !isEnrolling">Tap e-KTP Mandiri</span>
+                            </h3>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                                <span x-show="isVerified">Kartu fisik Anda telah terhubung secara permanen.</span>
+                                <span x-show="!isVerified && isEnrolling">Tempelkan e-KTP Anda ke alat sensor reader RT.</span>
+                                <span x-show="!isVerified && !isEnrolling">Buka sesi sendiri dalam 1 klik tanpa perlu menunggu admin.</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- Timer Badge saat Enrolling --}}
+                    <template x-if="!isVerified && isEnrolling">
+                        <div class="flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 font-mono text-xs font-black text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                            <i class="fa-regular fa-clock text-[10px]"></i>
+                            <span x-text="formattedRemaining"></span>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- Alert Error jika ada --}}
+                <div x-show="errorMessage" x-cloak class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/50 dark:text-rose-200">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-circle-exclamation shrink-0"></i>
+                        <span x-text="errorMessage"></span>
+                    </div>
+                </div>
+
+                {{-- Alert Sukses Instan saat Tap Berhasil --}}
+                <div x-show="justVerified" x-cloak class="mt-4 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-xs font-semibold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-100">
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-circle-check mt-0.5 text-base text-emerald-600"></i>
+                        <div>
+                            <p class="font-bold text-sm">Verifikasi Berhasil!</p>
+                            <p class="mt-0.5 text-emerald-700 dark:text-emerald-300">e-KTP fisik Anda telah berhasil terdaftar dan aktif secara resmi di RT dan sistem!</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Kondisi 1: KTP Sudah Terverifikasi --}}
+                <template x-if="isVerified && !justVerified">
+                    <div class="mt-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/70 p-4 text-xs text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                <span class="font-bold">Status: Terdaftar Resmi</span>
+                            </div>
+                            <span class="rounded-full bg-emerald-600/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                                1x Seumur Hidup
+                            </span>
+                        </div>
+                        <p class="mt-2 text-[11px] leading-relaxed text-emerald-800/80 dark:text-emerald-300/80">
+                            Kartu e-KTP Anda dapat digunakan untuk absensi kehadiran rapat RT dan syarat verifikasi program Koperasi.
+                        </p>
+                    </div>
+                </template>
+
+                {{-- Kondisi 2: Sedang Enrolling (Sesi Aktif Menunggu Tap) --}}
+                <template x-if="!isVerified && isEnrolling">
+                    <div class="mt-4 space-y-4">
+                        {{-- Radar Wave Visualizer --}}
+                        <div class="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-amber-200/80 bg-linear-to-b from-amber-500/5 via-amber-500/10 to-transparent py-7 dark:border-amber-800/60 dark:from-amber-950/30">
+                            <div class="relative flex h-20 w-20 items-center justify-center">
+                                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-30"></span>
+                                <span class="absolute inline-flex h-14 w-14 animate-pulse rounded-full bg-amber-400/50 opacity-40"></span>
+                                <div class="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-lg shadow-amber-600/30">
+                                    <i class="fa-solid fa-nfc-symbol text-xl animate-bounce"></i>
+                                </div>
+                            </div>
+                            <p class="mt-3 text-xs font-bold text-slate-800 dark:text-slate-100">Tempelkan e-KTP ke Sensor ESP32 Sekarang</p>
+                            <p class="mt-1 text-center text-[11px] text-slate-500 dark:text-slate-400 max-w-xs px-4">
+                                Dekatkan fisik e-KTP Anda ke atas kotak alat reader RT selama 1 detik hingga terdengar bunyi konfirmasi beep.
+                            </p>
+                        </div>
+
+                        {{-- Tombol Batal Sesi --}}
+                        <button
+                            type="button"
+                            @click="cancelSession()"
+                            :disabled="isLoading"
+                            class="btn-tactile flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                        >
+                            <i class="fa-solid fa-xmark text-slate-400"></i>
+                            <span>Batalkan Sesi Tap Mandiri</span>
+                        </button>
+                    </div>
+                </template>
+
+                {{-- Kondisi 3: Belum Terverifikasi & Belum Enrolling (Idle) --}}
+                <template x-if="!isVerified && !isEnrolling">
+                    <div class="mt-4 space-y-3">
+                        <div class="rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300">
+                            <p class="font-bold text-slate-800 dark:text-slate-200">Cara Tap Mandiri:</p>
+                            <ol class="mt-1.5 list-decimal list-inside space-y-1 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                                <li>Pastikan Anda berada di dekat alat reader RT (di pos/kantor RT atau alat yang terhubung).</li>
+                                <li>Klik tombol hijau di bawah untuk mengaktifkan sesi tap (3 menit).</li>
+                                <li>Tempelkan fisik e-KTP Anda ke alat sensor reader. Sistem langsung mendeteksi kartu Anda secara instan!</li>
+                            </ol>
+                        </div>
+
+                        <button
+                            type="button"
+                            @click="openSession()"
+                            :disabled="isLoading"
+                            class="btn-tactile flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-emerald-600 to-green-600 px-5 py-3 text-xs font-black text-white shadow-md shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-green-700 focus:outline-hidden disabled:opacity-50"
+                        >
+                            <span x-show="!isLoading" class="flex items-center gap-2">
+                                <i class="fa-solid fa-wifi text-sm"></i>
+                                <span>Mulai Tap e-KTP Mandiri Sekarang</span>
+                            </span>
+                            <span x-show="isLoading" class="flex items-center gap-2" x-cloak>
+                                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                                <span>Membuka Sesi Tap...</span>
+                            </span>
+                        </button>
+                    </div>
+                </template>
+            </div>
+
             {{-- Status Alat Reader RT --}}
             <div class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
                 <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Status Reader RT</h3>
@@ -229,16 +374,16 @@
                     <div class="flex items-start gap-3">
                         <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white">2</span>
                         <div class="text-sm">
-                            <p class="font-bold text-slate-900 dark:text-slate-100">Kunjungi Pos RT atau Temui Pengurus</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sampaikan kepada pengurus RT bahwa Anda ingin melakukan aktivasi tap kartu e-KTP.</p>
+                            <p class="font-bold text-slate-900 dark:text-slate-100">Buka Sesi Mandiri atau Kunjungi Pos RT</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Tekan tombol "Mulai Tap e-KTP Mandiri" di panel kiri, atau kunjungi kantor/pos RT saat alat reader aktif.</p>
                         </div>
                     </div>
 
                     <div class="flex items-start gap-3">
                         <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white">3</span>
                         <div class="text-sm">
-                            <p class="font-bold text-slate-900 dark:text-slate-100">Pengurus Memilih Akun Anda</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pengurus membuka menu verifikasi RFID dan mengaktifkan mode penempelan kartu selama 2 menit.</p>
+                            <p class="font-bold text-slate-900 dark:text-slate-100">Sesi Tap Otomatis Terbuka</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sistem langsung membuka slot verifikasi 3 menit untuk akun Anda tanpa perlu admin memilih akun secara manual.</p>
                         </div>
                     </div>
 
@@ -352,4 +497,143 @@
         </div>
     </div>
 </div>
+
+<script>
+function wargaRfidTap(config) {
+    return {
+        isEnrolled: config.isEnrolled,
+        remainingSeconds: config.remainingSeconds,
+        isVerified: config.isVerified,
+        isLoading: false,
+        errorMessage: null,
+        justVerified: false,
+        pollTimer: null,
+        countdownTimer: null,
+
+        get isEnrolling() {
+            return this.isEnrolled && this.remainingSeconds > 0;
+        },
+
+        get formattedRemaining() {
+            const m = Math.floor(this.remainingSeconds / 60);
+            const s = this.remainingSeconds % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        },
+
+        init() {
+            if (this.isEnrolling) {
+                this.startCountdown();
+                this.startPolling();
+            }
+        },
+
+        async openSession() {
+            this.isLoading = true;
+            this.errorMessage = null;
+
+            try {
+                const response = await fetch(config.openUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': config.csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Gagal membuka sesi tap.');
+                }
+
+                this.isEnrolled = true;
+                this.remainingSeconds = data.remaining_seconds || 180;
+                this.startCountdown();
+                this.startPolling();
+            } catch (err) {
+                this.errorMessage = err.message;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        async cancelSession() {
+            this.isLoading = true;
+            this.errorMessage = null;
+
+            try {
+                const response = await fetch(config.cancelUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': config.csrfToken
+                    }
+                });
+
+                this.stopTimers();
+                this.isEnrolled = false;
+                this.remainingSeconds = 0;
+            } catch (err) {
+                this.errorMessage = err.message;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        startCountdown() {
+            if (this.countdownTimer) clearInterval(this.countdownTimer);
+            this.countdownTimer = setInterval(() => {
+                if (this.remainingSeconds > 0) {
+                    this.remainingSeconds--;
+                } else {
+                    this.stopTimers();
+                    this.isEnrolled = false;
+                }
+            }, 1000);
+        },
+
+        startPolling() {
+            if (this.pollTimer) clearInterval(this.pollTimer);
+            this.pollTimer = setInterval(async () => {
+                try {
+                    const response = await fetch(config.statusUrl, {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.is_verified) {
+                            this.stopTimers();
+                            this.isVerified = true;
+                            this.isEnrolled = false;
+                            this.justVerified = true;
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        } else if (!data.is_enrolling) {
+                            this.stopTimers();
+                            this.isEnrolled = false;
+                            this.remainingSeconds = 0;
+                        }
+                    }
+                } catch (e) {
+                    // silent fail on network blip
+                }
+            }, 1500);
+        },
+
+        stopTimers() {
+            if (this.countdownTimer) {
+                clearInterval(this.countdownTimer);
+                this.countdownTimer = null;
+            }
+            if (this.pollTimer) {
+                clearInterval(this.pollTimer);
+                this.pollTimer = null;
+            }
+        }
+    };
+}
+</script>
 @endsection
