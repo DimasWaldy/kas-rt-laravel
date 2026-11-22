@@ -163,8 +163,9 @@ class WargaKartuRfidController extends Controller
         $remainingSeconds = $isEnrolled ? max(0, (int) now()->diffInSeconds($session->enrollment_expires_at, false)) : 0;
         $notice = Cache::pull("rfid_enrollment_notice:{$user->id}");
 
-        // Cek apakah ESP32 mengirim heartbeat dalam 30 detik terakhir
-        $deviceOnline = Cache::has('rfid_device_online');
+        // Cek apakah ESP32 mengirim heartbeat dalam 2.5 detik terakhir (live ultra-cepat)
+        $lastSeen = (float) Cache::get('rfid_device_online_at', 0);
+        $deviceOnline = $lastSeen > 0 && (microtime(true) - $lastSeen) <= 2.5;
 
         // Cek hasil scan terakhir dari ESP32 (ditulis di luar transaksi oleh RfidTapController)
         $scanResult = Cache::pull("rfid_scan_result:{$user->id}");
@@ -199,8 +200,12 @@ class WargaKartuRfidController extends Controller
 
     public function deviceStatus()
     {
+        $lastSeen = (float) Cache::get('rfid_device_online_at', 0);
+        $isOnline = $lastSeen > 0 && (microtime(true) - $lastSeen) <= 2.5;
+
         return response()->json([
-            'device_online' => Cache::has('rfid_device_online'),
+            'device_online' => $isOnline,
+            'last_seen_sec' => $lastSeen > 0 ? round(microtime(true) - $lastSeen, 2) : null,
             'server_time' => now()->toIso8601String(),
         ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')

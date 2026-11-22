@@ -77,7 +77,7 @@ String lastUID = "";
 unsigned long lastScanTime = 0;
 unsigned long lastHeartbeatTime = 0;
 const unsigned long SCAN_COOLDOWN_MS = 2500; // Jeda 2.5 detik untuk kartu yang sama
-const unsigned long HEARTBEAT_INTERVAL_MS = 10000; // Heartbeat setiap 10 detik
+const unsigned long HEARTBEAT_INTERVAL_MS = 1000; // Heartbeat setiap 1 detik agar live real-time di web
 
 // Prototype Fungsi
 String readUID();
@@ -400,7 +400,7 @@ void sendHeartbeat() {
     http.begin(client, HEARTBEAT_URL);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-Device-Key", String(DEVICE_KEY));
-    http.setTimeout(4000);
+    http.setTimeout(1200);
 
     String payload = "{\"device_id\":\"" + String(DEVICE_ID)
                    + "\",\"ip\":\"" + WiFi.localIP().toString() + "\"}";
@@ -408,7 +408,10 @@ void sendHeartbeat() {
     int code = http.POST(payload);
 
     if (code == 200) {
-        Serial.print(F("."));  // Titik heartbeat tanda normal
+        static unsigned long hbCount = 0;
+        if (++hbCount % 5 == 0) {
+            Serial.print(F("."));  // Tanda heartbeat online setiap 5 detik
+        }
     } else {
         Serial.printf("\n[HEARTBEAT] Gagal (HTTP %d)\n", code);
     }

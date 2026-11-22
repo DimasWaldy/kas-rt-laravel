@@ -701,10 +701,10 @@ function readerStatus(config) {
 
         startDevicePolling() {
             this.checkDeviceStatus();
-            // Polling cepat setiap 2 detik agar status langsung berubah live tanpa refresh halaman
+            // Polling ultra-cepat setiap 1 detik agar status langsung berubah live dalam 1-2 detik
             this.devicePollTimer = setInterval(() => {
                 this.checkDeviceStatus();
-            }, 2000);
+            }, 1000);
 
             // Cek seketika saat user kembali membuka tab browser
             document.addEventListener('visibilitychange', () => {

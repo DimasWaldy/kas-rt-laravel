@@ -9,8 +9,12 @@ use Illuminate\Support\Facades\Route;
 Route::post('/rfid/tap', RfidTapController::class)->middleware('throttle:120,1')->name('rfid.tap');
 Route::post('/rfid/scan', RfidTapController::class)->middleware('throttle:120,1')->name('rfid.scan');
 Route::get('/rfid/device-status', function () {
+    $lastSeen = (float) Cache::get('rfid_device_online_at', 0);
+    $isOnline = $lastSeen > 0 && (microtime(true) - $lastSeen) <= 2.5;
+
     return response()->json([
-        'device_online' => Cache::has('rfid_device_online'),
+        'device_online' => $isOnline,
+        'last_seen_sec' => $lastSeen > 0 ? round(microtime(true) - $lastSeen, 2) : null,
         'server_time' => now()->toIso8601String(),
     ])
         ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
@@ -42,14 +46,13 @@ Route::match(['get', 'post'], '/rfid/heartbeat', function (Request $request) {
     }
 
     if ($authenticated) {
-        // Simpan heartbeat di cache dengan TTL 35 detik (toleransi 3x heartbeat interval 10s)
+        $nowFloat = microtime(true);
+        Cache::put('rfid_device_online_at', $nowFloat, now()->addMinutes(2));
+        Cache::put('rfid_device_online', now()->toIso8601String(), now()->addMinutes(2));
         Cache::put("rfid_device_heartbeat:{$deviceId}", [
             'ip' => $request->input('ip', $request->ip()),
             'last_seen_at' => now()->toIso8601String(),
-        ], now()->addSeconds(35));
-
-        // Simpan juga key generic agar polling web bisa cek tanpa device_id
-        Cache::put('rfid_device_online', now()->toIso8601String(), now()->addSeconds(35));
+        ], now()->addMinutes(2));
     }
 
     return response()->json([
