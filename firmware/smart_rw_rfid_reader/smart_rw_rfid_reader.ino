@@ -38,8 +38,8 @@
 // 1. KONFIGURASI WIFI & SERVER SMART RW
 // ============================================================
 // Ganti nama WiFi dan password Hotspot HP Anda di bawah ini:
-const char* WIFI_SSID     = "POCOX3NFC";
-const char* WIFI_PASSWORD = "12345678";
+const char* WIFI_SSID     = "Poco F6505";
+const char* WIFI_PASSWORD = "dimas12345";
 
 // Endpoint API Server Smart RW
 const char* API_URL       = "https://smartos-rw.unique-monsters.my.id/api/rfid/tap";
