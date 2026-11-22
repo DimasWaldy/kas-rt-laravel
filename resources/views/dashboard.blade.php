@@ -470,6 +470,7 @@
         ['label' => 'Kegiatan', 'route' => 'kegiatan.index', 'icon' => 'fa-calendar-days', 'visible' => $u->hasPermission('view-kegiatan')],
         ['label' => 'Posyandu', 'route' => 'posyandu.index', 'icon' => 'fa-baby', 'visible' => $u->hasPermission('view-posyandu')],
         ['label' => 'Bank Sampah', 'route' => 'bank-sampah.index', 'icon' => 'fa-recycle', 'visible' => $u->hasPermission('view-bank-sampah')],
+        ['label' => 'E-Voting', 'route' => 'evoting.index', 'icon' => 'fa-check-to-slot', 'visible' => $u->hasPermission('view-voting')],
         ['label' => 'Direktori RW', 'route' => 'direktori-rw.index', 'icon' => 'fa-address-book', 'visible' => $u->hasPermission('view-direktori-rw')],
     ];
     $quickActions = array_values(array_filter($quickActions, function ($qa) {
@@ -501,6 +502,7 @@
                     'fa-calendar-days' => 'text-violet-700 bg-violet-50 dark:bg-violet-950/40 dark:text-violet-300',
                     'fa-baby' => 'text-pink-700 bg-pink-50 dark:bg-pink-950/40 dark:text-pink-300',
                     'fa-recycle' => 'text-teal-700 bg-teal-50 dark:bg-teal-950/40 dark:text-teal-300',
+                    'fa-check-to-slot' => 'text-purple-700 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-300',
                     default => 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300',
                 };
             @endphp

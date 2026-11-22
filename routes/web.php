@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccountController;
+use App\Http\Controllers\Admin\EvotingAdminController;
 use App\Http\Controllers\Admin\KoperasiController as KoperasiAdminController;
 use App\Http\Controllers\Admin\KoperasiRfidController;
 use App\Http\Controllers\Admin\RumahController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\BankSampahController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DirektoriRwController;
 use App\Http\Controllers\DomisiliController;
+use App\Http\Controllers\EvotingWargaController;
 use App\Http\Controllers\FasilitasController;
 use App\Http\Controllers\HadiahSampahController;
 use App\Http\Controllers\IuranBulananController;
@@ -564,6 +566,27 @@ Route::middleware('auth')->group(function () {
             Route::patch('/admin/koperasi/pinjaman/{pinjaman}/approve', [KoperasiAdminController::class, 'approvePinjaman'])->name('admin.koperasi.approve-pinjaman');
             Route::patch('/admin/koperasi/angsuran/{angsuran}/approve', [KoperasiAdminController::class, 'approveAngsuran'])->name('admin.koperasi.approve-angsuran');
         });
+    });
+
+    // E-Voting Warga
+    Route::middleware('permission:view-voting')->group(function () {
+        Route::get('/evoting', [EvotingWargaController::class, 'index'])->name('evoting.index');
+        Route::get('/evoting/{pemilihan:slug}', [EvotingWargaController::class, 'show'])->name('evoting.show');
+        Route::get('/evoting/{pemilihan:slug}/quick-count', [EvotingWargaController::class, 'quickCount'])->name('evoting.quick-count');
+        Route::post('/evoting/{pemilihan:slug}/vote', [EvotingWargaController::class, 'vote'])
+            ->middleware('permission:submit-vote')
+            ->name('evoting.vote');
+    });
+
+    // E-Voting Admin / Pengurus
+    Route::middleware('permission:manage-voting')->prefix('admin/evoting')->name('admin.evoting.')->group(function () {
+        Route::get('/', [EvotingAdminController::class, 'index'])->name('index');
+        Route::get('/create', [EvotingAdminController::class, 'create'])->name('create');
+        Route::post('/', [EvotingAdminController::class, 'store'])->name('store');
+        Route::get('/{pemilihan:slug}', [EvotingAdminController::class, 'show'])->name('show');
+        Route::post('/{pemilihan:slug}/kandidat', [EvotingAdminController::class, 'addKandidat'])->name('kandidat.store');
+        Route::delete('/kandidat/{kandidat}', [EvotingAdminController::class, 'deleteKandidat'])->name('kandidat.destroy');
+        Route::patch('/{pemilihan:slug}/status', [EvotingAdminController::class, 'updateStatus'])->name('status');
     });
 });
 

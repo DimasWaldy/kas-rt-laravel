@@ -17,5 +17,6 @@ class DatabaseSeeder extends Seeder
         $this->call(WilayahSeeder::class);
         $this->call(RoleAndPermissionSeeder::class);
         $this->call(WhoGrowthStandardSeeder::class);
+        $this->call(PemilihanSeeder::class);
     }
 }

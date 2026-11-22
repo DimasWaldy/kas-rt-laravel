@@ -54,6 +54,9 @@ class RoleAndPermissionSeeder extends Seeder
             'manage-koperasi' => 'Mengelola anggota dan transaksi koperasi',
             'approve-koperasi' => 'Memverifikasi simpanan, pinjaman, dan angsuran koperasi',
             'export-koperasi' => 'Mengekspor laporan koperasi',
+            'view-voting' => 'Melihat daftar pemilihan dan bilik suara e-voting',
+            'submit-vote' => 'Menggunakan hak suara pada pemilihan e-voting',
+            'manage-voting' => 'Mengelola pemilihan, kandidat, dan periode e-voting',
         ];
 
         $permissionModels = collect($permissions)->mapWithKeys(function (string $description, string $name) {
@@ -107,6 +110,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-koperasi',
                     'approve-koperasi',
                     'export-koperasi',
+                    'view-voting',
+                    'submit-vote',
+                    'manage-voting',
                 ],
             ],
             'sekretaris_rw' => [
@@ -140,6 +146,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-posyandu',
                     'manage-posyandu',
                     'view-koperasi',
+                    'view-voting',
+                    'submit-vote',
+                    'manage-voting',
                 ],
             ],
             'bendahara_rw' => [
@@ -163,6 +172,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-koperasi',
                     'approve-koperasi',
                     'export-koperasi',
+                    'view-voting',
+                    'submit-vote',
                 ],
             ],
             'petugas_bank_sampah' => [
@@ -220,6 +231,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-koperasi',
                     'manage-koperasi',
                     'approve-koperasi',
+                    'view-voting',
+                    'submit-vote',
+                    'manage-voting',
                 ],
             ],
             'bendahara_rt' => [
@@ -244,6 +258,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-koperasi',
                     'approve-koperasi',
                     'export-koperasi',
+                    'view-voting',
+                    'submit-vote',
                 ],
             ],
             'sekretaris_rt' => [
@@ -275,6 +291,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-posyandu',
                     'manage-posyandu',
                     'view-koperasi',
+                    'view-voting',
+                    'submit-vote',
+                    'manage-voting',
                 ],
             ],
             'bendahara' => [
@@ -299,6 +318,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'manage-koperasi',
                     'approve-koperasi',
                     'export-koperasi',
+                    'view-voting',
+                    'submit-vote',
                 ],
             ],
             'sekretaris' => [
@@ -330,6 +351,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-posyandu',
                     'manage-posyandu',
                     'view-koperasi',
+                    'view-voting',
+                    'submit-vote',
+                    'manage-voting',
                 ],
             ],
             'warga' => [
@@ -355,6 +379,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-posyandu',
                     'view-koperasi',
                     'submit-koperasi',
+                    'view-voting',
+                    'submit-vote',
                 ],
             ],
         ];
