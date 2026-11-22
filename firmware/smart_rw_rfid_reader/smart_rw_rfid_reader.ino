@@ -80,8 +80,8 @@ const char* DEVICE_AUTH_KEY = "smartrw-rfid-device";
 #endif
 
 // Cooldown agar 1 kali tap tidak terkirim berkali-kali
-constexpr unsigned long SAME_CARD_COOLDOWN_MS = 2000;
-constexpr unsigned long ANY_CARD_COOLDOWN_MS  = 800;
+constexpr unsigned long SAME_CARD_COOLDOWN_MS = 2500;
+constexpr unsigned long ANY_CARD_COOLDOWN_MS  = 1000;
 
 MFRC522 rfid(PIN_SS, PIN_RST);
 String lastUid = "";
@@ -313,55 +313,15 @@ void setup() {
 }
 
 // ======================== 5. LOOP PEMBACAAN KARTU ============================
-unsigned long lastReaderCheckMs = 0;
-
-void ensureReaderAlive() {
-  byte v = rfid.PCD_ReadRegister(MFRC522::VersionReg);
-  if (v == 0x00 || v == 0xFF) {
-    Serial.println(F("⚠️  [RFID] Modul RC522 terputus / glitch, melakukan recovery..."));
-#if !defined(ARDUINO_NANO_ESP32)
-    rfid = MFRC522(PIN_SS, PIN_RST);
-#endif
-    rfid.PCD_Init();
-    delay(20);
-    rfid.PCD_SetAntennaGain(MFRC522::RxGain_max);
-    rfid.PCD_AntennaOn();
-  }
-}
-
 void loop() {
-  unsigned long now = millis();
-
-  // Watchdog RC522 berkala setiap 3 detik
-  if (now - lastReaderCheckMs > 3000) {
-    lastReaderCheckMs = now;
-    ensureReaderAlive();
-  }
-
-  // Cek apakah ada kartu di dekat modul RC522 (REQA / WUPA)
-  byte bufferATQA[2];
-  byte bufferSize = sizeof(bufferATQA);
-  bool cardPresent = rfid.PICC_IsNewCardPresent();
-  if (!cardPresent) {
-    cardPresent = (rfid.PICC_WakeupA(bufferATQA, &bufferSize) == MFRC522::STATUS_OK);
-  }
-
-  if (!cardPresent) {
+  // Cek apakah ada kartu di dekat modul RC522
+  if (!rfid.PICC_IsNewCardPresent()) {
     delay(20);
     return;
   }
 
-  // Multi-pass retry 3x
-  bool cardRead = false;
-  for (uint8_t retry = 0; retry < 3; retry++) {
-    if (rfid.PICC_ReadCardSerial()) {
-      cardRead = true;
-      break;
-    }
-    delay(10);
-  }
-
-  if (!cardRead) {
+  // Baca nomor seri (UID) kartu
+  if (!rfid.PICC_ReadCardSerial()) {
     delay(20);
     return;
   }
