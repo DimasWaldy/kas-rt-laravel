@@ -486,6 +486,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:pinjam-aset')->group(function () {
         Route::get('/peminjaman-aset', [PeminjamanAsetController::class, 'index'])
             ->name('peminjaman-aset.index');
+        Route::get('/peminjaman-aset/events', [PeminjamanAsetController::class, 'events'])
+            ->name('peminjaman-aset.events');
+        Route::get('/peminjaman-aset/check-availability', [PeminjamanAsetController::class, 'checkAvailability'])
+            ->name('peminjaman-aset.check-availability');
         Route::get('/peminjaman-aset/create', [PeminjamanAsetController::class, 'create'])
             ->name('peminjaman-aset.create');
         Route::post('/peminjaman-aset', [PeminjamanAsetController::class, 'store'])
@@ -498,6 +502,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/peminjaman-aset-rw', [PeminjamanAsetController::class, 'index'])
             ->defaults('scope', 'rw')
             ->name('peminjaman-aset-rw.index');
+        Route::get('/peminjaman-aset-rw/events', [PeminjamanAsetController::class, 'events'])
+            ->defaults('scope', 'rw')
+            ->name('peminjaman-aset-rw.events');
+        Route::get('/peminjaman-aset-rw/check-availability', [PeminjamanAsetController::class, 'checkAvailability'])
+            ->defaults('scope', 'rw')
+            ->name('peminjaman-aset-rw.check-availability');
         Route::get('/peminjaman-aset-rw/create', [PeminjamanAsetController::class, 'create'])
             ->defaults('scope', 'rw')
             ->name('peminjaman-aset-rw.create');
@@ -505,6 +515,7 @@ Route::middleware('auth')->group(function () {
             ->defaults('scope', 'rw')
             ->name('peminjaman-aset-rw.store');
         Route::get('/peminjaman-aset-rw/{peminjamanAset}', [PeminjamanAsetController::class, 'show'])
+            ->defaults('scope', 'rw')
             ->name('peminjaman-aset-rw.show');
     });
 

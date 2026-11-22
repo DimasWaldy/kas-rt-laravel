@@ -409,3 +409,155 @@ test('aset rw menolak konflik jadwal lintas rt', function () {
 
     expect(PeminjamanAset::count())->toBe(1);
 });
+
+test('warga dapat melihat kalender ketersediaan aset dan riwayat pengajuan', function () {
+    $aset = ($this->buatAset)([
+        'nama' => 'Balai Pertemuan Warga',
+        'kategori' => 'gedung',
+    ]);
+
+    ($this->buatPeminjaman)($aset, [
+        'tanggal_mulai' => now()->addDays(2)->toDateString(),
+        'tanggal_selesai' => now()->addDays(4)->toDateString(),
+        'keperluan' => 'Hajatan Pernikahan Warga',
+        'status' => 'disetujui',
+    ]);
+
+    $this->actingAs($this->warga)
+        ->get(route('peminjaman-aset.index', ['tab' => 'kalender']))
+        ->assertOk()
+        ->assertSee('Kalender Reservasi &amp; Peminjaman Aset', false)
+        ->assertSee('Kalender Ketersediaan')
+        ->assertSee('Balai Pertemuan Warga')
+        ->assertSee('Hajatan Pernikahan Warga');
+
+    $this->actingAs($this->warga)
+        ->get(route('peminjaman-aset.index', ['tab' => 'daftar']))
+        ->assertOk()
+        ->assertSee('Daftar Pengajuan');
+});
+
+test('endpoint events mengembalikan data peminjaman aset untuk kalender', function () {
+    $aset = ($this->buatAset)([
+        'nama' => 'Lapangan Bulutangkis',
+        'kategori' => 'lapangan',
+    ]);
+
+    $peminjaman = ($this->buatPeminjaman)($aset, [
+        'tanggal_mulai' => now()->addDays(3)->toDateString(),
+        'tanggal_selesai' => now()->addDays(5)->toDateString(),
+        'keperluan' => 'Turnamen Bulutangkis Warga',
+        'status' => 'disetujui',
+    ]);
+
+    $response = $this->actingAs($this->warga)
+        ->getJson(route('peminjaman-aset.events', [
+            'aset_id' => $aset->id,
+        ]));
+
+    $response->assertOk()
+        ->assertJsonFragment([
+            'id' => $peminjaman->id,
+            'aset_id' => $aset->id,
+            'aset_nama' => 'Lapangan Bulutangkis',
+            'keperluan' => 'Turnamen Bulutangkis Warga',
+            'status' => 'disetujui',
+        ]);
+});
+
+test('endpoint check-availability mendeteksi jadwal kosong dan bentrok', function () {
+    $aset = ($this->buatAset)([
+        'nama' => 'Tenda Hajatan',
+        'kategori' => 'tenda_dan_terpal',
+    ]);
+
+    ($this->buatPeminjaman)($aset, [
+        'tanggal_mulai' => now()->addDays(10)->toDateString(),
+        'tanggal_selesai' => now()->addDays(12)->toDateString(),
+        'keperluan' => 'Syukuran Warga RT',
+        'status' => 'disetujui',
+    ]);
+
+    // Tanggal bentrok
+    $responseConflict = $this->actingAs($this->warga)
+        ->getJson(route('peminjaman-aset.check-availability', [
+            'aset_id' => $aset->id,
+            'tanggal_mulai' => now()->addDays(11)->toDateString(),
+            'tanggal_selesai' => now()->addDays(13)->toDateString(),
+        ]));
+
+    $responseConflict->assertOk()
+        ->assertJson([
+            'available' => false,
+        ]);
+
+    // Tanggal kosong
+    $responseAvailable = $this->actingAs($this->warga)
+        ->getJson(route('peminjaman-aset.check-availability', [
+            'aset_id' => $aset->id,
+            'tanggal_mulai' => now()->addDays(20)->toDateString(),
+            'tanggal_selesai' => now()->addDays(22)->toDateString(),
+        ]));
+
+    $responseAvailable->assertOk()
+        ->assertJson([
+            'available' => true,
+        ]);
+});
+
+test('form create peminjaman aset menerima prefill tanggal dari kalender', function () {
+    $aset = ($this->buatAset)();
+
+    $mulai = now()->addDays(5)->toDateString();
+    $selesai = now()->addDays(7)->toDateString();
+
+    $this->actingAs($this->warga)
+        ->get(route('peminjaman-aset.create', [
+            'aset_id' => $aset->id,
+            'tanggal_mulai' => $mulai,
+            'tanggal_selesai' => $selesai,
+        ]))
+        ->assertOk()
+        ->assertSee($aset->nama)
+        ->assertSee($mulai)
+        ->assertSee($selesai);
+});
+
+test('warga dapat melihat kalender peminjaman aset rw dan endpoint events rw bekerja', function () {
+    $asetRw = ($this->buatAsetRw)([
+        'nama' => 'Balai Pertemuan RW',
+        'kategori' => 'gedung',
+    ]);
+
+    $peminjaman = ($this->buatPeminjaman)($asetRw, [
+        'tanggal_mulai' => now()->addDays(5)->toDateString(),
+        'tanggal_selesai' => now()->addDays(6)->toDateString(),
+        'keperluan' => 'Musyawarah Warga RW',
+        'status' => 'disetujui',
+    ]);
+
+    $this->actingAs($this->warga)
+        ->get(route('peminjaman-aset-rw.index'))
+        ->assertOk()
+        ->assertSee('Balai Pertemuan RW')
+        ->assertSee('Musyawarah Warga RW');
+
+    $this->actingAs($this->warga)
+        ->getJson(route('peminjaman-aset-rw.events', ['aset_id' => $asetRw->id]))
+        ->assertOk()
+        ->assertJsonFragment([
+            'id' => $peminjaman->id,
+            'aset_id' => $asetRw->id,
+            'aset_nama' => 'Balai Pertemuan RW',
+            'keperluan' => 'Musyawarah Warga RW',
+        ]);
+
+    $this->actingAs($this->warga)
+        ->getJson(route('peminjaman-aset-rw.check-availability', [
+            'aset_id' => $asetRw->id,
+            'tanggal_mulai' => now()->addDays(5)->toDateString(),
+            'tanggal_selesai' => now()->addDays(6)->toDateString(),
+        ]))
+        ->assertOk()
+        ->assertJson(['available' => false]);
+});

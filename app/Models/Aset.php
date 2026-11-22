@@ -129,7 +129,13 @@ class Aset extends Model
 
     public function isAvailableOn(Carbon $tanggalMulai, Carbon $tanggalSelesai, ?int $excludeId = null): bool
     {
+        return $this->getConflictingPeminjaman($tanggalMulai, $tanggalSelesai, $excludeId)->isEmpty();
+    }
+
+    public function getConflictingPeminjaman(Carbon $tanggalMulai, Carbon $tanggalSelesai, ?int $excludeId = null)
+    {
         $query = $this->peminjamanAset()
+            ->with('pemohon')
             ->whereIn('status', ['disetujui', 'dipinjam'])
             ->whereDate('tanggal_mulai', '<=', $tanggalSelesai)
             ->whereDate('tanggal_selesai', '>=', $tanggalMulai);
@@ -138,6 +144,6 @@ class Aset extends Model
             $query->whereKeyNot($excludeId);
         }
 
-        return ! $query->exists();
+        return $query->get();
     }
 }
