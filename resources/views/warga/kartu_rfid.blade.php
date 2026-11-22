@@ -225,6 +225,28 @@
                     </template>
                 </div>
 
+                {{-- Alert Khusus: Kartu Sudah Terdaftar di Akun Warga Lain --}}
+                <div x-show="conflictNotice" x-cloak class="mt-4 rounded-2xl border-2 border-rose-400 bg-linear-to-r from-rose-50 via-red-50 to-amber-50 p-4 text-xs shadow-md shadow-rose-100 dark:border-rose-700 dark:from-rose-950/80 dark:via-red-950/70 dark:to-amber-950/60 dark:text-rose-100">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white shadow-xs">
+                            <i class="fa-solid fa-triangle-exclamation text-base animate-bounce"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-extrabold text-sm text-rose-900 dark:text-rose-200">Kartu Sudah Terdaftar di Akun Warga Lain!</h4>
+                                <button type="button" @click="conflictNotice = null" class="text-rose-500 hover:text-rose-700 p-1" title="Tutup Notifikasi">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                            <p class="mt-1 text-[11.5px] leading-relaxed font-medium text-rose-800 dark:text-rose-200" x-text="conflictNotice"></p>
+                            <div class="mt-2.5 flex items-center gap-2 text-[11px] font-bold text-rose-700 dark:text-rose-300">
+                                <i class="fa-solid fa-circle-info"></i>
+                                <span>Satu fisik kartu e-KTP hanya dapat terdaftar untuk satu orang warga.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Alert Error jika ada --}}
                 <div x-show="errorMessage" x-cloak class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/50 dark:text-rose-200">
                     <div class="flex items-center gap-2">
@@ -625,6 +647,7 @@ function wargaRfidTap(config) {
         isVerified: config.isVerified,
         isLoading: false,
         errorMessage: null,
+        conflictNotice: null,
         justVerified: false,
         pollTimer: null,
         countdownTimer: null,
@@ -715,6 +738,7 @@ function wargaRfidTap(config) {
         async submitNfcUid(uid) {
             this.isLoading = true;
             this.errorMessage = null;
+            this.conflictNotice = null;
 
             try {
                 const response = await fetch(config.tapNfcUrl, {
@@ -730,6 +754,12 @@ function wargaRfidTap(config) {
                 const data = await response.json();
 
                 if (!response.ok) {
+                    if (data.message && (data.message.includes('terdaftar di akun') || data.message.includes('warga lain'))) {
+                        this.conflictNotice = data.message;
+                        this.errorMessage = null;
+                    } else {
+                        this.errorMessage = data.message || 'Gagal memverifikasi chip e-KTP.';
+                    }
                     throw new Error(data.message || 'Gagal memverifikasi chip e-KTP.');
                 }
 
@@ -740,7 +770,9 @@ function wargaRfidTap(config) {
                     window.location.reload();
                 }, 2000);
             } catch (err) {
-                this.errorMessage = err.message;
+                if (!this.conflictNotice) {
+                    this.errorMessage = err.message;
+                }
             } finally {
                 this.isLoading = false;
             }
@@ -749,6 +781,7 @@ function wargaRfidTap(config) {
         async openSession() {
             this.isLoading = true;
             this.errorMessage = null;
+            this.conflictNotice = null;
 
             try {
                 const response = await fetch(config.openUrl, {
@@ -780,6 +813,7 @@ function wargaRfidTap(config) {
         async cancelSession() {
             this.isLoading = true;
             this.errorMessage = null;
+            this.conflictNotice = null;
 
             try {
                 const response = await fetch(config.cancelUrl, {
@@ -822,10 +856,18 @@ function wargaRfidTap(config) {
                     });
                     if (response.ok) {
                         const data = await response.json();
+                        if (data.notice) {
+                            this.conflictNotice = data.notice;
+                            this.errorMessage = null;
+                            if (navigator.vibrate) {
+                                try { navigator.vibrate([200, 100, 200]); } catch (e) {}
+                            }
+                        }
                         if (data.is_verified) {
                             this.stopTimers();
                             this.isVerified = true;
                             this.isEnrolled = false;
+                            this.conflictNotice = null;
                             this.justVerified = true;
                             setTimeout(() => {
                                 window.location.reload();
