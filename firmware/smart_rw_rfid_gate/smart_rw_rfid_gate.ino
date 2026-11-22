@@ -625,11 +625,17 @@ void handleApiResponse(int httpCode, const String& body) {
 }
 
 void sendTapToServer(const String& uid) {
+  Serial.println();
+  Serial.print(F("💳 [KARTU TERDETEKSI] UID: "));
+  Serial.println(uid);
+
   if (WiFi.status() != WL_CONNECTED) {
-    lcdShow("WiFi Terputus!  ", "Menghubungkan...");
+    Serial.println(F("⚠️  [WIFI BELUM TERKONEKSI] Kartu berhasil dibaca oleh modul RC522!"));
+    Serial.println(F("   Namun data belum bisa dikirim ke website karena ESP32 belum terhubung ke WiFi/hotspot."));
+    lcdShow("WiFi Terputus!  ", "UID:" + uid.substring(0, 8));
     beepError();
     WiFi.reconnect();
-    delay(2000);
+    delay(1500);
     showStandbyScreen();
     return;
   }
@@ -735,12 +741,14 @@ void setup() {
 
   loadConfig();
 
-  if (wifiSsid.isEmpty()) {
-    startConfigPortal("Belum Diatur    ");
-  }
-
-  if (!connectWifiAndSyncTime()) {
-    startConfigPortal("WiFi Gagal Konek");
+  if (!wifiSsid.isEmpty()) {
+    if (!connectWifiAndSyncTime()) {
+      Serial.println(F("[WIFI] Gagal terhubung ke WiFi/Hotspot. Alat tetap siap membaca kartu RFID (Offline)."));
+      Serial.println(F("       Tahan tombol BOOT 3 detik jika ingin membuka portal hotspot pengaturan."));
+    }
+  } else {
+    Serial.println(F("[WIFI] SSID masih kosong. Alat berjalan dalam mode pembaca RFID (Offline)."));
+    Serial.println(F("       Isi wifiSsid & wifiPass di baris 156-157 agar data terkirim ke web server."));
   }
 
   beepRegistered();
