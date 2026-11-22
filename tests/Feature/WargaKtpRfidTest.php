@@ -449,3 +449,42 @@ test('rfid tap mendukung device key permanen tanpa memerlukan session token manu
     $responseSecond->assertOk()
         ->assertJsonPath('status', 'ktp_already_verified');
 });
+
+test('pendaftaran rfid memberikan notifikasi jika uid yang didaftarkan sudah terdaftar di akun warga lain', function () {
+    // 1. Daftarkan kartu KTP untuk wargaUser
+    RfidCard::create([
+        'user_id' => $this->wargaUser->id,
+        'uid_hash' => RfidCard::hashUid('A1B2C3D4'),
+        'ktp_verified_at' => now(),
+    ]);
+
+    // 2. otherWargaUser membuka sesi tap mandiri
+    $this->actingAs($this->otherWargaUser)
+        ->postJson(route('warga.rfid.open'))
+        ->assertOk();
+
+    // 3. Reader ESP32 tap kartu yang sama (milik wargaUser)
+    $response = $this->postJson(
+        route('rfid.tap'),
+        ['uid' => 'A1B2C3D4'],
+        ['Authorization' => 'Bearer smartrw-rfid-device']
+    );
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors('uid');
+    expect($response->json('errors.uid.0'))->toContain($this->wargaUser->name);
+
+    // 4. Polling status oleh otherWargaUser menerima notifikasi konflik
+    $statusResponse = $this->actingAs($this->otherWargaUser)
+        ->getJson(route('warga.rfid.status'))
+        ->assertOk();
+
+    expect($statusResponse->json('notice'))->toContain($this->wargaUser->name);
+
+    // 5. Coba daftarkan via sensor NFC HP juga menampilkan notifikasi nama warga pemilik
+    $nfcResponse = $this->actingAs($this->otherWargaUser)
+        ->postJson(route('warga.rfid.tap-nfc'), ['uid' => 'A1B2C3D4'])
+        ->assertStatus(422);
+
+    expect($nfcResponse->json('message'))->toContain($this->wargaUser->name);
+});

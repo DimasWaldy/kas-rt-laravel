@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\RfidAccess;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -104,9 +105,18 @@ class RfidTapController extends Controller
 
             if ($session->enrollment_user_id) {
                 if (! $session->enrollment_expires_at?->isFuture()) {
+                    $session->update(['enrollment_user_id' => null, 'enrollment_expires_at' => null]);
                     throw ValidationException::withMessages(['uid' => 'Pendaftaran kedaluwarsa. Pengurus harus membatalkan atau memulai ulang.']);
                 }
                 $user = RfidAccess::participants($kegiatan)->whereKey($session->enrollment_user_id)->lockForUpdate()->firstOrFail();
+                $existingCard = RfidCard::where('uid_hash', $uidHash)->with('user')->first();
+                if ($existingCard && $existingCard->user_id !== $user->id) {
+                    $ownerName = $existingCard->user?->name ?? 'warga lain';
+                    $msg = "Kartu RFID fisik ini sudah terdaftar di akun warga lain: {$ownerName}. Harap gunakan kartu milik Anda sendiri.";
+                    Cache::put("rfid_enrollment_notice:{$user->id}", $msg, now()->addMinutes(2));
+                    Cache::put("rfid_session_notice:{$session->id}", $msg, now()->addMinutes(2));
+                    throw ValidationException::withMessages(['uid' => $msg]);
+                }
                 if (RfidCard::where('user_id', $user->id)->orWhere('uid_hash', $uidHash)->exists()) {
                     throw ValidationException::withMessages(['uid' => 'Kartu atau warga sudah terdaftar. Cabut kartu lama terlebih dahulu.']);
                 }
@@ -145,9 +155,18 @@ class RfidTapController extends Controller
 
             if ($session->enrollment_user_id) {
                 if (! $session->enrollment_expires_at?->isFuture()) {
+                    $session->update(['enrollment_user_id' => null, 'enrollment_expires_at' => null]);
                     throw ValidationException::withMessages(['uid' => 'Pendaftaran kedaluwarsa. Pengurus harus membatalkan atau memulai ulang.']);
                 }
                 $user = RfidAccess::koperasiParticipants($session)->whereKey($session->enrollment_user_id)->lockForUpdate()->firstOrFail();
+                $existingCard = RfidCard::where('uid_hash', $uidHash)->with('user')->first();
+                if ($existingCard && $existingCard->user_id !== $user->id) {
+                    $ownerName = $existingCard->user?->name ?? 'warga lain';
+                    $msg = "Kartu RFID fisik ini sudah terdaftar di akun warga lain: {$ownerName}. Harap gunakan kartu milik Anda sendiri.";
+                    Cache::put("rfid_enrollment_notice:{$user->id}", $msg, now()->addMinutes(2));
+                    Cache::put("rfid_session_notice:{$session->id}", $msg, now()->addMinutes(2));
+                    throw ValidationException::withMessages(['uid' => $msg]);
+                }
                 if (RfidCard::where('user_id', $user->id)->orWhere('uid_hash', $uidHash)->exists()) {
                     throw ValidationException::withMessages(['uid' => 'Kartu atau warga sudah terdaftar. Cabut kartu lama terlebih dahulu.']);
                 }
@@ -200,11 +219,22 @@ class RfidTapController extends Controller
 
             if ($session->enrollment_user_id) {
                 if (! $session->enrollment_expires_at?->isFuture()) {
+                    $session->update(['enrollment_user_id' => null, 'enrollment_expires_at' => null]);
                     throw ValidationException::withMessages(['uid' => 'Pendaftaran KTP kedaluwarsa. Silakan mulai ulang sesi tap.']);
                 }
                 $user = $isDeviceKey
                     ? User::lockForUpdate()->findOrFail($session->enrollment_user_id)
                     : RfidAccess::wargaKtpParticipants($session)->whereKey($session->enrollment_user_id)->lockForUpdate()->firstOrFail();
+
+                $existingCard = RfidCard::where('uid_hash', $uidHash)->with('user')->first();
+                if ($existingCard && $existingCard->user_id !== $user->id) {
+                    $ownerName = $existingCard->user?->name ?? 'warga lain';
+                    $msg = "Kartu e-KTP fisik ini sudah terdaftar di akun warga lain: {$ownerName}. Silakan gunakan kartu e-KTP milik Anda sendiri.";
+                    Cache::put("rfid_enrollment_notice:{$user->id}", $msg, now()->addMinutes(2));
+                    Cache::put("rfid_session_notice:{$session->id}", $msg, now()->addMinutes(2));
+                    throw ValidationException::withMessages(['uid' => $msg]);
+                }
+
                 if (RfidCard::where('user_id', $user->id)->orWhere('uid_hash', $uidHash)->exists()) {
                     throw ValidationException::withMessages(['uid' => 'KTP atau warga sudah terdaftar. Cabut kartu lama terlebih dahulu.']);
                 }

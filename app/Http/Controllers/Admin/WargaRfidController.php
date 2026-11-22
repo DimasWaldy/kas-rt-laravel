@@ -7,6 +7,7 @@ use App\Models\RfidCard;
 use App\Models\RfidSession;
 use App\Support\RfidAccess;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class WargaRfidController extends Controller
@@ -92,6 +93,7 @@ class WargaRfidController extends Controller
 
         $scope = RfidAccess::resolveWargaKtpScope($actor);
         $session = RfidSession::where('scope_key', $scope['scope_key'])->first();
+        $notice = $session ? Cache::pull("rfid_session_notice:{$session->id}") : null;
         $scopedUserIds = RfidAccess::wargaKtpParticipantsForActor($actor)->select('users.id');
         $verified = RfidCard::query()
             ->whereIn('user_id', $scopedUserIds)
@@ -101,6 +103,7 @@ class WargaRfidController extends Controller
             'open' => $session && $session->expires_at->isFuture(),
             'expires_at' => $session?->expires_at?->format('d/m/Y H:i:s'),
             'last_seen_at' => $session?->last_seen_at?->format('d/m/Y H:i:s'),
+            'notice' => $notice,
             'enrollment' => $session?->enrollment_user_id ? [
                 'name' => RfidAccess::wargaKtpParticipantsForActor($actor)->whereKey($session->enrollment_user_id)->value('name') ?? 'Warga tidak tersedia',
                 'expired' => ! $session->enrollment_expires_at?->isFuture(),

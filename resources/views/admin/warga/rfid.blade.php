@@ -147,6 +147,13 @@
                 </div>
             </div>
             <p class="mt-4 text-sm text-slate-500">Warga yang belum pernah punya kartu RFID: klik <strong>Aktifkan Tap KTP</strong> pada daftar warga di bawah, lalu tap KTP 1 kali ke reader. Jika warga sudah punya kartu dari kegiatan, cukup tap langsung ke alat saat sesi ini terbuka.</p>
+            <div x-cloak x-show="state?.notice" class="mt-4 rounded-xl border-2 border-rose-300 bg-rose-50 p-4 text-rose-950 dark:border-rose-800 dark:bg-rose-950/70 dark:text-rose-100">
+                <div class="flex items-center gap-2 font-bold text-rose-800 dark:text-rose-200">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Peringatan Duplikasi Kartu RFID</span>
+                </div>
+                <p class="mt-1 text-sm text-rose-900 dark:text-rose-200" x-text="state?.notice"></p>
+            </div>
             <div x-cloak x-show="state?.enrollment" class="mt-4 rounded-xl bg-amber-50 p-4 text-amber-950">
                 <p class="font-semibold" x-text="state?.enrollment ? 'Menunggu tap KTP: ' + state.enrollment.name : ''"></p>
                 <p class="text-sm" x-text="state?.enrollment?.expired ? 'Waktu habis. Batalkan atau klik Aktifkan Tap KTP lagi.' : 'Cocokkan KTP fisik dengan data akun warga, lalu tempel KTP ke reader ESP32.'"></p>

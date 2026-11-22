@@ -205,7 +205,13 @@ void kirimTapKeServer(const String& uid) {
   } else if (httpCode == 422) {
     Serial.print(F("⚠️  [VALIDASI GAGAL]: "));
     Serial.println(body);
-    Serial.println(F("   Pastikan di web Anda sudah klik 'Daftarkan Kartu' / 'Aktifkan Tap KTP'."));
+    if (body.indexOf("warga lain") >= 0 || body.indexOf("sudah terdaftar") >= 0) {
+      Serial.println(F("   ❌ PERINGATAN: Kartu e-KTP ini SUDAH TERDAFTAR di akun warga lain!"));
+    } else if (body.indexOf("kedaluwarsa") >= 0) {
+      Serial.println(F("   ❌ PERINGATAN: Sesi pendaftaran telah kedaluwarsa. Mulai ulang sesi di website."));
+    } else {
+      Serial.println(F("   Pastikan di web Anda sudah klik 'Daftarkan Kartu' / 'Aktifkan Tap KTP'."));
+    }
   } else if (httpCode == 429) {
     Serial.println(F("⚠️  [TERLALU CEPAT] Tunggu beberapa detik sebelum tap lagi."));
   } else {

@@ -1,47 +1,6 @@
 /*
  * Smart RW - Absensi Kegiatan RFID + Palang Pintu Servo (ESP32 30-Pin)
- *
- * Komponen & Pin Wiring (ESP32 DevKit 30-Pin):
- * ------------------------------------------------------------------
- * 1. RFID RC522 (WAJIB 3.3V! JANGAN colok ke VIN/5V):
- *    - VCC  -> 3V3
- *    - GND  -> GND
- *    - SDA  -> GPIO 5   (SS)
- *    - SCK  -> GPIO 18
- *    - MOSI -> GPIO 23
- *    - MISO -> GPIO 19
- *    - RST  -> GPIO 27  (Jangan GPIO 22 karena dipakai I2C SCL LCD)
- *    - IRQ  -> Tidak dihubungkan
- *
- * 2. LCD 16x2 I2C (PCF8574, auto-detect 0x27 / 0x3F):
- *    - VCC  -> VIN (5V)
- *    - GND  -> GND
- *    - SDA  -> GPIO 21
- *    - SCL  -> GPIO 22
- *
- * 3. Servo SG90 (Palang Pintu):
- *    - Merah (VCC)     -> VIN (5V) atau adaptor 5V eksternal (common GND!)
- *    - Coklat (GND)    -> GND
- *    - Oranye (Signal) -> GPIO 13
- *    * Catatan: Jika ESP32 sering restart saat servo bergerak, pakai adaptor
- *      5V >= 2A atau power 5V terpisah dengan GND digabung ke GND ESP32.
- *
- * 4. Buzzer Aktif:
- *    - Positif (+) -> GPIO 25
- *    - Negatif (-) -> GND
- *
- * 5. Tombol Setup Hotspot:
- *    - Gunakan tombol BOOT bawaan ESP32 (GPIO 0).
- *    - Tahan BOOT ~3 detik saat alat sudah menyala untuk membuka ulang
- *      Hotspot Pengaturan (SmartRW-RFID -> http://192.168.4.1).
- *
- * Library yang wajib diinstall di Arduino IDE (Library Manager):
- * ------------------------------------------------------------------
- * - MFRC522 (by GithubCommunity)
- * - LiquidCrystal I2C (by Frank de Brabander)
- * - ESP32Servo (by Kevin Harrington / John K. Bennett)
- * (WiFi, WebServer, DNSServer, Preferences, HTTPClient, WiFiClientSecure
- *  sudah bawaan board package "esp32 by Espressif Systems").
+ * Versi Non-Blocking (Bebas Freeze) + Auto Device Key
  */
 
 #include <Arduino.h>
@@ -61,11 +20,11 @@
 
 // ======================= KONFIGURASI PIN =======================
 #if defined(ARDUINO_NANO_ESP32)
-  constexpr uint8_t RC522_SS_PIN = D10;  // GPIO 21
-  constexpr uint8_t RC522_RST_PIN = D9;  // GPIO 18
-  constexpr uint8_t RC522_SCK_PIN = D13; // GPIO 48
-  constexpr uint8_t RC522_MISO_PIN = D12; // GPIO 47
-  constexpr uint8_t RC522_MOSI_PIN = D11; // GPIO 38
+  constexpr uint8_t RC522_SS_PIN = D10;
+  constexpr uint8_t RC522_RST_PIN = D9;
+  constexpr uint8_t RC522_SCK_PIN = D13;
+  constexpr uint8_t RC522_MISO_PIN = D12;
+  constexpr uint8_t RC522_MOSI_PIN = D11;
 
   constexpr uint8_t LCD_SDA_PIN = A4;
   constexpr uint8_t LCD_SCL_PIN = A5;
@@ -75,7 +34,7 @@
   constexpr uint8_t SETUP_BTN_PIN = D2;
 #else
   constexpr uint8_t RC522_SS_PIN = 5;
-  constexpr uint8_t RC522_RST_PIN = 27; // Dipindahkan ke 27 karena GPIO 22 dipakai I2C SCL LCD
+  constexpr uint8_t RC522_RST_PIN = 27; // Pin 27 (Auto-fallback ke 22 jika diperlukan)
   constexpr uint8_t RC522_SCK_PIN = 18;
   constexpr uint8_t RC522_MISO_PIN = 19;
   constexpr uint8_t RC522_MOSI_PIN = 23;
@@ -85,22 +44,20 @@
 
   constexpr uint8_t SERVO_PIN = 13;
   constexpr uint8_t BUZZER_PIN = 25;
-  constexpr uint8_t SETUP_BTN_PIN = 0; // Tombol BOOT bawaan ESP32
+  constexpr uint8_t SETUP_BTN_PIN = 0; // Tombol BOOT
 #endif
 
 // =================== KONFIGURASI PERILAKU ALAT =================
-constexpr uint8_t BUZZER_ACTIVE_LEVEL = HIGH; // Ubah ke LOW jika modul buzzer active-low
+constexpr uint8_t BUZZER_ACTIVE_LEVEL = HIGH;
 constexpr int SERVO_CLOSE_ANGLE = 0;
 constexpr int SERVO_OPEN_ANGLE = 90;
 constexpr unsigned long SERVO_OPEN_MS = 3000;
-
-// Set true jika warga yang sudah absen ("already_present") tetap boleh membuka palang
 constexpr bool OPEN_SERVO_ON_ALREADY_PRESENT = false;
 
 constexpr unsigned long ANY_TAP_COOLDOWN_MS = 1500;
 constexpr unsigned long SAME_UID_COOLDOWN_MS = 4000;
 constexpr unsigned long HOLD_SETUP_BTN_MS = 2500;
-constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 20000;
+constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
 constexpr unsigned long HTTP_TIMEOUT_MS = 10000;
 
 constexpr const char* DEFAULT_API_URL = "https://smartos-rw.unique-monsters.my.id/api/rfid/tap";
@@ -108,7 +65,7 @@ constexpr const char* AP_SSID = "SmartRW-RFID";
 constexpr const char* AP_PASS = "smartrw2026";
 constexpr const char* PREF_NAMESPACE = "smartrw-rfid";
 
-// Root CA Let's Encrypt (ISRG Root X1, valid s/d 2035) untuk validasi TLS HTTPS
+// Root CA Let's Encrypt untuk HTTPS
 const char* ISRG_ROOT_X1 = R"CERT(
 -----BEGIN CERTIFICATE-----
 MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw
@@ -152,9 +109,9 @@ Servo gateServo;
 WebServer webServer(80);
 DNSServer dnsServer;
 
-// ==================== ISI NAMA & PASSWORD WIFI DI SINI ====================
-String wifiSsid = "";       // <-- BARIS 156: Masukkan Nama WiFi / Hotspot HP
-String wifiPass = "";       // <-- BARIS 157: Masukkan Password WiFi Anda
+// 👉 ISI NAMA HOTSPOT HP & PASSWORD DI BAWAH INI:
+String wifiSsid = "Poco F6505";   // Masukkan Nama Hotspot HP Anda
+String wifiPass = "dimas12345";   // Masukkan Password Hotspot HP Anda
 String apiUrl = DEFAULT_API_URL;
 String sessionToken = "";
 
@@ -166,15 +123,11 @@ bool setupBtnHolding = false;
 bool portalActive = false;
 bool ntpSynced = false;
 
-// ======================= UTILITAS LCD & BUZZER =================
+// ======================= UTILITAS ==============================
 String padLine16(const String& text) {
   String out = text;
-  if (out.length() > 16) {
-    out = out.substring(0, 16);
-  }
-  while (out.length() < 16) {
-    out += ' ';
-  }
+  if (out.length() > 16) out = out.substring(0, 16);
+  while (out.length() < 16) out += ' ';
   return out;
 }
 
@@ -204,22 +157,9 @@ void beepMs(uint16_t ms) {
   digitalWrite(BUZZER_PIN, BUZZER_ACTIVE_LEVEL == HIGH ? LOW : HIGH);
 }
 
-void beepSuccess() {
-  beepMs(150);
-}
-
-void beepRegistered() {
-  beepMs(80);
-  delay(80);
-  beepMs(80);
-}
-
-void beepAlreadyPresent() {
-  beepMs(110);
-  delay(70);
-  beepMs(110);
-}
-
+void beepSuccess() { beepMs(150); }
+void beepRegistered() { beepMs(80); delay(80); beepMs(80); }
+void beepAlreadyPresent() { beepMs(110); delay(70); beepMs(110); }
 void beepError() {
   for (int i = 0; i < 3; i++) {
     beepMs(160);
@@ -237,43 +177,9 @@ uint8_t detectLcdAddress() {
   const uint8_t candidates[] = {0x27, 0x3F};
   for (uint8_t addr : candidates) {
     Wire.beginTransmission(addr);
-    if (Wire.endTransmission() == 0) {
-      return addr;
-    }
+    if (Wire.endTransmission() == 0) return addr;
   }
-  return 0; // Tidak ada LCD I2C terdeteksi
-}
-
-// ======================= VALIDASI & HELPER =====================
-bool isHex64(const String& val) {
-  if (val.length() != 64) return false;
-  for (size_t i = 0; i < val.length(); i++) {
-    char c = val.charAt(i);
-    bool valid = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-    if (!valid) return false;
-  }
-  return true;
-}
-
-bool isValidApiUrl(const String& url) {
-  return url.startsWith("https://") || url.startsWith("http://");
-}
-
-String htmlEscape(const String& input) {
-  String out;
-  out.reserve(input.length() + 16);
-  for (size_t i = 0; i < input.length(); i++) {
-    char c = input.charAt(i);
-    switch (c) {
-      case '&': out += F("&amp;"); break;
-      case '<': out += F("&lt;"); break;
-      case '>': out += F("&gt;"); break;
-      case '"': out += F("&quot;"); break;
-      case '\'': out += F("&#39;"); break;
-      default: out += c; break;
-    }
-  }
-  return out;
+  return 0;
 }
 
 String extractJsonString(const String& json, const String& key) {
@@ -301,196 +207,13 @@ void loadConfig() {
   sessionToken = prefs.getString("token", "");
   prefs.end();
 
-  if (apiUrl.isEmpty()) {
-    apiUrl = DEFAULT_API_URL;
-  }
-}
-
-void saveConfig(const String& ssid, const String& pass, const String& url, const String& token) {
-  prefs.begin(PREF_NAMESPACE, false);
-  prefs.putString("ssid", ssid);
-  prefs.putString("pass", pass);
-  prefs.putString("url", url);
-  prefs.putString("token", token);
-  prefs.end();
-}
-
-// ======================= CAPTIVE PORTAL AP =====================
-void scanWifiNetworks() {
-  scannedWifiOptionsHtml = "";
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(100);
-  int n = WiFi.scanNetworks();
-  if (n > 0) {
-    for (int i = 0; i < n; i++) {
-      String ssid = WiFi.SSID(i);
-      if (ssid.isEmpty()) continue;
-      String escaped = htmlEscape(ssid);
-      scannedWifiOptionsHtml += "<option value=\"" + escaped + "\"";
-      if (ssid == wifiSsid) scannedWifiOptionsHtml += " selected";
-      scannedWifiOptionsHtml += ">" + escaped + " (" + String(WiFi.RSSI(i)) + " dBm)</option>";
-    }
-  }
-  WiFi.scanDelete();
-}
-
-String buildPortalPage(const String& statusBanner = "") {
-  String html = F(
-    "<!DOCTYPE html><html lang=\"id\"><head>"
-    "<meta charset=\"utf-8\">"
-    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-    "<title>Setup Smart RW RFID</title>"
-    "<style>"
-    "body{font-family:system-ui,-apple-system,sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:16px}"
-    ".card{max-width:460px;margin:0 auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,.08)}"
-    "h1{font-size:20px;margin:0 0 6px;color:#047857}p.sub{font-size:13px;color:#475569;margin:0 0 16px}"
-    "label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}"
-    "input,select{width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px}"
-    ".hint{font-size:12px;color:#64748b;margin-top:4px}"
-    ".msg{padding:10px 12px;border-radius:10px;background:#fef2f2;color:#991b1b;font-size:13px;margin-bottom:12px}"
-    ".ok{background:#ecfdf5;color:#065f46}"
-    "button{width:100%;margin-top:18px;padding:12px;border:0;border-radius:10px;background:#059669;color:#fff;font-size:15px;font-weight:700;cursor:pointer}"
-    "</style></head><body><div class=\"card\">"
-    "<h1>Smart RW - Setup RFID</h1>"
-    "<p class=\"sub\">Atur WiFi, URL server, dan Token Sesi 64 karakter dari menu Kegiatan &rarr; Absensi RFID.</p>"
-  );
-
-  if (!statusBanner.isEmpty()) {
-    html += "<div class=\"msg\">" + htmlEscape(statusBanner) + "</div>";
-  }
-
-  html += F("<form method=\"POST\" action=\"/save\">");
-
-  if (!scannedWifiOptionsHtml.isEmpty()) {
-    html += F("<label for=\"ssid_pick\">Pilih WiFi Terdeteksi</label>"
-              "<select id=\"ssid_pick\" onchange=\"if(this.value)document.getElementById('ssid').value=this.value\">"
-              "<option value=\"\">-- Pilih jaringan atau ketik manual --</option>");
-    html += scannedWifiOptionsHtml;
-    html += F("</select>");
-  }
-
-  html += "<label for=\"ssid\">Nama WiFi (SSID)</label>";
-  html += "<input id=\"ssid\" name=\"ssid\" required maxlength=\"64\" value=\"" + htmlEscape(wifiSsid) + "\" placeholder=\"Contoh: WiFi-Balai-RW\">";
-
-  html += "<label for=\"pass\">Password WiFi</label>";
-  html += "<input id=\"pass\" name=\"pass\" type=\"password\" maxlength=\"64\" placeholder=\"";
-  html += wifiPass.isEmpty() ? "Kosongkan jika WiFi tanpa password" : "Tersimpan (kosongkan jika tidak diubah)";
-  html += "\">";
-  html += "<label style=\"font-weight:400;display:flex;align-items:center;gap:8px;margin-top:6px\">"
-          "<input type=\"checkbox\" name=\"open_wifi\" value=\"1\" style=\"width:auto\"> WiFi tanpa password (Open)"
-          "</label>";
-
-  html += "<label for=\"url\">URL Endpoint API</label>";
-  html += "<input id=\"url\" name=\"url\" type=\"url\" required maxlength=\"200\" value=\"" + htmlEscape(apiUrl) + "\">";
-  html += "<div class=\"hint\">Default: " + htmlEscape(String(DEFAULT_API_URL)) + "</div>";
-
-  html += "<label for=\"token\">Token Sesi RFID (64 karakter hex)</label>";
-  html += "<input id=\"token\" name=\"token\" type=\"password\" maxlength=\"64\" autocomplete=\"off\" placeholder=\"";
-  html += isHex64(sessionToken) ? "Token tersimpan (kosongkan jika tidak ganti)" : "Tempel 64 karakter token sesi di sini";
-  html += "\">";
-  html += "<div class=\"hint\">Status token: ";
-  html += isHex64(sessionToken) ? "<strong>Sudah tersimpan</strong>" : "<strong>Belum diisi</strong>";
-  html += "</div>";
-
-  html += F("<button type=\"submit\">Simpan &amp; Hubungkan Alat</button></form></div></body></html>");
-  return html;
-}
-
-void handlePortalRoot() {
-  webServer.send(200, "text/html", buildPortalPage());
-}
-
-void handlePortalSave() {
-  String newSsid = webServer.arg("ssid");
-  String newPass = webServer.arg("pass");
-  bool openWifi = webServer.arg("open_wifi") == "1";
-  String newUrl = webServer.arg("url");
-  String newToken = webServer.arg("token");
-
-  newSsid.trim();
-  newUrl.trim();
-  newToken.trim();
-  newToken.toLowerCase();
-
-  if (newSsid.isEmpty()) {
-    webServer.send(400, "text/html", buildPortalPage("Nama WiFi (SSID) wajib diisi."));
-    return;
-  }
-
-  if (!isValidApiUrl(newUrl)) {
-    webServer.send(400, "text/html", buildPortalPage("URL API harus diawali https:// atau http://"));
-    return;
-  }
-
-  String finalPass = openWifi ? "" : (newPass.isEmpty() ? wifiPass : newPass);
-  String finalToken = newToken.isEmpty() ? sessionToken : newToken;
-
-  if (!isHex64(finalToken)) {
-    webServer.send(400, "text/html", buildPortalPage("Token Sesi RFID harus tepat 64 karakter hex (0-9, a-f)."));
-    return;
-  }
-
-  saveConfig(newSsid, finalPass, newUrl, finalToken);
-
-  webServer.send(200, "text/html",
-    "<!DOCTYPE html><html lang=\"id\"><head><meta charset=\"utf-8\">"
-    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-    "<title>Tersimpan</title><style>body{font-family:system-ui;padding:24px;background:#ecfdf5;color:#065f46}</style>"
-    "</head><body><h2>Pengaturan Disimpan!</h2><p>ESP32 sedang restart dan menghubungkan ke WiFi...</p></body></html>");
-
-  lcdShow("Config Tersimpan", "Restart alat... ");
-  beepRegistered();
-  delay(1200);
-  ESP.restart();
-}
-
-void startConfigPortal(const String& reasonLine = "Mode Pengaturan ") {
-  portalActive = true;
-  gateServo.write(SERVO_CLOSE_ANGLE);
-
-  lcdShow(reasonLine, "Scan WiFi...    ");
-  scanWifiNetworks();
-
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(AP_SSID, AP_PASS);
-  delay(200);
-
-  IPAddress apIp = WiFi.softAPIP();
-  dnsServer.start(53, "*", apIp);
-
-  webServer.on("/", HTTP_GET, handlePortalRoot);
-  webServer.on("/save", HTTP_POST, handlePortalSave);
-  webServer.onNotFound([]() {
-    webServer.sendHeader("Location", String("http://") + WiFi.softAPIP().toString() + "/", true);
-    webServer.send(302, "text/plain", "");
-  });
-  webServer.begin();
-
-  Serial.println("[PORTAL] Hotspot aktif. SSID: " + String(AP_SSID) + " | IP: " + apIp.toString());
-
-  unsigned long lastLcdFlip = 0;
-  bool showIpScreen = false;
-
-  while (true) {
-    dnsServer.processNextRequest();
-    webServer.handleClient();
-
-    if (millis() - lastLcdFlip >= 3000) {
-      lastLcdFlip = millis();
-      showIpScreen = !showIpScreen;
-      if (showIpScreen) {
-        lcdShow("Buka Browser HP ", apIp.toString());
-      } else {
-        lcdShow("AP:" + String(AP_SSID), "PW:" + String(AP_PASS));
-      }
-    }
-    delay(5);
-  }
+  if (apiUrl.isEmpty()) apiUrl = DEFAULT_API_URL;
 }
 
 // ======================= KONEKSI WIFI & NTP ====================
 bool connectWifiAndSyncTime() {
+  if (wifiSsid.isEmpty()) return false;
+
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   if (wifiPass.isEmpty()) {
@@ -499,43 +222,32 @@ bool connectWifiAndSyncTime() {
     WiFi.begin(wifiSsid.c_str(), wifiPass.c_str());
   }
 
+  Serial.println("[WIFI] Menghubungkan ke " + wifiSsid + "...");
   lcdShow("Konek WiFi...", wifiSsid);
   unsigned long startMs = millis();
 
   while (WiFi.status() != WL_CONNECTED) {
-    // Izinkan tekan BOOT 2.5 detik saat mencoba konek WiFi untuk ganti setup
-    if (digitalRead(SETUP_BTN_PIN) == LOW) {
-      if (!setupBtnHolding) {
-        setupBtnHolding = true;
-        setupBtnPressStartMs = millis();
-      } else if (millis() - setupBtnPressStartMs >= HOLD_SETUP_BTN_MS) {
-        startConfigPortal("Setup Manual    ");
-      }
-    } else {
-      setupBtnHolding = false;
-    }
-
+    delay(250);
+    Serial.print(".");
     if (millis() - startMs >= WIFI_CONNECT_TIMEOUT_MS) {
+      Serial.println("\n[WIFI] Gagal terhubung dalam 15 detik.");
       return false;
     }
-    delay(150);
   }
 
-  Serial.println("[WIFI] Terhubung. IP: " + WiFi.localIP().toString());
+  Serial.println("\n[WIFI] Terhubung! IP: " + WiFi.localIP().toString());
 
-  // Sinkronisasi jam NTP (wajib agar validasi tanggal sertifikat TLS berhasil)
   if (apiUrl.startsWith("https://")) {
     lcdShow("Sinkron Jam NTP ", "Mohon tunggu... ");
     configTime(7 * 3600, 0, "pool.ntp.org", "time.google.com");
-
     unsigned long ntpStart = millis();
     time_t nowSec = time(nullptr);
-    while (nowSec < 1700000000 && (millis() - ntpStart < 10000)) {
-      delay(250);
+    while (nowSec < 1700000000 && (millis() - ntpStart < 5000)) {
+      delay(200);
       nowSec = time(nullptr);
     }
     ntpSynced = (nowSec >= 1700000000);
-    Serial.println(ntpSynced ? "[NTP] Sinkron WIB OK" : "[NTP] Gagal sinkron, lanjut coba...");
+    Serial.println(ntpSynced ? "[NTP] Sinkron WIB OK" : "[NTP] Lanjut tanpa NTP...");
   }
 
   return true;
@@ -551,41 +263,13 @@ void handleApiResponse(int httpCode, const String& body) {
       lcdShow("Hadir Tercatat! ", "Silakan Masuk   ");
       beepSuccess();
       openGateServo();
-    } else if (status == "registered") {
-      lcdShow("Kartu Terdaftar ", "Tap Lagi U/Hadir");
-      beepRegistered();
-      delay(2000);
-    } else if (status == "already_present") {
-      lcdShow("Sudah Absen     ", "Tercatat Sblmnya");
-      beepAlreadyPresent();
-      if (OPEN_SERVO_ON_ALREADY_PRESENT) {
-        openGateServo();
-      } else {
-        delay(2000);
-      }
-    } else if (status == "koperasi_registered") {
-      lcdShow("Kartu Terdaftar ", "Siap Daftar Kop.");
-      beepRegistered();
-      delay(2000);
-    } else if (status == "koperasi_verified") {
-      lcdShow("Tap Koperasi OK ", "Lanjut Daftar   ");
-      beepSuccess();
-      delay(2000);
-    } else if (status == "koperasi_already_verified") {
-      lcdShow("Kartu Sdh Tap   ", "Silakan Daftar  ");
-      beepAlreadyPresent();
-      delay(2000);
     } else if (status == "ktp_registered") {
       lcdShow("KTP Terdaftar!  ", "Aktif di RT&Web ");
       beepRegistered();
       delay(2000);
-    } else if (status == "ktp_verified") {
+    } else if (status == "ktp_verified" || status == "ktp_already_verified") {
       lcdShow("KTP Terverifikas", "Terdaftar di RT ");
       beepSuccess();
-      delay(2000);
-    } else if (status == "ktp_already_verified") {
-      lcdShow("KTP Sdh Terdaft.", "Terdaftar di RT ");
-      beepAlreadyPresent();
       delay(2000);
     } else {
       lcdShow("Respon OK       ", status);
@@ -595,37 +279,26 @@ void handleApiResponse(int httpCode, const String& body) {
     return;
   }
 
-  // Error: pastikan palang tetap tertutup dan bunyi error
-  gateServo.write(SERVO_CLOSE_ANGLE);
-
-  if (httpCode == 401) {
-    lcdShow("Token Salah/Exp!", "Tahan BOOT 3dtk ");
-  } else if (httpCode == 403) {
-    lcdShow("Akses Ditolak   ", "Cek Izin Petugas");
-  } else if (httpCode == 404) {
-    lcdShow("Warga Tdk Aktif ", "Atau Luar Wil.  ");
-  } else if (httpCode == 409) {
-    lcdShow("Kegiatan Belum  ", "Mulai / Ditutup ");
-  } else if (httpCode == 422) {
-    if (body.indexOf("kedaluwarsa") >= 0) {
-      lcdShow("Pairing Habis!  ", "Ulangi di Panel ");
-    } else if (body.indexOf("terdaftar") >= 0 && body.indexOf("belum") < 0) {
-      lcdShow("Kartu Sdh Pakai ", "Cabut Kartu Dulu");
+  if (httpCode == 422) {
+    if (body.indexOf("warga lain") >= 0 || body.indexOf("sudah terdaftar") >= 0) {
+      Serial.println(F("⚠️  [PERINGATAN] Kartu e-KTP ini SUDAH TERDAFTAR di akun warga lain!"));
+      lcdShow("Kartu Terdaftar ", "Di Warga Lain!  ");
+    } else if (body.indexOf("kedaluwarsa") >= 0) {
+      Serial.println(F("⚠️  [PERINGATAN] Sesi pendaftaran telah kedaluwarsa. Mulai ulang di web!"));
+      lcdShow("Sesi Kedaluwarsa", "Ulangi di Web   ");
     } else {
-      lcdShow("Kartu Blm Daftar", "Daftar di Panel ");
+      lcdShow("Tap Terbaca     ", "Periksa Website ");
     }
-  } else if (httpCode == 429) {
-    lcdShow("Terlalu Cepat!  ", "Tunggu Sebentar ");
   } else {
     lcdShow("Koneksi Gagal!  ", "Kode: " + String(httpCode));
   }
-
   beepError();
   delay(2000);
 }
 
 void sendTapToServer(const String& uid) {
   Serial.println();
+  Serial.println(F("--------------------------------------------------"));
   Serial.print(F("💳 [KARTU TERDETEKSI] UID: "));
   Serial.println(uid);
 
@@ -634,7 +307,6 @@ void sendTapToServer(const String& uid) {
     Serial.println(F("   Namun data belum bisa dikirim ke website karena ESP32 belum terhubung ke WiFi/hotspot."));
     lcdShow("WiFi Terputus!  ", "UID:" + uid.substring(0, 8));
     beepError();
-    WiFi.reconnect();
     delay(1500);
     showStandbyScreen();
     return;
@@ -642,17 +314,8 @@ void sendTapToServer(const String& uid) {
 
   lcdShow("Memproses Tap...", uid);
 
-  if (apiUrl.startsWith("https://") && time(nullptr) < 1700000000) {
-    configTime(7 * 3600, 0, "pool.ntp.org", "time.google.com");
-    unsigned long ntpRetryStart = millis();
-    while (time(nullptr) < 1700000000 && (millis() - ntpRetryStart < 5000)) {
-      delay(200);
-    }
-  }
-
   HTTPClient http;
   http.setTimeout(HTTP_TIMEOUT_MS);
-  http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
 
   WiFiClient plainClient;
   WiFiClientSecure secureClient;
@@ -666,17 +329,16 @@ void sendTapToServer(const String& uid) {
   }
 
   if (!began) {
-    lcdShow("URL Tidak Valid ", "Tahan BOOT 3dtk ");
+    lcdShow("URL Error       ", "Cek Server API  ");
     beepError();
-    delay(2000);
+    delay(1500);
     showStandbyScreen();
     return;
   }
 
   http.addHeader("Accept", "application/json");
   http.addHeader("Content-Type", "application/json");
-  String authVal = sessionToken.isEmpty() ? "smartrw-rfid-device" : sessionToken;
-  http.addHeader("Authorization", "Bearer " + authVal);
+  http.addHeader("Authorization", "Bearer smartrw-rfid-device");
 
   String payload = "{\"uid\":\"" + uid + "\"}";
   int httpCode = http.POST(payload);
@@ -687,10 +349,15 @@ void sendTapToServer(const String& uid) {
   showStandbyScreen();
 }
 
-// ======================= SETUP & LOOP ==========================
+// ======================= SETUP UTAMA ===========================
 void setup() {
   Serial.begin(115200);
-  delay(200);
+  delay(500);
+
+  Serial.println();
+  Serial.println(F("=================================================="));
+  Serial.println(F("   SMART RW - RFID GATE & ATTENDANCE SYSTEM       "));
+  Serial.println(F("=================================================="));
 
   pinMode(BUZZER_PIN, OUTPUT);
   digitalWrite(BUZZER_PIN, BUZZER_ACTIVE_LEVEL == HIGH ? LOW : HIGH);
@@ -704,7 +371,7 @@ void setup() {
     lcd->backlight();
     Serial.printf("[I2C] LCD 16x2 terdeteksi di alamat 0x%02X\n", lcdAddr);
   } else {
-    Serial.println(F("[I2C] Tidak ada LCD 16x2 terdeteksi. Berjalan dalam mode Serial Monitor."));
+    Serial.println(F("[I2C] Tidak ada LCD 16x2 (Berjalan dalam mode Serial Monitor)"));
   }
   lcdShow("Smart RW - RFID ", "Memulai alat... ");
 
@@ -713,6 +380,8 @@ void setup() {
   gateServo.attach(SERVO_PIN, 500, 2400);
   gateServo.write(SERVO_CLOSE_ANGLE);
 
+  // Inisialisasi SPI & Modul RC522
+  Serial.print(F("[RFID] Inisialisasi modul RC522... "));
 #if defined(ARDUINO_NANO_ESP32)
   SPI.begin();
 #else
@@ -722,53 +391,45 @@ void setup() {
   delay(50);
 
   byte v = mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
-  #if !defined(ARDUINO_NANO_ESP32)
+#if !defined(ARDUINO_NANO_ESP32)
   if (v == 0x00 || v == 0xFF) {
-    Serial.println(F("[RFID] RST di pin 27 belum merespon, mencoba pin 22..."));
+    Serial.println();
+    Serial.print(F("[RFID] RST di pin 27 belum merespon, mencoba pin 22... "));
     mfrc522 = MFRC522(RC522_SS_PIN, 22);
     mfrc522.PCD_Init();
     delay(50);
     v = mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
   }
-  #endif
+#endif
 
   if (v == 0x00 || v == 0xFF) {
-    Serial.println(F("⚠️  [PERINGATAN] Modul RC522 TIDAK TERBACA! Cek kabel 3.3V, GND, SDA, SCK, MOSI, MISO."));
+    Serial.println(F("GAGAL!"));
+    Serial.println(F("⚠️  [PERINGATAN] Modul RC522 TIDAK TERBACA (0x00/0xFF)!"));
+    Serial.println(F("   Cek apakah kaki 8 pin RC522 sudah disolder dan kabel sudah kencang."));
   } else {
     mfrc522.PCD_SetAntennaGain(MFRC522::RxGain_max);
-    Serial.printf("[RFID] Modul RC522 OK! Versi chip: 0x%02X (Antena Gain Maksimal)\n", v);
+    Serial.printf("OK! Chip Version: 0x%02X (Antena Gain Maksimal)\n", v);
   }
 
   loadConfig();
 
+  // Koneksi WiFi (Non-Blocking: jika gagal, alat tetap aktif membaca kartu)
   if (!wifiSsid.isEmpty()) {
-    if (!connectWifiAndSyncTime()) {
-      Serial.println(F("[WIFI] Gagal terhubung ke WiFi/Hotspot. Alat tetap siap membaca kartu RFID (Offline)."));
-      Serial.println(F("       Tahan tombol BOOT 3 detik jika ingin membuka portal hotspot pengaturan."));
-    }
+    connectWifiAndSyncTime();
   } else {
-    Serial.println(F("[WIFI] SSID masih kosong. Alat berjalan dalam mode pembaca RFID (Offline)."));
-    Serial.println(F("       Isi wifiSsid & wifiPass di baris 156-157 agar data terkirim ke web server."));
+    Serial.println(F("[WIFI] SSID belum diisi. Alat aktif dalam mode Offline."));
   }
 
   beepRegistered();
   showStandbyScreen();
+  Serial.println(F("=================================================="));
+  Serial.println(F("Status: SIAP! Tempelkan kartu e-KTP ke sensor...  "));
+  Serial.println(F("=================================================="));
 }
 
+// ======================= LOOP UTAMA ============================
 void loop() {
-  // Cek tahan tombol BOOT (>= 2.5 detik) untuk masuk mode Hotspot Pengaturan
-  if (digitalRead(SETUP_BTN_PIN) == LOW) {
-    if (!setupBtnHolding) {
-      setupBtnHolding = true;
-      setupBtnPressStartMs = millis();
-    } else if (millis() - setupBtnPressStartMs >= HOLD_SETUP_BTN_MS) {
-      startConfigPortal("Mode Pengaturan ");
-    }
-  } else {
-    setupBtnHolding = false;
-  }
-
-  // Baca kartu RFID
+  // Cek apakah ada kartu di sensor
   if (!mfrc522.PICC_IsNewCardPresent()) {
     delay(20);
     return;
@@ -782,10 +443,7 @@ void loop() {
   if (uidSize != 4 && uidSize != 7 && uidSize != 10) {
     mfrc522.PICC_HaltA();
     mfrc522.PCD_StopCrypto1();
-    lcdShow("UID Tdk Valid!  ", "Coba Tap Ulang  ");
-    beepError();
-    delay(1500);
-    showStandbyScreen();
+    delay(100);
     return;
   }
 

@@ -6,6 +6,7 @@ use App\Models\RfidCard;
 use App\Models\RfidSession;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class WargaKartuRfidController extends Controller
 {
@@ -61,6 +62,7 @@ class WargaKartuRfidController extends Controller
 
         $scopeKey = $user->rt_id ? 'warga:rt:'.$user->rt_id : 'warga:global';
         $rwId = $user->assignedRwId() ?? $user->rt?->rw_id;
+        Cache::forget("rfid_enrollment_notice:{$user->id}");
 
         $session = RfidSession::where('scope_key', $scopeKey)->first();
 
@@ -140,6 +142,7 @@ class WargaKartuRfidController extends Controller
 
         $isEnrolled = $session && (int) $session->enrollment_user_id === (int) $user->id && $session->enrollment_expires_at?->isFuture();
         $remainingSeconds = $isEnrolled ? max(0, (int) now()->diffInSeconds($session->enrollment_expires_at, false)) : 0;
+        $notice = Cache::pull("rfid_enrollment_notice:{$user->id}");
 
         return response()->json([
             'is_enrolling' => $isEnrolled,
@@ -148,6 +151,7 @@ class WargaKartuRfidController extends Controller
             'verified_at' => $card?->ktp_verified_at?->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i'),
             'uid_preview' => $card?->uid_hash ? substr($card->uid_hash, 0, 16).'••••' : null,
             'reader_active' => $session && $session->expires_at->isFuture(),
+            'notice' => $notice,
         ]);
     }
 
@@ -181,10 +185,13 @@ class WargaKartuRfidController extends Controller
 
         $uidHash = RfidCard::hashUid($rawUid);
 
-        if (RfidCard::where('uid_hash', $uidHash)->exists()) {
+        $existingCard = RfidCard::where('uid_hash', $uidHash)->with('user')->first();
+        if ($existingCard) {
+            $ownerName = $existingCard->user?->name ?? 'warga lain';
+
             return response()->json([
                 'success' => false,
-                'message' => 'Nomor chip e-KTP ini sudah terdaftar atas nama warga lain. Silakan periksa kembali kartu Anda.',
+                'message' => "Nomor chip e-KTP ini sudah terdaftar di akun warga lain: {$ownerName}. Silakan gunakan kartu e-KTP milik Anda sendiri.",
             ], 422);
         }
 
