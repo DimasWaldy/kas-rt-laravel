@@ -34,7 +34,9 @@ class PeminjamanAsetController extends Controller
             })
             ->latest();
 
-        if ($this->canManageScope($scope, $user)) {
+        $canManage = $this->canManageScope($scope, $user);
+
+        if ($canManage) {
             $rwId = $this->resolveRwId($user);
             $rtId = $scope === 'rt' ? $this->resolveRtId($user) : null;
 
@@ -56,12 +58,183 @@ class PeminjamanAsetController extends Controller
             $query->where('status', $status);
         }
 
+        $asets = Aset::where('scope', $scope)
+            ->where('is_active', true)
+            ->where('kondisi', '!=', 'rusak_berat')
+            ->orderBy('nama')
+            ->when(
+                $scope === 'rw',
+                fn ($query) => $query->where('rw_id', $this->resolveRwId($user)),
+                fn ($query) => $query->where('rt_id', $this->resolveRtId($user))
+            )
+            ->get();
+
+        $selectedAsetId = $request->filled('aset_id') ? (int) $request->integer('aset_id') : null;
+        $activeTab = $request->string('tab')->toString();
+        if (! in_array($activeTab, ['kalender', 'daftar'], true)) {
+            $activeTab = 'kalender';
+        }
+
+        $rangeStart = Carbon::now()->subMonths(2)->startOfMonth();
+        $rangeEnd = Carbon::now()->addMonths(4)->endOfMonth();
+
+        $calendarQuery = PeminjamanAset::with(['aset', 'pemohon'])
+            ->whereHas('aset', function ($query) use ($scope, $user) {
+                $query->where('scope', $scope)
+                    ->when(
+                        $scope === 'rw',
+                        fn ($query) => $query->where('rw_id', $this->resolveRwId($user)),
+                        fn ($query) => $query->where('rt_id', $this->resolveRtId($user))
+                    );
+            })
+            ->whereIn('status', ['diajukan', 'disetujui', 'dipinjam'])
+            ->whereDate('tanggal_selesai', '>=', $rangeStart)
+            ->whereDate('tanggal_mulai', '<=', $rangeEnd);
+
+        if ($selectedAsetId) {
+            $calendarQuery->where('aset_id', $selectedAsetId);
+        }
+
+        $showRoute = $scope === 'rw' ? 'peminjaman-aset-rw.show' : 'peminjaman-aset.show';
+
+        $kalenderEvents = $calendarQuery->orderBy('tanggal_mulai')->get()->map(function ($peminjaman) use ($user, $canManage, $showRoute) {
+            $isOwn = $peminjaman->pemohon_id === $user->id;
+
+            return [
+                'id' => $peminjaman->id,
+                'aset_id' => $peminjaman->aset_id,
+                'aset_nama' => $peminjaman->aset->nama,
+                'aset_kategori' => $peminjaman->aset->kategori,
+                'aset_kategori_label' => $peminjaman->aset->kategori_label,
+                'title' => $peminjaman->aset->nama.' - '.$peminjaman->keperluan,
+                'keperluan' => $peminjaman->keperluan,
+                'pemohon_nama' => ($canManage || $isOwn) ? $peminjaman->pemohon?->name : 'Warga Lingkungan',
+                'tanggal_mulai' => $peminjaman->tanggal_mulai->toDateString(),
+                'tanggal_selesai' => $peminjaman->tanggal_selesai->toDateString(),
+                'durasi_hari' => $peminjaman->durasi_hari,
+                'jumlah_dipinjam' => $peminjaman->jumlah_dipinjam,
+                'status' => $peminjaman->status,
+                'status_label' => $peminjaman->status_label,
+                'status_color' => $peminjaman->status_color,
+                'is_own' => $isOwn,
+                'can_manage' => $canManage,
+                'detail_url' => ($canManage || $isOwn) ? route($showRoute, $peminjaman) : null,
+            ];
+        });
+
         return view('peminjaman_aset.index', [
             'peminjamans' => $query->paginate(15)->withQueryString(),
             'status' => $status,
             'scope' => $scope,
             'statuses' => $this->statuses(),
-            'canManage' => $this->canManageScope($scope, $user),
+            'canManage' => $canManage,
+            'asets' => $asets,
+            'kalenderEvents' => $kalenderEvents,
+            'activeTab' => $activeTab,
+            'selectedAsetId' => $selectedAsetId,
+        ]);
+    }
+
+    public function events(Request $request)
+    {
+        $user = $request->user();
+        $scope = $this->resolveScope($request);
+        $this->authorizePinjamScope($scope, $user);
+
+        $query = PeminjamanAset::with(['aset', 'pemohon'])
+            ->whereHas('aset', function ($query) use ($scope, $user) {
+                $query->where('scope', $scope)
+                    ->when(
+                        $scope === 'rw',
+                        fn ($query) => $query->where('rw_id', $this->resolveRwId($user)),
+                        fn ($query) => $query->where('rt_id', $this->resolveRtId($user))
+                    );
+            })
+            ->whereIn('status', ['diajukan', 'disetujui', 'dipinjam']);
+
+        if ($request->filled('aset_id')) {
+            $query->where('aset_id', (int) $request->integer('aset_id'));
+        }
+
+        if ($request->filled('kategori')) {
+            $kategori = $request->string('kategori')->toString();
+            $query->whereHas('aset', fn ($q) => $q->where('kategori', $kategori));
+        }
+
+        if ($request->filled('start')) {
+            $query->whereDate('tanggal_selesai', '>=', $request->string('start')->toString());
+        }
+
+        if ($request->filled('end')) {
+            $query->whereDate('tanggal_mulai', '<=', $request->string('end')->toString());
+        }
+
+        $canManage = $this->canManageScope($scope, $user);
+        $showRoute = $scope === 'rw' ? 'peminjaman-aset-rw.show' : 'peminjaman-aset.show';
+
+        $events = $query->orderBy('tanggal_mulai')->get()->map(function ($peminjaman) use ($user, $canManage, $showRoute) {
+            $isOwn = $peminjaman->pemohon_id === $user->id;
+
+            return [
+                'id' => $peminjaman->id,
+                'aset_id' => $peminjaman->aset_id,
+                'aset_nama' => $peminjaman->aset->nama,
+                'aset_kategori' => $peminjaman->aset->kategori,
+                'aset_kategori_label' => $peminjaman->aset->kategori_label,
+                'title' => $peminjaman->aset->nama.' - '.$peminjaman->keperluan,
+                'keperluan' => $peminjaman->keperluan,
+                'pemohon_nama' => ($canManage || $isOwn) ? $peminjaman->pemohon?->name : 'Warga Lingkungan',
+                'tanggal_mulai' => $peminjaman->tanggal_mulai->toDateString(),
+                'tanggal_selesai' => $peminjaman->tanggal_selesai->toDateString(),
+                'durasi_hari' => $peminjaman->durasi_hari,
+                'jumlah_dipinjam' => $peminjaman->jumlah_dipinjam,
+                'status' => $peminjaman->status,
+                'status_label' => $peminjaman->status_label,
+                'status_color' => $peminjaman->status_color,
+                'is_own' => $isOwn,
+                'can_manage' => $canManage,
+                'detail_url' => ($canManage || $isOwn) ? route($showRoute, $peminjaman) : null,
+            ];
+        });
+
+        return response()->json($events);
+    }
+
+    public function checkAvailability(Request $request)
+    {
+        $user = $request->user();
+        $scope = $this->resolveScope($request);
+        $this->authorizePinjamScope($scope, $user);
+
+        $validated = $request->validate([
+            'aset_id' => ['required', 'integer', 'exists:asets,id'],
+            'tanggal_mulai' => ['required', 'date'],
+            'tanggal_selesai' => ['required', 'date', 'after_or_equal:tanggal_mulai'],
+            'exclude_id' => ['nullable', 'integer'],
+        ]);
+
+        $aset = Aset::findOrFail($validated['aset_id']);
+        $this->authorizeBorrowAset($aset, $user);
+
+        $mulai = Carbon::parse($validated['tanggal_mulai']);
+        $selesai = Carbon::parse($validated['tanggal_selesai']);
+        $excludeId = $validated['exclude_id'] ?? null;
+
+        $conflicts = $aset->getConflictingPeminjaman($mulai, $selesai, $excludeId);
+        $isAvailable = $conflicts->isEmpty();
+
+        return response()->json([
+            'available' => $isAvailable,
+            'message' => $isAvailable
+                ? 'Aset tersedia pada tanggal tersebut.'
+                : 'Jadwal bentrok dengan peminjaman lain yang sudah disetujui / aktif.',
+            'conflicts' => $conflicts->map(fn ($p) => [
+                'id' => $p->id,
+                'keperluan' => $p->keperluan,
+                'tanggal_mulai' => $p->tanggal_mulai->translatedFormat('d M Y'),
+                'tanggal_selesai' => $p->tanggal_selesai->translatedFormat('d M Y'),
+                'status_label' => $p->status_label,
+            ]),
         ]);
     }
 
@@ -86,7 +259,10 @@ class PeminjamanAsetController extends Controller
             $asetTerpilih = $asets->firstWhere('id', (int) $request->integer('aset_id'));
         }
 
-        return view('peminjaman_aset.create', compact('asets', 'asetTerpilih', 'scope'));
+        $prefillMulai = $request->string('tanggal_mulai')->toString() ?: null;
+        $prefillSelesai = $request->string('tanggal_selesai')->toString() ?: null;
+
+        return view('peminjaman_aset.create', compact('asets', 'asetTerpilih', 'scope', 'prefillMulai', 'prefillSelesai'));
     }
 
     public function store(Request $request)

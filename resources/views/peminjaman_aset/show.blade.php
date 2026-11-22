@@ -80,9 +80,29 @@
             </section>
 
             @if($canManage)
+                @php
+                    $conflicts = $peminjamanAset->status === 'diajukan'
+                        ? $peminjamanAset->aset->getConflictingPeminjaman($peminjamanAset->tanggal_mulai, $peminjamanAset->tanggal_selesai, $peminjamanAset->id)
+                        : collect();
+                    $hasConflict = $conflicts->isNotEmpty();
+                @endphp
                 <section class="rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
                     <h2 class="font-bold text-emerald-950">Aksi Pengurus</h2>
                     <p class="mt-1 text-xs text-emerald-700">Setiap aksi akan tercatat di status peminjaman.</p>
+
+                    @if($peminjamanAset->status === 'diajukan')
+                        @if($hasConflict)
+                            <div class="mt-3 rounded-2xl border border-rose-300 bg-rose-50 p-3 text-xs text-rose-800">
+                                <p class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Jadwal Bentrok Terdeteksi!</p>
+                                <p class="mt-1">Aset ini sudah memiliki jadwal peminjaman disetujui pada rentang tanggal yang sama.</p>
+                            </div>
+                        @else
+                            <div class="mt-3 rounded-2xl border border-emerald-300 bg-white/80 p-3 text-xs text-emerald-800">
+                                <p class="font-bold"><i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i> Jadwal Bebas Bentrok</p>
+                                <p class="mt-0.5">Aset kosong pada tanggal yang diajukan dan aman untuk disetujui.</p>
+                            </div>
+                        @endif
+                    @endif
 
                     <div class="mt-4 space-y-2">
                         @if($peminjamanAset->status === 'diajukan')
