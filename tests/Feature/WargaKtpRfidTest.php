@@ -417,3 +417,35 @@ test('warga dapat memverifikasi e-ktp langsung menggunakan sensor nfc smartphone
         ])
         ->assertStatus(403);
 });
+
+test('rfid tap mendukung device key permanen tanpa memerlukan session token manual', function () {
+    // 1. Warga aktifkan sesi pendaftaran e-KTP
+    $this->actingAs($this->wargaUser)
+        ->postJson(route('warga.rfid.open'))
+        ->assertOk();
+
+    // 2. Reader Arduino/ESP32 tap dengan kunci permanen "smartrw-rfid-device"
+    $response = $this->postJson(
+        route('rfid.tap'),
+        ['uid' => 'A1B2C3D4'],
+        ['Authorization' => 'Bearer smartrw-rfid-device']
+    );
+
+    $response->assertOk()
+        ->assertJsonPath('status', 'ktp_registered');
+
+    // 3. Verifikasi e-KTP berhasil tercatat di database
+    $card = RfidCard::where('user_id', $this->wargaUser->id)->first();
+    expect($card)->not->toBeNull()
+        ->and($card->ktp_verified_at)->not->toBeNull();
+
+    // 4. Tap kedua kali dengan e-KTP yang sudah terdaftar
+    $responseSecond = $this->postJson(
+        route('rfid.tap'),
+        ['uid' => 'A1B2C3D4'],
+        ['Authorization' => 'Bearer smartrw-rfid-device']
+    );
+
+    $responseSecond->assertOk()
+        ->assertJsonPath('status', 'ktp_already_verified');
+});

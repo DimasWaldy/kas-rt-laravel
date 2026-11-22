@@ -60,18 +60,33 @@
 #include <time.h>
 
 // ======================= KONFIGURASI PIN =======================
-constexpr uint8_t RC522_SS_PIN = 5;
-constexpr uint8_t RC522_RST_PIN = 27;
-constexpr uint8_t RC522_SCK_PIN = 18;
-constexpr uint8_t RC522_MISO_PIN = 19;
-constexpr uint8_t RC522_MOSI_PIN = 23;
+#if defined(ARDUINO_NANO_ESP32)
+  constexpr uint8_t RC522_SS_PIN = D10;  // GPIO 21
+  constexpr uint8_t RC522_RST_PIN = D9;  // GPIO 18
+  constexpr uint8_t RC522_SCK_PIN = D13; // GPIO 48
+  constexpr uint8_t RC522_MISO_PIN = D12; // GPIO 47
+  constexpr uint8_t RC522_MOSI_PIN = D11; // GPIO 38
 
-constexpr uint8_t LCD_SDA_PIN = 21;
-constexpr uint8_t LCD_SCL_PIN = 22;
+  constexpr uint8_t LCD_SDA_PIN = A4;
+  constexpr uint8_t LCD_SCL_PIN = A5;
 
-constexpr uint8_t SERVO_PIN = 13;
-constexpr uint8_t BUZZER_PIN = 25;
-constexpr uint8_t SETUP_BTN_PIN = 0; // Tombol BOOT bawaan ESP32
+  constexpr uint8_t SERVO_PIN = D6;
+  constexpr uint8_t BUZZER_PIN = D7;
+  constexpr uint8_t SETUP_BTN_PIN = D2;
+#else
+  constexpr uint8_t RC522_SS_PIN = 5;
+  constexpr uint8_t RC522_RST_PIN = 27; // Dipindahkan ke 27 karena GPIO 22 dipakai I2C SCL LCD
+  constexpr uint8_t RC522_SCK_PIN = 18;
+  constexpr uint8_t RC522_MISO_PIN = 19;
+  constexpr uint8_t RC522_MOSI_PIN = 23;
+
+  constexpr uint8_t LCD_SDA_PIN = 21;
+  constexpr uint8_t LCD_SCL_PIN = 22;
+
+  constexpr uint8_t SERVO_PIN = 13;
+  constexpr uint8_t BUZZER_PIN = 25;
+  constexpr uint8_t SETUP_BTN_PIN = 0; // Tombol BOOT bawaan ESP32
+#endif
 
 // =================== KONFIGURASI PERILAKU ALAT =================
 constexpr uint8_t BUZZER_ACTIVE_LEVEL = HIGH; // Ubah ke LOW jika modul buzzer active-low
@@ -137,8 +152,9 @@ Servo gateServo;
 WebServer webServer(80);
 DNSServer dnsServer;
 
-String wifiSsid = "";
-String wifiPass = "";
+// ==================== ISI NAMA & PASSWORD WIFI DI SINI ====================
+String wifiSsid = "";       // <-- BARIS 156: Masukkan Nama WiFi / Hotspot HP
+String wifiPass = "";       // <-- BARIS 157: Masukkan Password WiFi Anda
 String apiUrl = DEFAULT_API_URL;
 String sessionToken = "";
 
@@ -163,6 +179,14 @@ String padLine16(const String& text) {
 }
 
 void lcdShow(const String& line1, const String& line2 = "") {
+  Serial.print(F("[LCD] "));
+  Serial.print(line1);
+  if (!line2.isEmpty()) {
+    Serial.print(F(" | "));
+    Serial.print(line2);
+  }
+  Serial.println();
+
   if (!lcd) return;
   lcd->setCursor(0, 0);
   lcd->print(padLine16(line1));
@@ -217,7 +241,7 @@ uint8_t detectLcdAddress() {
       return addr;
     }
   }
-  return 0x27;
+  return 0; // Tidak ada LCD I2C terdeteksi
 }
 
 // ======================= VALIDASI & HELPER =====================
@@ -267,8 +291,12 @@ String extractJsonString(const String& json, const String& key) {
 
 void loadConfig() {
   prefs.begin(PREF_NAMESPACE, true);
-  wifiSsid = prefs.getString("ssid", "");
-  wifiPass = prefs.getString("pass", "");
+  String savedSsid = prefs.getString("ssid", "");
+  String savedPass = prefs.getString("pass", "");
+  if (!savedSsid.isEmpty()) {
+    wifiSsid = savedSsid;
+    wifiPass = savedPass;
+  }
   apiUrl = prefs.getString("url", DEFAULT_API_URL);
   sessionToken = prefs.getString("token", "");
   prefs.end();
@@ -641,7 +669,8 @@ void sendTapToServer(const String& uid) {
 
   http.addHeader("Accept", "application/json");
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("Authorization", "Bearer " + sessionToken);
+  String authVal = sessionToken.isEmpty() ? "smartrw-rfid-device" : sessionToken;
+  http.addHeader("Authorization", "Bearer " + authVal);
 
   String payload = "{\"uid\":\"" + uid + "\"}";
   int httpCode = http.POST(payload);
@@ -663,9 +692,14 @@ void setup() {
 
   Wire.begin(LCD_SDA_PIN, LCD_SCL_PIN);
   uint8_t lcdAddr = detectLcdAddress();
-  lcd = new LiquidCrystal_I2C(lcdAddr, 16, 2);
-  lcd->init();
-  lcd->backlight();
+  if (lcdAddr != 0) {
+    lcd = new LiquidCrystal_I2C(lcdAddr, 16, 2);
+    lcd->init();
+    lcd->backlight();
+    Serial.printf("[I2C] LCD 16x2 terdeteksi di alamat 0x%02X\n", lcdAddr);
+  } else {
+    Serial.println(F("[I2C] Tidak ada LCD 16x2 terdeteksi. Berjalan dalam mode Serial Monitor."));
+  }
   lcdShow("Smart RW - RFID ", "Memulai alat... ");
 
   ESP32PWM::allocateTimer(0);
@@ -673,13 +707,35 @@ void setup() {
   gateServo.attach(SERVO_PIN, 500, 2400);
   gateServo.write(SERVO_CLOSE_ANGLE);
 
+#if defined(ARDUINO_NANO_ESP32)
+  SPI.begin();
+#else
   SPI.begin(RC522_SCK_PIN, RC522_MISO_PIN, RC522_MOSI_PIN, RC522_SS_PIN);
+#endif
   mfrc522.PCD_Init();
   delay(50);
 
+  byte v = mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
+  #if !defined(ARDUINO_NANO_ESP32)
+  if (v == 0x00 || v == 0xFF) {
+    Serial.println(F("[RFID] RST di pin 27 belum merespon, mencoba pin 22..."));
+    mfrc522 = MFRC522(RC522_SS_PIN, 22);
+    mfrc522.PCD_Init();
+    delay(50);
+    v = mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
+  }
+  #endif
+
+  if (v == 0x00 || v == 0xFF) {
+    Serial.println(F("⚠️  [PERINGATAN] Modul RC522 TIDAK TERBACA! Cek kabel 3.3V, GND, SDA, SCK, MOSI, MISO."));
+  } else {
+    mfrc522.PCD_SetAntennaGain(MFRC522::RxGain_max);
+    Serial.printf("[RFID] Modul RC522 OK! Versi chip: 0x%02X (Antena Gain Maksimal)\n", v);
+  }
+
   loadConfig();
 
-  if (wifiSsid.isEmpty() || !isHex64(sessionToken)) {
+  if (wifiSsid.isEmpty()) {
     startConfigPortal("Belum Diatur    ");
   }
 
@@ -705,8 +761,12 @@ void loop() {
   }
 
   // Baca kartu RFID
-  if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
-    delay(40);
+  if (!mfrc522.PICC_IsNewCardPresent()) {
+    delay(20);
+    return;
+  }
+  if (!mfrc522.PICC_ReadCardSerial()) {
+    delay(20);
     return;
   }
 
