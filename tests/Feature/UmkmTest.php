@@ -377,3 +377,75 @@ test('is buka sekarang mengikuti hari dan jam operasional', function () {
     Carbon::setTestNow(Carbon::parse('2026-06-28 10:00:00', 'Asia/Jakarta'));
     expect($umkm->isBukaSekarang())->toBeFalse();
 });
+
+test('produk umkm memiliki whatsapp order url otomatis dengan nomor dan template order yang tepat', function () {
+    $umkm = ($this->buatUmkm)([
+        'status' => 'approved',
+        'nama_usaha' => 'Catering Berkah',
+        'nomor_whatsapp' => '0857-1234-5678',
+    ]);
+
+    $produk = ProdukUmkm::create([
+        'umkm_id' => $umkm->id,
+        'nama_produk' => 'Tumpeng Mini Komplit',
+        'harga' => 35000,
+        'satuan_harga' => 'porsi',
+        'is_available' => true,
+    ]);
+
+    $this->actingAs($this->wargaRtDua);
+
+    $url = $produk->whatsapp_order_url;
+
+    expect($url)->toStartWith('https://wa.me/6285712345678?text=')
+        ->and(urldecode($url))->toContain('Halo Catering Berkah')
+        ->and(urldecode($url))->toContain('Tumpeng Mini Komplit')
+        ->and(urldecode($url))->toContain('Rp 35.000 / porsi');
+});
+
+test('katalog direktori umkm menampilkan etalase produk warga dari umkm yang approved', function () {
+    $umkm = ($this->buatUmkm)(['status' => 'approved', 'nama_usaha' => 'Jahit Rapi Bu Siti']);
+    $produk = ProdukUmkm::create([
+        'umkm_id' => $umkm->id,
+        'nama_produk' => 'Jasa Permak Celana & Baju',
+        'harga' => 15000,
+        'satuan_harga' => 'potong',
+        'is_available' => true,
+    ]);
+
+    $this->actingAs($this->wargaRtDua)
+        ->get(route('umkm.index', ['tab' => 'etalase']))
+        ->assertOk()
+        ->assertSee('Etalase Produk Warga')
+        ->assertSee('Jasa Permak Celana & Baju')
+        ->assertSee('Rp 15.000 / potong')
+        ->assertSee('Pesan Sekarang via WhatsApp');
+
+    $this->actingAs($this->wargaRtDua)
+        ->get(route('umkm.show', $umkm))
+        ->assertOk()
+        ->assertSee('Jasa Permak Celana & Baju')
+        ->assertSee('Pesan via WhatsApp');
+});
+
+test('warga dapat mencari produk di etalase umkm berdasarkan kata kunci nama produk', function () {
+    $umkm = ($this->buatUmkm)(['status' => 'approved', 'nama_usaha' => 'Snack Barokah']);
+    ProdukUmkm::create([
+        'umkm_id' => $umkm->id,
+        'nama_produk' => 'Keripik Tempe Renyah',
+        'harga' => 10000,
+        'is_available' => true,
+    ]);
+    ProdukUmkm::create([
+        'umkm_id' => $umkm->id,
+        'nama_produk' => 'Pastel Basah Super Gurih',
+        'harga' => 5000,
+        'is_available' => true,
+    ]);
+
+    $this->actingAs($this->wargaRtDua)
+        ->get(route('umkm.index', ['tab' => 'etalase', 'q' => 'Keripik']))
+        ->assertOk()
+        ->assertSee('Keripik Tempe Renyah')
+        ->assertDontSee('Pastel Basah Super Gurih');
+});

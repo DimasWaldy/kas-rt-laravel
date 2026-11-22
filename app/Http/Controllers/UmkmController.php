@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ProdukUmkm;
 use App\Models\Rw;
 use App\Models\Umkm;
 use App\Models\User;
@@ -20,6 +21,8 @@ class UmkmController extends Controller
         $canManage = $user->hasPermission('manage-umkm');
         $status = $request->string('status')->toString();
         $kategori = $request->string('kategori')->toString();
+        $search = trim($request->string('q')->toString());
+        $tab = $request->string('tab')->toString();
 
         $query = Umkm::with(['pemilik', 'rt', 'jamOperasional'])
             ->withCount(['produkUmkms' => fn ($query) => $query->where('is_available', true)])
@@ -38,20 +41,55 @@ class UmkmController extends Controller
             $query->where('kategori', $kategori);
         }
 
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_usaha', 'like', "%{$search}%")
+                    ->orWhere('deskripsi', 'like', "%{$search}%");
+            });
+        }
+
+        // Query produk UMKM yang aktif dan tersedia untuk Etalase Produk
+        $produkQuery = ProdukUmkm::with(['umkm.rt', 'umkm.pemilik'])
+            ->whereHas('umkm', function ($q) use ($rwId) {
+                $q->where('rw_id', $rwId)->where('status', 'approved');
+            })
+            ->where('is_available', true)
+            ->latest();
+
+        if (in_array($kategori, $this->categories(), true)) {
+            $produkQuery->whereHas('umkm', fn ($q) => $q->where('kategori', $kategori));
+        }
+
+        if ($search !== '') {
+            $produkQuery->where(function ($q) use ($search) {
+                $q->where('nama_produk', 'like', "%{$search}%")
+                    ->orWhere('deskripsi', 'like', "%{$search}%")
+                    ->orWhereHas('umkm', fn ($uq) => $uq->where('nama_usaha', 'like', "%{$search}%"));
+            });
+        }
+
         $stats = [
             'terdaftar' => Umkm::where('rw_id', $rwId)->where('status', 'approved')->count(),
             'pending' => Umkm::where('rw_id', $rwId)->where('status', 'pending')->count(),
             'kategori' => count($this->categories()),
         ];
 
+        $totalProduk = ProdukUmkm::whereHas('umkm', fn ($q) => $q->where('rw_id', $rwId)->where('status', 'approved'))
+            ->where('is_available', true)
+            ->count();
+
         return view('umkm.index', [
             'umkms' => $query->paginate(12)->withQueryString(),
+            'produks' => $produkQuery->paginate(12, ['*'], 'produk_page')->withQueryString(),
+            'tab' => $tab,
+            'search' => $search,
             'status' => $status,
             'kategori' => $kategori,
             'categories' => $this->categories(),
             'canManage' => $canManage,
             'pendingCount' => $stats['pending'],
             'stats' => $stats,
+            'totalProduk' => $totalProduk,
         ]);
     }
 

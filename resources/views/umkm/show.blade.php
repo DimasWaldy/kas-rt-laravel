@@ -101,22 +101,45 @@
         </div>
         <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             @forelse($umkm->produkUmkms as $produk)
-                <article class="overflow-hidden rounded-2xl border border-slate-200">
-                    <div class="h-40 bg-slate-100">
-                        @if($produk->foto)
-                            <img src="{{ route('produk-umkm.foto', $produk) }}" alt="Foto {{ $produk->nama_produk }}" class="h-full w-full object-cover">
-                        @else
-                            <div class="flex h-full items-center justify-center text-slate-300"><i class="fa-solid fa-bag-shopping text-4xl"></i></div>
-                        @endif
+                <article class="flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                    <div>
+                        <div class="relative h-44 bg-slate-100 dark:bg-slate-800">
+                            @if($produk->foto)
+                                <img src="{{ route('produk-umkm.foto', $produk) }}" alt="Foto {{ $produk->nama_produk }}" class="h-full w-full object-cover">
+                            @else
+                                <div class="flex h-full items-center justify-center text-slate-300 dark:text-slate-600"><i class="fa-solid fa-bag-shopping text-4xl"></i></div>
+                            @endif
+                            <span class="absolute right-3 top-3 rounded-full px-2.5 py-0.5 text-[10px] font-black {{ $produk->is_available ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-200' }}">
+                                {{ $produk->is_available ? 'Tersedia' : 'Habis' }}
+                            </span>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <h3 class="font-black text-slate-900 dark:text-slate-100">{{ $produk->nama_produk }}</h3>
+                            <p class="line-clamp-2 text-xs text-slate-500 dark:text-slate-400">{{ $produk->deskripsi ?: 'Tidak ada deskripsi.' }}</p>
+                            <p class="font-black text-emerald-700 dark:text-emerald-400">{{ $produk->harga_formatted }}</p>
+                        </div>
                     </div>
-                    <div class="p-4">
-                        <h3 class="font-black text-slate-900">{{ $produk->nama_produk }}</h3>
-                        <p class="mt-1 line-clamp-2 text-sm text-slate-500">{{ $produk->deskripsi ?: 'Tidak ada deskripsi.' }}</p>
-                        <p class="mt-3 font-black text-emerald-700">{{ is_null($produk->harga) ? 'Hubungi penjual' : 'Rp '.number_format($produk->harga, 0, ',', '.').' '.($produk->satuan_harga ?? '') }}</p>
+
+                    <div class="p-4 pt-0">
+                        @if($umkm->status === 'approved' && $produk->is_available)
+                            <a
+                                href="{{ $produk->whatsapp_order_url }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white shadow-xs transition hover:bg-emerald-700 active:scale-98"
+                            >
+                                <i class="fa-brands fa-whatsapp text-base"></i>
+                                <span>Pesan via WhatsApp</span>
+                            </a>
+                        @else
+                            <button type="button" disabled class="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                                <span>Stok Tidak Tersedia</span>
+                            </button>
+                        @endif
                     </div>
                 </article>
             @empty
-                <div class="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500 sm:col-span-2 lg:col-span-3">Pemilik belum menambahkan produk atau jasa.</div>
+                <div class="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:col-span-2 lg:col-span-3">Pemilik belum menambahkan produk atau jasa.</div>
             @endforelse
         </div>
     </section>
