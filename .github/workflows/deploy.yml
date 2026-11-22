@@ -77,7 +77,8 @@ jobs:
             }
             cd "$APP_DIR"
             run_as_owner git config core.fileMode false
-            run_as_owner git pull --ff-only origin main
+            run_as_owner git fetch origin main
+            run_as_owner git reset --hard origin/main
             run_as_owner composer install --no-dev --optimize-autoloader --no-interaction
             run_as_owner php artisan migrate --force
             run_as_owner npm ci --no-audit --no-fund
