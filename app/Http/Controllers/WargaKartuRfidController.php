@@ -150,4 +150,74 @@ class WargaKartuRfidController extends Controller
             'reader_active' => $session && $session->expires_at->isFuture(),
         ]);
     }
+
+    public function tapNfc(Request $request)
+    {
+        $user = $request->user();
+        abort_unless($user->isAktif(), 403);
+
+        if ($user->warga && $user->warga->status_verifikasi !== 'terverifikasi') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun warga Anda harus berstatus terverifikasi terlebih dahulu sebelum dapat mendaftarkan e-KTP.',
+            ], 422);
+        }
+
+        if (RfidCard::where('user_id', $user->id)->whereNotNull('ktp_verified_at')->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'e-KTP fisik Anda sudah terdaftar resmi di RT dan sistem.',
+            ], 422);
+        }
+
+        $rawUid = strtoupper(preg_replace('/[^a-fA-F0-9]/', '', (string) $request->input('uid')));
+
+        if (! in_array(strlen($rawUid), [8, 14, 20])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Format chip e-KTP tidak valid (panjang UID harus 8, 14, atau 20 karakter hexadesimal).',
+            ], 422);
+        }
+
+        $uidHash = RfidCard::hashUid($rawUid);
+
+        if (RfidCard::where('uid_hash', $uidHash)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nomor chip e-KTP ini sudah terdaftar atas nama warga lain. Silakan periksa kembali kartu Anda.',
+            ], 422);
+        }
+
+        $verifierId = User::where('rt_id', $user->rt_id)->whereHas('role', fn ($q) => $q->whereIn('name', ['ketua_rt', 'rt']))->value('id')
+            ?? User::whereHas('role', fn ($q) => $q->whereIn('name', ['super_admin', 'superadmin', 'admin']))->value('id')
+            ?? $user->id;
+
+        RfidCard::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'uid_hash' => $uidHash,
+                'ktp_verified_at' => now(),
+                'verified_by' => $verifierId,
+                'verified_rt_id' => $user->rt_id,
+                'koperasi_verified_at' => now(),
+            ]
+        );
+
+        $scopeKey = $user->rt_id ? 'warga:rt:'.$user->rt_id : 'warga:global';
+        $session = RfidSession::where('scope_key', $scopeKey)
+            ->where('enrollment_user_id', $user->id)
+            ->first();
+
+        if ($session) {
+            $session->update([
+                'enrollment_user_id' => null,
+                'enrollment_expires_at' => null,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Selamat! Fisik e-KTP Anda berhasil diverifikasi resmi melalui sensor NFC Smartphone.',
+        ]);
+    }
 }

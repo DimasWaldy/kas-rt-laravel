@@ -176,7 +176,7 @@
                 </button>
             </div>
 
-            {{-- Panel Aktivasi Tap e-KTP Mandiri Warga --}}
+            {{-- Panel Aktivasi Tap e-KTP Mandiri Warga (NFC HP & RFID Reader) --}}
             <div
                 x-data="wargaRfidTap({
                     isEnrolled: {{ ($isEnrolled ?? false) ? 'true' : 'false' }},
@@ -185,7 +185,8 @@
                     csrfToken: '{{ csrf_token() }}',
                     openUrl: '{{ route('warga.rfid.open') }}',
                     cancelUrl: '{{ route('warga.rfid.cancel') }}',
-                    statusUrl: '{{ route('warga.rfid.status') }}'
+                    statusUrl: '{{ route('warga.rfid.status') }}',
+                    tapNfcUrl: '{{ route('warga.rfid.tap-nfc') }}'
                 })"
                 x-init="init()"
                 class="overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
@@ -195,25 +196,27 @@
                     <div class="flex items-center gap-3">
                         <div
                             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors"
-                            :class="isVerified ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' : (isEnrolling ? 'bg-amber-100 text-amber-700 animate-pulse dark:bg-amber-950/60 dark:text-amber-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300')"
+                            :class="isVerified ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' : (isEnrolling || isNfcScanning ? 'bg-amber-100 text-amber-700 animate-pulse dark:bg-amber-950/60 dark:text-amber-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300')"
                         >
-                            <i class="fa-solid text-base" :class="isVerified ? 'fa-id-card-clip' : (isEnrolling ? 'fa-tower-broadcast' : 'fa-wifi')"></i>
+                            <i class="fa-solid text-base" :class="isVerified ? 'fa-id-card-clip' : (isNfcScanning ? 'fa-mobile-screen-button' : (isEnrolling ? 'fa-tower-broadcast' : 'fa-wifi'))"></i>
                         </div>
                         <div>
                             <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">
                                 <span x-show="isVerified">e-KTP Fisik Terverifikasi</span>
-                                <span x-show="!isVerified && isEnrolling">Sesi Tap Mandiri Aktif</span>
-                                <span x-show="!isVerified && !isEnrolling">Tap e-KTP Mandiri</span>
+                                <span x-show="!isVerified && isNfcScanning">Sensor NFC HP Siap</span>
+                                <span x-show="!isVerified && !isNfcScanning && isEnrolling">Sesi Reader RT Aktif</span>
+                                <span x-show="!isVerified && !isNfcScanning && !isEnrolling">Verifikasi e-KTP Mandiri</span>
                             </h3>
                             <p class="text-[11px] text-slate-500 dark:text-slate-400">
                                 <span x-show="isVerified">Kartu fisik Anda telah terhubung secara permanen.</span>
-                                <span x-show="!isVerified && isEnrolling">Tempelkan e-KTP Anda ke alat sensor reader RT.</span>
-                                <span x-show="!isVerified && !isEnrolling">Buka sesi sendiri dalam 1 klik tanpa perlu menunggu admin.</span>
+                                <span x-show="!isVerified && isNfcScanning">Tempelkan e-KTP ke punggung bodi HP Anda.</span>
+                                <span x-show="!isVerified && !isNfcScanning && isEnrolling">Tempelkan e-KTP ke alat reader RT di pos.</span>
+                                <span x-show="!isVerified && !isNfcScanning && !isEnrolling">Bisa lewat sensor NFC HP atau alat reader RT.</span>
                             </p>
                         </div>
                     </div>
 
-                    {{-- Timer Badge saat Enrolling --}}
+                    {{-- Timer Badge saat Enrolling RT Reader --}}
                     <template x-if="!isVerified && isEnrolling">
                         <div class="flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 font-mono text-xs font-black text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
                             <i class="fa-regular fa-clock text-[10px]"></i>
@@ -259,66 +262,182 @@
                     </div>
                 </template>
 
-                {{-- Kondisi 2: Sedang Enrolling (Sesi Aktif Menunggu Tap) --}}
-                <template x-if="!isVerified && isEnrolling">
-                    <div class="mt-4 space-y-4">
-                        {{-- Radar Wave Visualizer --}}
-                        <div class="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-amber-200/80 bg-linear-to-b from-amber-500/5 via-amber-500/10 to-transparent py-7 dark:border-amber-800/60 dark:from-amber-950/30">
-                            <div class="relative flex h-20 w-20 items-center justify-center">
-                                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-30"></span>
-                                <span class="absolute inline-flex h-14 w-14 animate-pulse rounded-full bg-amber-400/50 opacity-40"></span>
-                                <div class="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-lg shadow-amber-600/30">
-                                    <i class="fa-solid fa-nfc-symbol text-xl animate-bounce"></i>
+                {{-- Navigasi Tab Pilihan Metode (NFC HP vs Reader RT) jika Belum Terverifikasi --}}
+                <div x-show="!isVerified" class="mt-4">
+                    <div class="flex rounded-2xl bg-slate-100 p-1 dark:bg-slate-800">
+                        <button
+                            type="button"
+                            @click="activeTab = 'nfc'"
+                            class="btn-tactile flex-1 rounded-xl py-2 text-center text-xs font-bold transition-all"
+                            :class="activeTab === 'nfc' ? 'bg-white text-emerald-700 shadow-xs dark:bg-slate-900 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'"
+                        >
+                            <i class="fa-solid fa-mobile-screen-button mr-1.5"></i>
+                            <span>Sensor NFC HP</span>
+                        </button>
+                        <button
+                            type="button"
+                            @click="activeTab = 'rfid'"
+                            class="btn-tactile flex-1 rounded-xl py-2 text-center text-xs font-bold transition-all"
+                            :class="activeTab === 'rfid' ? 'bg-white text-emerald-700 shadow-xs dark:bg-slate-900 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'"
+                        >
+                            <i class="fa-solid fa-tower-broadcast mr-1.5"></i>
+                            <span>Reader Alat RT</span>
+                        </button>
+                    </div>
+
+                    {{-- METODE 1: SENSOR NFC HANDPHONE --}}
+                    <div x-show="activeTab === 'nfc'" class="mt-4 space-y-3">
+                        <template x-if="hasNfcSupport">
+                            <div class="space-y-3">
+                                {{-- Saat Scanning NFC Aktif --}}
+                                <div x-show="isNfcScanning" class="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-emerald-300 bg-linear-to-b from-emerald-500/10 via-teal-500/10 to-transparent py-8 text-center dark:border-emerald-700 dark:from-emerald-950/40">
+                                    <div class="relative flex h-24 w-24 items-center justify-center">
+                                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-30"></span>
+                                        <span class="absolute inline-flex h-16 w-16 animate-pulse rounded-full bg-teal-400/50 opacity-40"></span>
+                                        <div class="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30">
+                                            <i class="fa-solid fa-nfc-symbol text-2xl animate-pulse"></i>
+                                        </div>
+                                    </div>
+                                    <p class="mt-4 text-xs font-black text-slate-900 dark:text-slate-100">Sensor NFC Handphone Aktif!</p>
+                                    <p class="mt-1 max-w-xs px-4 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                                        Tempelkan fisik e-KTP Anda ke bodi belakang HP (dekat kamera belakang) sampai HP bergetar.
+                                    </p>
+
+                                    <button
+                                        type="button"
+                                        @click="stopNfcScan()"
+                                        class="btn-tactile mt-5 inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white/90 px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                                    >
+                                        <i class="fa-solid fa-xmark text-slate-400"></i> Hentikan Scan NFC
+                                    </button>
+                                </div>
+
+                                {{-- Saat Idle Belum Scan --}}
+                                <div x-show="!isNfcScanning" class="space-y-3">
+                                    <div class="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 p-4 text-xs text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                                        <div class="flex items-center gap-2 font-bold">
+                                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                            <span>Sensor NFC Ponsel Terdeteksi Aktif</span>
+                                        </div>
+                                        <p class="mt-1.5 text-[11px] leading-relaxed text-emerald-800 dark:text-emerald-300">
+                                            Anda bisa tap kartu e-KTP langsung di ponsel ini tanpa perlu alat reader fisik RT atau datang ke pos.
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        @click="startNfcScan()"
+                                        :disabled="isLoading"
+                                        class="btn-tactile flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-emerald-600 to-teal-600 px-5 py-3 text-xs font-black text-white shadow-md shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50"
+                                    >
+                                        <span x-show="!isLoading" class="flex items-center gap-2">
+                                            <i class="fa-solid fa-mobile-screen-button text-sm"></i>
+                                            <span>Mulai Scan e-KTP via NFC HP Sekarang</span>
+                                        </span>
+                                        <span x-show="isLoading" class="flex items-center gap-2" x-cloak>
+                                            <i class="fa-solid fa-circle-notch fa-spin"></i>
+                                            <span>Menghubungkan Sensor NFC...</span>
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
-                            <p class="mt-3 text-xs font-bold text-slate-800 dark:text-slate-100">Tempelkan e-KTP ke Sensor ESP32 Sekarang</p>
-                            <p class="mt-1 text-center text-[11px] text-slate-500 dark:text-slate-400 max-w-xs px-4">
-                                Dekatkan fisik e-KTP Anda ke atas kotak alat reader RT selama 1 detik hingga terdengar bunyi konfirmasi beep.
-                            </p>
-                        </div>
+                        </template>
 
-                        {{-- Tombol Batal Sesi --}}
-                        <button
-                            type="button"
-                            @click="cancelSession()"
-                            :disabled="isLoading"
-                            class="btn-tactile flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                        >
-                            <i class="fa-solid fa-xmark text-slate-400"></i>
-                            <span>Batalkan Sesi Tap Mandiri</span>
-                        </button>
+                        {{-- Jika Browser/Device Tidak Support Web NFC --}}
+                        <template x-if="!hasNfcSupport">
+                            <div class="space-y-3">
+                                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200">
+                                    <div class="flex items-start gap-2.5">
+                                        <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600 shrink-0"></i>
+                                        <div>
+                                            <p class="font-bold">Web NFC Tidak Terdeteksi di Perangkat Ini</p>
+                                            <p class="mt-1 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
+                                                Fitur pembaca chip NFC lewat browser saat ini hanya didukung di <strong>Google Chrome Android</strong> (Apple membatasi akses NFC di browser iOS Safari).
+                                            </p>
+                                            <p class="mt-2 text-[11px] text-amber-800 dark:text-amber-300">
+                                                Silakan beralih ke tab <strong>Reader Alat RT</strong> untuk tap lewat sensor box di pos RT, atau buka web ini di HP Android ber-NFC.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    @click="activeTab = 'rfid'"
+                                    class="btn-tactile flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:border-emerald-300 hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                >
+                                    <i class="fa-solid fa-arrow-right text-emerald-600"></i>
+                                    <span>Beralih ke Metode Reader Alat RT</span>
+                                </button>
+                            </div>
+                        </template>
                     </div>
-                </template>
 
-                {{-- Kondisi 3: Belum Terverifikasi & Belum Enrolling (Idle) --}}
-                <template x-if="!isVerified && !isEnrolling">
-                    <div class="mt-4 space-y-3">
-                        <div class="rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300">
-                            <p class="font-bold text-slate-800 dark:text-slate-200">Cara Tap Mandiri:</p>
-                            <ol class="mt-1.5 list-decimal list-inside space-y-1 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                                <li>Pastikan Anda berada di dekat alat reader RT (di pos/kantor RT atau alat yang terhubung).</li>
-                                <li>Klik tombol hijau di bawah untuk mengaktifkan sesi tap (3 menit).</li>
-                                <li>Tempelkan fisik e-KTP Anda ke alat sensor reader. Sistem langsung mendeteksi kartu Anda secara instan!</li>
-                            </ol>
-                        </div>
+                    {{-- METODE 2: READER ALAT RT (ESP32) --}}
+                    <div x-show="activeTab === 'rfid'" class="mt-4 space-y-3">
+                        {{-- Kondisi 2: Sedang Enrolling (Sesi Aktif Menunggu Tap) --}}
+                        <template x-if="isEnrolling">
+                            <div class="space-y-4">
+                                {{-- Radar Wave Visualizer --}}
+                                <div class="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-amber-200/80 bg-linear-to-b from-amber-500/5 via-amber-500/10 to-transparent py-7 dark:border-amber-800/60 dark:from-amber-950/30">
+                                    <div class="relative flex h-20 w-20 items-center justify-center">
+                                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-30"></span>
+                                        <span class="absolute inline-flex h-14 w-14 animate-pulse rounded-full bg-amber-400/50 opacity-40"></span>
+                                        <div class="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-lg shadow-amber-600/30">
+                                            <i class="fa-solid fa-tower-broadcast text-xl animate-bounce"></i>
+                                        </div>
+                                    </div>
+                                    <p class="mt-3 text-xs font-bold text-slate-800 dark:text-slate-100">Tempelkan e-KTP ke Sensor ESP32 Sekarang</p>
+                                    <p class="mt-1 text-center text-[11px] text-slate-500 dark:text-slate-400 max-w-xs px-4">
+                                        Dekatkan fisik e-KTP Anda ke atas kotak alat reader RT selama 1 detik hingga terdengar bunyi konfirmasi beep.
+                                    </p>
+                                </div>
 
-                        <button
-                            type="button"
-                            @click="openSession()"
-                            :disabled="isLoading"
-                            class="btn-tactile flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-emerald-600 to-green-600 px-5 py-3 text-xs font-black text-white shadow-md shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-green-700 focus:outline-hidden disabled:opacity-50"
-                        >
-                            <span x-show="!isLoading" class="flex items-center gap-2">
-                                <i class="fa-solid fa-wifi text-sm"></i>
-                                <span>Mulai Tap e-KTP Mandiri Sekarang</span>
-                            </span>
-                            <span x-show="isLoading" class="flex items-center gap-2" x-cloak>
-                                <i class="fa-solid fa-circle-notch fa-spin"></i>
-                                <span>Membuka Sesi Tap...</span>
-                            </span>
-                        </button>
+                                {{-- Tombol Batal Sesi --}}
+                                <button
+                                    type="button"
+                                    @click="cancelSession()"
+                                    :disabled="isLoading"
+                                    class="btn-tactile flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                                >
+                                    <i class="fa-solid fa-xmark text-slate-400"></i>
+                                    <span>Batalkan Sesi Tap Mandiri</span>
+                                </button>
+                            </div>
+                        </template>
+
+                        {{-- Kondisi 3: Belum Terverifikasi & Belum Enrolling (Idle) --}}
+                        <template x-if="!isEnrolling">
+                            <div class="space-y-3">
+                                <div class="rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300">
+                                    <p class="font-bold text-slate-800 dark:text-slate-200">Cara Tap Lewat Alat RT:</p>
+                                    <ol class="mt-1.5 list-decimal list-inside space-y-1 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                                        <li>Pastikan Anda berada di dekat alat reader RT (di pos/kantor RT atau alat yang terhubung).</li>
+                                        <li>Klik tombol hijau di bawah untuk mengaktifkan sesi tap (3 menit).</li>
+                                        <li>Tempelkan fisik e-KTP Anda ke alat sensor reader ESP32. Sistem langsung memverifikasi kartu Anda secara instan!</li>
+                                    </ol>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    @click="openSession()"
+                                    :disabled="isLoading"
+                                    class="btn-tactile flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-emerald-600 to-green-600 px-5 py-3 text-xs font-black text-white shadow-md shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-green-700 focus:outline-hidden disabled:opacity-50"
+                                >
+                                    <span x-show="!isLoading" class="flex items-center gap-2">
+                                        <i class="fa-solid fa-wifi text-sm"></i>
+                                        <span>Buka Sesi Tap Alat Reader RT (3 Menit)</span>
+                                    </span>
+                                    <span x-show="isLoading" class="flex items-center gap-2" x-cloak>
+                                        <i class="fa-solid fa-circle-notch fa-spin"></i>
+                                        <span>Membuka Sesi Tap...</span>
+                                    </span>
+                                </button>
+                            </div>
+                        </template>
                     </div>
-                </template>
+                </div>
+            </div>
             </div>
 
             {{-- Status Alat Reader RT --}}
@@ -374,24 +493,24 @@
                     <div class="flex items-start gap-3">
                         <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white">2</span>
                         <div class="text-sm">
-                            <p class="font-bold text-slate-900 dark:text-slate-100">Buka Sesi Mandiri atau Kunjungi Pos RT</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Tekan tombol "Mulai Tap e-KTP Mandiri" di panel kiri, atau kunjungi kantor/pos RT saat alat reader aktif.</p>
+                            <p class="font-bold text-slate-900 dark:text-slate-100">Pilih Metode: Sensor NFC HP atau Reader RT</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Gunakan sensor NFC langsung di ponsel pintar Anda (Chrome Android) atau pilih metode reader fisik di pos RT.</p>
                         </div>
                     </div>
 
                     <div class="flex items-start gap-3">
                         <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white">3</span>
                         <div class="text-sm">
-                            <p class="font-bold text-slate-900 dark:text-slate-100">Sesi Tap Otomatis Terbuka</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sistem langsung membuka slot verifikasi 3 menit untuk akun Anda tanpa perlu admin memilih akun secara manual.</p>
+                            <p class="font-bold text-slate-900 dark:text-slate-100">Tempelkan e-KTP ke Sensor</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Tempelkan fisik e-KTP ke bodi belakang HP Anda atau ke atas sensor alat reader ESP32 di pos RT.</p>
                         </div>
                     </div>
 
                     <div class="flex items-start gap-3">
                         <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white">4</span>
                         <div class="text-sm">
-                            <p class="font-bold text-slate-900 dark:text-slate-100">Tempelkan e-KTP ke Reader ESP32</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Tempelkan e-KTP ke atas sensor reader selama 1 detik sampai terdengar bunyi konfirmasi. KTP Anda langsung aktif di sistem!</p>
+                            <p class="font-bold text-slate-900 dark:text-slate-100">Terdaftar Otomatis dalam 1 Detik</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sistem langsung memverifikasi kartu Anda seketika. Kartu digital otomatis berstatus Terdaftar Resmi seumur hidup!</p>
                         </div>
                     </div>
                 </div>
@@ -509,6 +628,10 @@ function wargaRfidTap(config) {
         justVerified: false,
         pollTimer: null,
         countdownTimer: null,
+        activeTab: ('NDEFReader' in window) ? 'nfc' : 'rfid',
+        hasNfcSupport: ('NDEFReader' in window),
+        isNfcScanning: false,
+        nfcAbortController: null,
 
         get isEnrolling() {
             return this.isEnrolled && this.remainingSeconds > 0;
@@ -521,9 +644,105 @@ function wargaRfidTap(config) {
         },
 
         init() {
+            this.hasNfcSupport = ('NDEFReader' in window);
+            if (!this.hasNfcSupport && this.activeTab === 'nfc') {
+                this.activeTab = 'rfid';
+            }
             if (this.isEnrolling) {
+                this.activeTab = 'rfid';
                 this.startCountdown();
                 this.startPolling();
+            }
+        },
+
+        async startNfcScan() {
+            if (!('NDEFReader' in window)) {
+                this.errorMessage = 'Perangkat atau browser Anda tidak mendukung Web NFC. Silakan gunakan tab Reader Alat RT.';
+                this.activeTab = 'rfid';
+                return;
+            }
+
+            this.errorMessage = null;
+            this.isLoading = true;
+
+            try {
+                this.nfcAbortController = new AbortController();
+                const ndef = new NDEFReader();
+                await ndef.scan({ signal: this.nfcAbortController.signal });
+
+                this.isNfcScanning = true;
+                this.isLoading = false;
+
+                ndef.onreading = async (event) => {
+                    if (navigator.vibrate) {
+                        try { navigator.vibrate([150, 60, 150]); } catch (e) {}
+                    }
+                    const rawSerial = event.serialNumber || '';
+                    const cleanUid = rawSerial.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+                    if (!cleanUid) {
+                        this.errorMessage = 'Chip e-KTP tidak terbaca jelas. Mohon tempelkan kembali ke bodi belakang HP.';
+                        return;
+                    }
+
+                    await this.submitNfcUid(cleanUid);
+                };
+
+                ndef.onreadingerror = () => {
+                    this.errorMessage = 'Sinyal e-KTP tidak terbaca. Pastikan kartu menempel rapat di bodi belakang HP.';
+                };
+            } catch (err) {
+                this.isLoading = false;
+                this.isNfcScanning = false;
+                if (err.name === 'NotAllowedError') {
+                    this.errorMessage = 'Izin akses NFC ditolak. Izinkan izin NFC di perizinan browser Anda.';
+                } else if (err.name === 'NotSupportedError') {
+                    this.errorMessage = 'Fitur NFC tidak aktif atau tidak didukung di perangkat ini.';
+                } else if (err.name !== 'AbortError') {
+                    this.errorMessage = err.message || 'Gagal mengaktifkan sensor NFC.';
+                }
+            }
+        },
+
+        stopNfcScan() {
+            if (this.nfcAbortController) {
+                this.nfcAbortController.abort();
+                this.nfcAbortController = null;
+            }
+            this.isNfcScanning = false;
+        },
+
+        async submitNfcUid(uid) {
+            this.isLoading = true;
+            this.errorMessage = null;
+
+            try {
+                const response = await fetch(config.tapNfcUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': config.csrfToken
+                    },
+                    body: JSON.stringify({ uid })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Gagal memverifikasi chip e-KTP.');
+                }
+
+                this.stopNfcScan();
+                this.isVerified = true;
+                this.justVerified = true;
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } catch (err) {
+                this.errorMessage = err.message;
+            } finally {
+                this.isLoading = false;
             }
         },
 
