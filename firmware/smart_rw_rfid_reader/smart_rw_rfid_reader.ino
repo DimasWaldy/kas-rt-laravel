@@ -34,11 +34,11 @@
 // ============================================================
 // 1. KONFIGURASI WIFI & SERVER SMART RW
 // ============================================================
-// Hotspot HP Anda:
-const char* WIFI_SSID     = "Poco F6505";
-const char* WIFI_PASSWORD = "dimas12345";
+// Nama Hotspot HP dan Password Anda:
+const char* WIFI_SSID     = "POCOX3NFC";
+const char* WIFI_PASSWORD = "12345678";
 
-// Endpoint API Server Smart RW
+// Endpoint API Server Smart RW (Mendukung /tap dan /scan)
 const char* API_URL       = "https://smartos-rw.unique-monsters.my.id/api/rfid/tap";
 
 // Master Device Key (Hardware Key permanen — bebas token manual)
@@ -266,6 +266,7 @@ void sendTapToServer(const String& uid) {
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Accept", "application/json");
     http.addHeader("Authorization", "Bearer " + String(DEVICE_KEY));
+    http.addHeader("X-Device-Key", String(DEVICE_KEY));
     http.setTimeout(10000);
 
     String payload = "{\"uid\":\"" + uid + "\"}";

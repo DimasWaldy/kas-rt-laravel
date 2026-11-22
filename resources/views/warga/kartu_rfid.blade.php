@@ -281,6 +281,13 @@
                         <p class="mt-2 text-[11px] leading-relaxed text-emerald-800/80 dark:text-emerald-300/80">
                             Kartu e-KTP Anda dapat digunakan untuk absensi kehadiran rapat RT dan syarat verifikasi program Koperasi.
                         </p>
+                        <form method="POST" action="{{ route('warga.rfid.unregister') }}" class="mt-3 border-t border-emerald-200/60 pt-2.5 dark:border-emerald-800/60" onsubmit="return confirm('Apakah Anda yakin ingin mencabut kartu fisik e-KTP ini dan mendaftarkan ulang kartu baru?');">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-rose-600 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300">
+                                <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
+                                <span>Cabut Kartu &amp; Daftarkan Ulang e-KTP</span>
+                            </button>
+                        </form>
                     </div>
                 </template>
 

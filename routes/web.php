@@ -61,6 +61,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/kartu-rfid', [WargaKartuRfidController::class, 'show'])->name('warga.rfid.show');
     Route::post('/kartu-rfid/buka-sesi', [WargaKartuRfidController::class, 'openSession'])->name('warga.rfid.open');
     Route::post('/kartu-rfid/batal-sesi', [WargaKartuRfidController::class, 'cancelSession'])->name('warga.rfid.cancel');
+    Route::post('/kartu-rfid/cabut', [WargaKartuRfidController::class, 'unregister'])->name('warga.rfid.unregister');
     Route::post('/kartu-rfid/tap-nfc', [WargaKartuRfidController::class, 'tapNfc'])->name('warga.rfid.tap-nfc');
     Route::get('/kartu-rfid/status', [WargaKartuRfidController::class, 'status'])->name('warga.rfid.status');
 

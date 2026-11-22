@@ -488,3 +488,62 @@ test('pendaftaran rfid memberikan notifikasi jika uid yang didaftarkan sudah ter
 
     expect($nfcResponse->json('message'))->toContain($this->wargaUser->name);
 });
+
+test('warga dapat mencabut kartu e-ktp secara mandiri untuk mendaftarkan kartu baru', function () {
+    // 1. Daftarkan kartu wargaUser
+    RfidCard::create([
+        'user_id' => $this->wargaUser->id,
+        'uid_hash' => RfidCard::hashUid('A1B2C3D4'),
+        'ktp_verified_at' => now(),
+    ]);
+
+    expect(RfidCard::where('user_id', $this->wargaUser->id)->exists())->toBeTrue();
+
+    // 2. Warga mencabut kartu mandiri
+    $this->actingAs($this->wargaUser)
+        ->postJson(route('warga.rfid.unregister'))
+        ->assertOk()
+        ->assertJson(['success' => true]);
+
+    expect(RfidCard::where('user_id', $this->wargaUser->id)->exists())->toBeFalse();
+
+    // 3. Status menjadi belum terverifikasi
+    $this->actingAs($this->wargaUser)
+        ->getJson(route('warga.rfid.status'))
+        ->assertOk()
+        ->assertJson(['is_verified' => false]);
+});
+
+test('rfid endpoint mendukung route scan, heartbeat, dan header X-Device-Key', function () {
+    // 1. Heartbeat route
+    $this->getJson(route('rfid.heartbeat'))
+        ->assertOk()
+        ->assertJson(['status' => 'online']);
+
+    // 2. Open session
+    $this->actingAs($this->wargaUser)
+        ->postJson(route('warga.rfid.open'))
+        ->assertOk();
+
+    // 3. Tap via /api/rfid/scan dengan X-Device-Key
+    $response = $this->postJson(
+        route('rfid.scan'),
+        ['uid' => '11223344'],
+        ['X-Device-Key' => 'smartrw-rfid-device']
+    );
+
+    $response->assertOk()
+        ->assertJson(['status' => 'ktp_registered']);
+
+    // 4. Reset kartu lewat device key
+    $reset = $this->postJson(
+        route('rfid.tap'),
+        ['action' => 'reset_card', 'uid' => '11223344'],
+        ['X-Device-Key' => 'smartrw-rfid-device']
+    );
+
+    $reset->assertOk()
+        ->assertJson(['status' => 'success']);
+
+    expect(RfidCard::where('user_id', $this->wargaUser->id)->exists())->toBeFalse();
+});
