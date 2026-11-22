@@ -10,7 +10,9 @@ Route::post('/rfid/tap', RfidTapController::class)->middleware('throttle:120,1')
 Route::post('/rfid/scan', RfidTapController::class)->middleware('throttle:120,1')->name('rfid.scan');
 Route::get('/rfid/device-status', function () {
     $lastSeen = (float) Cache::get('rfid_device_online_at', 0);
-    $isOnline = $lastSeen > 0 && (microtime(true) - $lastSeen) <= 2.5;
+    $interval = (float) Cache::get('rfid_device_hb_interval', 10.0);
+    $timeout = max(5.0, $interval + 3.0);
+    $isOnline = $lastSeen > 0 && (microtime(true) - $lastSeen) <= $timeout;
 
     return response()->json([
         'device_online' => $isOnline,
@@ -47,6 +49,12 @@ Route::match(['get', 'post'], '/rfid/heartbeat', function (Request $request) {
 
     if ($authenticated) {
         $nowFloat = microtime(true);
+        $prevSeen = (float) Cache::get('rfid_device_online_at', 0);
+        if ($prevSeen > 0 && ($nowFloat - $prevSeen) <= 60) {
+            $delta = $nowFloat - $prevSeen;
+            Cache::put('rfid_device_hb_interval', $delta, now()->addMinutes(5));
+        }
+
         Cache::put('rfid_device_online_at', $nowFloat, now()->addMinutes(2));
         Cache::put('rfid_device_online', now()->toIso8601String(), now()->addMinutes(2));
         Cache::put("rfid_device_heartbeat:{$deviceId}", [
