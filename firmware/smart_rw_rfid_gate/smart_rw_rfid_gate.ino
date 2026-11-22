@@ -54,8 +54,8 @@ constexpr int SERVO_OPEN_ANGLE = 90;
 constexpr unsigned long SERVO_OPEN_MS = 3000;
 constexpr bool OPEN_SERVO_ON_ALREADY_PRESENT = false;
 
-constexpr unsigned long ANY_TAP_COOLDOWN_MS = 1500;
-constexpr unsigned long SAME_UID_COOLDOWN_MS = 4000;
+constexpr unsigned long ANY_TAP_COOLDOWN_MS = 800;
+constexpr unsigned long SAME_UID_COOLDOWN_MS = 2000;
 constexpr unsigned long HOLD_SETUP_BTN_MS = 2500;
 constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
 constexpr unsigned long HTTP_TIMEOUT_MS = 10000;
@@ -428,13 +428,56 @@ void setup() {
 }
 
 // ======================= LOOP UTAMA ============================
+unsigned long lastRfidCheckMs = 0;
+
+void ensureRfidAlive() {
+  byte v = mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
+  if (v == 0x00 || v == 0xFF) {
+    Serial.println(F("⚠️  [RFID] Modul RC522 terputus / glitch, melakukan recovery..."));
+#if !defined(ARDUINO_NANO_ESP32)
+    mfrc522 = MFRC522(RC522_SS_PIN, RC522_RST_PIN);
+#endif
+    mfrc522.PCD_Init();
+    delay(20);
+    mfrc522.PCD_SetAntennaGain(MFRC522::RxGain_max);
+    mfrc522.PCD_AntennaOn();
+  }
+}
+
 void loop() {
-  // Cek apakah ada kartu di sensor
-  if (!mfrc522.PICC_IsNewCardPresent()) {
+  unsigned long now = millis();
+
+  // Watchdog RC522 berkala setiap 3 detik untuk auto-recovery jika ada lonjakan tegangan/gangguan kabel
+  if (now - lastRfidCheckMs > 3000) {
+    lastRfidCheckMs = now;
+    ensureRfidAlive();
+  }
+
+  // Cek apakah ada kartu di sensor (mendukung kartu baru REQA maupun kartu standby WUPA)
+  byte bufferATQA[2];
+  byte bufferSize = sizeof(bufferATQA);
+  bool cardPresent = mfrc522.PICC_IsNewCardPresent();
+  if (!cardPresent) {
+    // Coba Wake-up A jika kartu tertahan atau sempat terbaca sebagian
+    cardPresent = (mfrc522.PICC_WakeupA(bufferATQA, &bufferSize) == MFRC522::STATUS_OK);
+  }
+
+  if (!cardPresent) {
     delay(20);
     return;
   }
-  if (!mfrc522.PICC_ReadCardSerial()) {
+
+  // Multi-pass retry (3x) untuk menghindari frame drop pada chip e-KTP
+  bool cardRead = false;
+  for (uint8_t retry = 0; retry < 3; retry++) {
+    if (mfrc522.PICC_ReadCardSerial()) {
+      cardRead = true;
+      break;
+    }
+    delay(10);
+  }
+
+  if (!cardRead) {
     delay(20);
     return;
   }
@@ -443,7 +486,7 @@ void loop() {
   if (uidSize != 4 && uidSize != 7 && uidSize != 10) {
     mfrc522.PICC_HaltA();
     mfrc522.PCD_StopCrypto1();
-    delay(100);
+    delay(50);
     return;
   }
 
