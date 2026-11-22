@@ -407,8 +407,8 @@ void setup() {
     Serial.println(F("⚠️  [PERINGATAN] Modul RC522 TIDAK TERBACA (0x00/0xFF)!"));
     Serial.println(F("   Cek apakah kaki 8 pin RC522 sudah disolder dan kabel sudah kencang."));
   } else {
-    mfrc522.PCD_SetAntennaGain(MFRC522::RxGain_max);
-    Serial.printf("OK! Chip Version: 0x%02X (Antena Gain Maksimal)\n", v);
+    mfrc522.PCD_SetAntennaGain(MFRC522::RxGain_43dB);
+    Serial.printf("OK! Chip Version: 0x%02X (Antena Gain Optimal 43dB)\n", v);
   }
 
   loadConfig();
@@ -429,13 +429,22 @@ void setup() {
 
 // ======================= LOOP UTAMA ============================
 void loop() {
-  // Cek apakah ada kartu di sensor
-  if (!mfrc522.PICC_IsNewCardPresent()) {
-    delay(20);
+  // Cek apakah ada kartu di sensor (Dukungan REQA + WUPA Fallback untuk e-KTP)
+  bool cardPresent = mfrc522.PICC_IsNewCardPresent();
+  if (!cardPresent) {
+    byte bufferATQA[2];
+    byte bufferSize = sizeof(bufferATQA);
+    if (mfrc522.PICC_WakeupA(bufferATQA, &bufferSize) == MFRC522::STATUS_OK) {
+      cardPresent = true;
+    }
+  }
+
+  if (!cardPresent) {
+    delay(10);
     return;
   }
   if (!mfrc522.PICC_ReadCardSerial()) {
-    delay(20);
+    delay(10);
     return;
   }
 

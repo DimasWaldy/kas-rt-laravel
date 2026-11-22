@@ -35,8 +35,8 @@
 // 1. KONFIGURASI WIFI & SERVER SMART RW
 // ============================================================
 // Nama Hotspot HP dan Password Anda:
-const char* WIFI_SSID     = "POCOX3NFC";
-const char* WIFI_PASSWORD = "12345678";
+const char* WIFI_SSID     = "Poco F6505";
+const char* WIFI_PASSWORD = "dimas12345";
 
 // Endpoint API Server Smart RW (Mendukung /tap dan /scan)
 const char* API_URL       = "https://smartos-rw.unique-monsters.my.id/api/rfid/tap";
@@ -154,13 +154,24 @@ void loop() {
         }
     }
 
-    // 2. Cek apakah ada kartu e-KTP / RFID di sensor
-    if (!rfid.PICC_IsNewCardPresent()) {
-        delay(20);
+    // 2. Cek apakah ada kartu e-KTP / RFID di sensor (Dukungan REQA + WUPA Fallback)
+    bool cardPresent = rfid.PICC_IsNewCardPresent();
+    if (!cardPresent) {
+        // Kartu ISO 14443-4 (seperti e-KTP) yang tertahan di RF field memerlukan WUPA (Wakeup A)
+        byte bufferATQA[2];
+        byte bufferSize = sizeof(bufferATQA);
+        if (rfid.PICC_WakeupA(bufferATQA, &bufferSize) == MFRC522::STATUS_OK) {
+            cardPresent = true;
+        }
+    }
+
+    if (!cardPresent) {
+        delay(10);
         return;
     }
+
     if (!rfid.PICC_ReadCardSerial()) {
-        delay(20);
+        delay(10);
         return;
     }
 
@@ -229,7 +240,7 @@ void testRc522Connection() {
         Serial.println(F("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"));
         beepError();
     } else {
-        rfid.PCD_SetAntennaGain(rfid.RxGain_max); // Sensitivitas maksimal antena untuk e-KTP
+        rfid.PCD_SetAntennaGain(rfid.RxGain_43dB); // Gain 43 dB: stabil dan toleran tanpa saturasi/clipping ADC
         Serial.println(F("✅ Modul RC522 BERHASIL TERHUBUNG DENGAN BAIK!\n"));
     }
 }
