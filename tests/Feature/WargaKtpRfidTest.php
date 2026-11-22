@@ -368,3 +368,52 @@ test('warga dapat membatalkan sesi tap mandiri', function () {
             'is_enrolling' => false,
         ]);
 });
+
+test('warga dapat memverifikasi e-ktp langsung menggunakan sensor nfc smartphone', function () {
+    // 1. Warga terverifikasi mengirim UID e-KTP dari sensor NFC HP (misal 14-char ISO 14443 UID)
+    $response = $this->actingAs($this->wargaUser)
+        ->postJson(route('warga.rfid.tap-nfc'), [
+            'uid' => '04:5A:32:12:8B:50:80',
+        ])
+        ->assertOk()
+        ->assertJson([
+            'success' => true,
+        ]);
+
+    // 2. Data kartu KTP tersimpan dan terverifikasi di database
+    $card = RfidCard::where('user_id', $this->wargaUser->id)->first();
+    expect($card)->not->toBeNull();
+    expect($card->ktp_verified_at)->not->toBeNull();
+    expect($card->uid_hash)->toBe(RfidCard::hashUid('045A32128B5080'));
+
+    // 3. Warga lain tidak boleh mendaftarkan UID KTP yang sama
+    $responseDup = $this->actingAs($this->otherWargaUser)
+        ->postJson(route('warga.rfid.tap-nfc'), [
+            'uid' => '045A32128B5080',
+        ])
+        ->assertStatus(422)
+        ->assertJson([
+            'success' => false,
+        ]);
+
+    // 4. Warga yang sudah terverifikasi tidak bisa tap ulang
+    $this->actingAs($this->wargaUser)
+        ->postJson(route('warga.rfid.tap-nfc'), [
+            'uid' => '11223344',
+        ])
+        ->assertStatus(422);
+
+    // 5. Format UID yang tidak valid (kurang atau bukan hex) ditolak
+    $this->actingAs($this->otherWargaUser)
+        ->postJson(route('warga.rfid.tap-nfc'), [
+            'uid' => 'INVALID-UID',
+        ])
+        ->assertStatus(422);
+
+    // 6. Warga pending tidak boleh tap NFC
+    $this->actingAs($this->pendingWargaUser)
+        ->postJson(route('warga.rfid.tap-nfc'), [
+            'uid' => 'A1B2C3D4',
+        ])
+        ->assertStatus(403);
+});
