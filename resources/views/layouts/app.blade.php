@@ -277,6 +277,22 @@
                     'iconClass' => 'text-emerald-600',
                     'visible' => $user->hasPermission('view-kegiatan'),
                 ],
+                [
+                    'label' => 'E-Voting Pemilu RT/RW',
+                    'route' => 'evoting.index',
+                    'active' => 'evoting*',
+                    'icon' => 'fa-check-to-slot',
+                    'iconClass' => 'text-purple-600',
+                    'visible' => $user->hasPermission('view-voting'),
+                ],
+                [
+                    'label' => 'Kelola Pemilihan',
+                    'route' => 'admin.evoting.index',
+                    'active' => 'admin/evoting*',
+                    'icon' => 'fa-box-archive',
+                    'iconClass' => 'text-purple-600',
+                    'visible' => $user->hasPermission('manage-voting'),
+                ],
             ],
         ],
         [
