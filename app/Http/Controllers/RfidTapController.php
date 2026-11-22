@@ -41,6 +41,11 @@ class RfidTapController extends Controller
             }
         }
 
+        // Setiap interaksi sah dari ESP32 langsung memperbarui status reader online
+        if ($isDeviceKey) {
+            Cache::put('rfid_device_online', now()->toIso8601String(), now()->addSeconds(35));
+        }
+
         // Endpoint reset kartu darurat/testing untuk device key
         if ($isDeviceKey && $request->input('action') === 'reset_card') {
             if ($request->input('uid')) {

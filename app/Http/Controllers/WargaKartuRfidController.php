@@ -191,7 +191,21 @@ class WargaKartuRfidController extends Controller
             'device_online' => $deviceOnline,
             'notice' => $notice,
             'last_scan' => $lastScan,
-        ]);
+        ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+    }
+
+    public function deviceStatus()
+    {
+        return response()->json([
+            'device_online' => Cache::has('rfid_device_online'),
+            'server_time' => now()->toIso8601String(),
+        ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
     }
 
     public function tapNfc(Request $request)

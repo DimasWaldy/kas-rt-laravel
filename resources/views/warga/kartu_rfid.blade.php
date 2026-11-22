@@ -495,14 +495,23 @@
 
             {{-- Status Alat Reader RT (LIVE dari heartbeat ESP32) --}}
             <div
-                x-data="readerStatus({ statusUrl: '{{ route('warga.rfid.status') }}' })"
+                x-data="readerStatus({
+                    deviceStatusUrl: '{{ route('warga.rfid.device-status') }}',
+                    statusUrl: '{{ route('warga.rfid.status') }}'
+                })"
                 x-init="startDevicePolling()"
                 class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900"
             >
-                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Status Reader RT</h3>
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Status Reader RT</h3>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        <span class="h-1.5 w-1.5 rounded-full" :class="deviceOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'"></span>
+                        <span x-text="deviceOnline ? 'Live: Terhubung' : 'Live: Standby'"></span>
+                    </span>
+                </div>
 
                 {{-- 🟢 ESP32 Online & Siap Scan --}}
-                <div x-show="deviceOnline" x-cloak class="mt-3 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                <div x-show="deviceOnline" x-cloak x-transition.opacity.duration.300ms class="mt-3 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
                     <span class="mt-0.5 flex h-3 w-3 shrink-0 rounded-full bg-emerald-500 animate-pulse"></span>
                     <div class="text-xs leading-relaxed">
                         <p class="font-bold text-emerald-900 dark:text-emerald-100">Alat Reader ESP32 Online & Siap Scan</p>
@@ -513,7 +522,7 @@
                 </div>
 
                 {{-- 🔴 ESP32 Offline --}}
-                <div x-show="!deviceOnline && !isCheckingDevice" x-cloak class="mt-3 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                <div x-show="!deviceOnline && !isCheckingDevice" x-cloak x-transition.opacity.duration.300ms class="mt-3 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                     <span class="mt-1 flex h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400"></span>
                     <div class="text-xs leading-relaxed">
                         <p class="font-bold text-slate-900 dark:text-slate-100">Alat Reader ESP32 Tidak Terhubung</p>
@@ -692,22 +701,39 @@ function readerStatus(config) {
 
         startDevicePolling() {
             this.checkDeviceStatus();
+            // Polling cepat setiap 2 detik agar status langsung berubah live tanpa refresh halaman
             this.devicePollTimer = setInterval(() => {
                 this.checkDeviceStatus();
-            }, 5000); // Cek setiap 5 detik
+            }, 2000);
+
+            // Cek seketika saat user kembali membuka tab browser
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    this.checkDeviceStatus();
+                }
+            });
         },
 
         async checkDeviceStatus() {
             try {
-                const response = await fetch(config.statusUrl, {
-                    headers: { 'Accept': 'application/json' }
+                // Anti-cache: cache-control no-store + timestamp query param
+                const endpoint = config.deviceStatusUrl || config.statusUrl;
+                const url = endpoint + (endpoint.includes('?') ? '&' : '?') + '_=' + Date.now();
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    },
+                    cache: 'no-store'
                 });
                 if (response.ok) {
                     const data = await response.json();
                     this.deviceOnline = !!data.device_online;
                 }
             } catch (e) {
-                this.deviceOnline = false;
+                // network blip
             } finally {
                 this.isCheckingDevice = false;
             }
@@ -943,8 +969,14 @@ function wargaRfidTap(config) {
             if (this.pollTimer) clearInterval(this.pollTimer);
             this.pollTimer = setInterval(async () => {
                 try {
-                    const response = await fetch(config.statusUrl, {
-                        headers: { 'Accept': 'application/json' }
+                    const url = config.statusUrl + (config.statusUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache'
+                        },
+                        cache: 'no-store'
                     });
                     if (response.ok) {
                         const data = await response.json();
@@ -996,8 +1028,14 @@ function wargaRfidTap(config) {
             if (this.pollTimer) clearInterval(this.pollTimer);
             this.pollTimer = setInterval(async () => {
                 try {
-                    const response = await fetch(config.statusUrl, {
-                        headers: { 'Accept': 'application/json' }
+                    const url = config.statusUrl + (config.statusUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache'
+                        },
+                        cache: 'no-store'
                     });
                     if (response.ok) {
                         const data = await response.json();
