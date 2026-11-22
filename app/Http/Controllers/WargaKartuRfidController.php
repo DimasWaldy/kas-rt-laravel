@@ -132,6 +132,24 @@ class WargaKartuRfidController extends Controller
         return back()->with('success', 'Sesi tap e-KTP dibatalkan.');
     }
 
+    public function unregister(Request $request)
+    {
+        $user = $request->user();
+        abort_unless($user->isAktif(), 403);
+
+        RfidCard::where('user_id', $user->id)->delete();
+        Cache::forget("rfid_enrollment_notice:{$user->id}");
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Pendaftaran kartu e-KTP berhasil dicabut. Anda dapat mendaftarkan kartu fisik baru.',
+            ]);
+        }
+
+        return back()->with('success', 'Pendaftaran kartu e-KTP berhasil dicabut. Anda dapat mendaftarkan kartu fisik baru.');
+    }
+
     public function status(Request $request)
     {
         $user = $request->user();
