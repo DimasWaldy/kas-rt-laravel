@@ -170,6 +170,12 @@ test('warga cannot register twice for koperasi membership', function () {
 });
 
 test('warga aktif dapat mengajukan pinjaman dengan bunga 2 persen', function () {
+    RfidCard::create([
+        'user_id' => $this->warga->user->id,
+        'uid_hash' => RfidCard::hashUid('PINJAM-1'),
+        'ktp_verified_at' => now(),
+    ]);
+
     KoperasiMember::create([
         'user_id' => $this->warga->user->id,
         'member_number' => 'KOP-TEST',
@@ -197,6 +203,12 @@ test('warga aktif dapat mengajukan pinjaman dengan bunga 2 persen', function () 
 });
 
 test('warga cannot submit a second loan while first loan awaits approval', function () {
+    RfidCard::create([
+        'user_id' => $this->warga->user->id,
+        'uid_hash' => RfidCard::hashUid('PINJAM-2'),
+        'ktp_verified_at' => now(),
+    ]);
+
     KoperasiMember::create([
         'user_id' => $this->warga->user->id,
         'member_number' => 'KOP-ONE-LOAN',
@@ -211,7 +223,40 @@ test('warga cannot submit a second loan while first loan awaits approval', funct
     expect(KoperasiPinjam::where('user_id', $this->warga->user->id)->count())->toBe(1);
 });
 
+test('warga yang belum verifikasi e-ktp via tap ditolak mengajukan pinjaman koperasi', function () {
+    KoperasiMember::create([
+        'user_id' => $this->warga->user->id,
+        'member_number' => 'KOP-NO-KTP',
+        'joined_at' => now(),
+        'status' => 'aktif',
+    ]);
+
+    $this->actingAs($this->warga->user)
+        ->get(route('koperasi.pinjam'))
+        ->assertOk()
+        ->assertSee('Wajib Verifikasi e-KTP Sebelum Mengajukan Pinjaman')
+        ->assertSee('Wajib Tap e-KTP Terlebih Dahulu (Pinjaman Terkunci)');
+
+    $this->actingAs($this->warga->user)
+        ->post(route('koperasi.store-pinjam'), [
+            'amount' => 500000,
+            'tenor_months' => 6,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('error', 'Pengajuan pinjaman ditolak: Wajib melakukan verifikasi fisik e-KTP melalui tap NFC smartphone atau alat reader RT terlebih dahulu.');
+
+    $this->assertDatabaseMissing('koperasi_pinjams', [
+        'user_id' => $this->warga->user->id,
+    ]);
+});
+
 test('warga aktif tidak bisa mengajukan pinjaman satu juta jika simpanan wajib kurang dari lima puluh ribu', function () {
+    RfidCard::create([
+        'user_id' => $this->warga->user->id,
+        'uid_hash' => RfidCard::hashUid('PINJAM-3'),
+        'ktp_verified_at' => now(),
+    ]);
+
     KoperasiMember::create([
         'user_id' => $this->warga->user->id,
         'member_number' => 'KOP-HIGH-FAIL',
@@ -243,6 +288,12 @@ test('warga aktif tidak bisa mengajukan pinjaman satu juta jika simpanan wajib k
 });
 
 test('warga aktif bisa mengajukan pinjaman di atas satu juta jika simpanan wajib minimal lima puluh ribu', function () {
+    RfidCard::create([
+        'user_id' => $this->warga->user->id,
+        'uid_hash' => RfidCard::hashUid('PINJAM-4'),
+        'ktp_verified_at' => now(),
+    ]);
+
     KoperasiMember::create([
         'user_id' => $this->warga->user->id,
         'member_number' => 'KOP-HIGH-PASS',
@@ -276,6 +327,12 @@ test('warga aktif bisa mengajukan pinjaman di atas satu juta jika simpanan wajib
 });
 
 test('halaman ajukan pinjaman menampilkan saldo simpanan wajib terverifikasi', function () {
+    RfidCard::create([
+        'user_id' => $this->warga->user->id,
+        'uid_hash' => RfidCard::hashUid('PINJAM-5'),
+        'ktp_verified_at' => now(),
+    ]);
+
     KoperasiMember::create([
         'user_id' => $this->warga->user->id,
         'member_number' => 'KOP-SALDO-WAJIB',
