@@ -57,6 +57,9 @@
                     <button type="button" disabled class="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-200 px-5 py-3 text-sm font-bold text-slate-500 sm:w-auto">
                         <i class="fa-solid fa-lock"></i> Belum Tap Kartu (Daftar Terkunci)
                     </button>
+                    <a href="{{ route('warga.rfid.show') }}" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-3 text-sm font-bold text-white hover:bg-amber-700 sm:w-auto">
+                        <i class="fa-solid fa-wifi"></i> Tap KTP Sekarang (NFC HP / Reader RT)
+                    </a>
                     <a href="{{ route('koperasi.index') }}" class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 sm:w-auto">
                         <i class="fa-solid fa-rotate-right"></i> Cek Status Kartu
                     </a>

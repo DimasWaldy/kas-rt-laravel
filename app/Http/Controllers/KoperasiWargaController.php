@@ -146,12 +146,28 @@ class KoperasiWargaController extends Controller
 
         $simpananWajibTerverifikasi = $this->simpananWajibTerverifikasi(Auth::id());
 
-        return view('koperasi.warga.pinjam', compact('simpananWajibTerverifikasi'));
+        $rfidCard = RfidCard::where('user_id', Auth::id())
+            ->where(fn ($query) => $query->whereNotNull('ktp_verified_at')->orWhereNotNull('koperasi_verified_at'))
+            ->first();
+
+        $hasVerifiedKtp = $rfidCard !== null;
+
+        return view('koperasi.warga.pinjam', compact('simpananWajibTerverifikasi', 'rfidCard', 'hasVerifiedKtp'));
     }
 
     public function storePinjam(Request $request)
     {
         $this->authorizeMember();
+
+        $hasVerifiedKtp = RfidCard::where('user_id', Auth::id())
+            ->where(fn ($query) => $query->whereNotNull('ktp_verified_at')->orWhereNotNull('koperasi_verified_at'))
+            ->exists();
+
+        if (! $hasVerifiedKtp) {
+            return back()
+                ->withInput()
+                ->with('error', 'Pengajuan pinjaman ditolak: Wajib melakukan verifikasi fisik e-KTP melalui tap NFC smartphone atau alat reader RT terlebih dahulu.');
+        }
 
         $validated = $request->validate([
             'amount' => 'required|integer|min:50000',
