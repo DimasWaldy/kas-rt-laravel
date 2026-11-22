@@ -4,7 +4,7 @@
  * ============================================================
  * Fitur:
  *   - Membaca UID e-KTP / kartu RFID / tag RFID (13.56 MHz)
- *   - Otomatis kirim UID ke server Smart RW tanpa perlu session token manual
+ *   - Otomatis kirim UID ke server Smart RW tanpa perlu token manual
  *   - Diagnosis otomatis koneksi modul RC522 di Serial Monitor
  *   - Auto-detect pin RST (GPIO 27 atau GPIO 22)
  *   - Kompatibel dengan ESP32 DevKit (30/38 pin) & Arduino Nano ESP32
@@ -20,9 +20,6 @@
  *   GND        | GND        | Ground
  *   3.3V (VCC) | 3.3V       | ⚠️ WAJIB 3.3V! JANGAN KE 5V / VIN!
  *
- * Wiring RC522 ke Arduino Nano ESP32:
- *   SDA: D10 | SCK: D13 | MOSI: D11 | MISO: D12 | RST: D9 | 3.3V & GND
- *
  * Pin Buzzer Opsional:
  *   Buzzer (+) -> GPIO 25 | Buzzer (-) -> GND
  * ============================================================
@@ -37,14 +34,14 @@
 // ============================================================
 // 1. KONFIGURASI WIFI & SERVER SMART RW
 // ============================================================
-// Ganti nama WiFi dan password Hotspot HP Anda di bawah ini:
+// Hotspot HP Anda:
 const char* WIFI_SSID     = "Poco F6505";
 const char* WIFI_PASSWORD = "dimas12345";
 
 // Endpoint API Server Smart RW
 const char* API_URL       = "https://smartos-rw.unique-monsters.my.id/api/rfid/tap";
 
-// Master Device Key (Permanent Hardware Key - Bebas input token 64 karakter)
+// Master Device Key (Hardware Key permanen — bebas token manual)
 const char* DEVICE_KEY    = "smartrw-rfid-device";
 
 // ============================================================
@@ -60,7 +57,7 @@ const char* DEVICE_KEY    = "smartrw-rfid-device";
 #else
   #define BOARD_NAME "ESP32 DevKit Standar"
   constexpr uint8_t PIN_SS   = 5;
-  constexpr uint8_t PIN_RST  = 27; // Default pin 27 (Auto-fallback ke 22 jika diperlukan)
+  constexpr uint8_t PIN_RST  = 27; // Default pin 27 (Auto-fallback ke 22)
   constexpr uint8_t PIN_SCK  = 18;
   constexpr uint8_t PIN_MOSI = 23;
   constexpr uint8_t PIN_MISO = 19;
