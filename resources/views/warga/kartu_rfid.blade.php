@@ -460,7 +460,6 @@
                     </div>
                 </div>
             </div>
-            </div>
 
             {{-- Status Alat Reader RT --}}
             <div class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
