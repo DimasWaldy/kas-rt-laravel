@@ -77,7 +77,7 @@ String lastUID = "";
 unsigned long lastScanTime = 0;
 unsigned long lastHeartbeatTime = 0;
 const unsigned long SCAN_COOLDOWN_MS = 2500; // Jeda 2.5 detik untuk kartu yang sama
-const unsigned long HEARTBEAT_INTERVAL_MS = 2000; // Heartbeat setiap 2 detik (responsif & stabil di jaringan WiFi)
+const unsigned long HEARTBEAT_INTERVAL_MS = 1000; // Heartbeat setiap 1 detik untuk deteksi cabut/colok ultra real-time
 
 // Prototype Fungsi
 String readUID();

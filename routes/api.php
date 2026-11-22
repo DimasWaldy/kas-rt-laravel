@@ -11,7 +11,7 @@ Route::post('/rfid/scan', RfidTapController::class)->middleware('throttle:120,1'
 Route::get('/rfid/device-status', function () {
     $lastSeen = (float) Cache::get('rfid_device_online_at', 0);
     $interval = (float) Cache::get('rfid_device_hb_interval', 10.0);
-    $timeout = max(5.0, $interval + 3.0);
+    $timeout = max(2.0, min(13.0, $interval * 1.3 + 0.8));
     $isOnline = $lastSeen > 0 && (microtime(true) - $lastSeen) <= $timeout;
 
     return response()->json([
