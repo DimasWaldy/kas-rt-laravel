@@ -57,7 +57,7 @@ const char* DEVICE_KEY    = "smartrw-rfid-device";
 #else
   #define BOARD_NAME "ESP32 DevKit Standar"
   constexpr uint8_t PIN_SS   = 5;
-  constexpr uint8_t PIN_RST  = 27; // Default pin 27 (Auto-fallback ke 22)
+  constexpr uint8_t PIN_RST  = 22; // Pin 22 adalah standar wiring DevKit ESP32
   constexpr uint8_t PIN_SCK  = 18;
   constexpr uint8_t PIN_MOSI = 23;
   constexpr uint8_t PIN_MISO = 19;
@@ -70,6 +70,7 @@ constexpr uint8_t PIN_BUZZER = 25;
 // 3. VARIABEL GLOBAL & OBJEK
 // ============================================================
 MFRC522 rfid(PIN_SS, PIN_RST);
+bool rc522Ready = false;
 String lastUID = "";
 unsigned long lastScanTime = 0;
 const unsigned long SCAN_COOLDOWN_MS = 2500; // Jeda 2.5 detik untuk kartu yang sama
@@ -98,6 +99,15 @@ void setup() {
     pinMode(PIN_BUZZER, OUTPUT);
     digitalWrite(PIN_BUZZER, LOW);
 
+#if !defined(ARDUINO_NANO_ESP32)
+    // Tarik kedua pin RST (GPIO 22 dan 27) ke HIGH agar modul keluar dari power-down mode
+    pinMode(22, OUTPUT);
+    digitalWrite(22, HIGH);
+    pinMode(27, OUTPUT);
+    digitalWrite(27, HIGH);
+    delay(20);
+#endif
+
     // Inisialisasi SPI & Modul RFID
 #if defined(ARDUINO_NANO_ESP32)
     SPI.begin();
@@ -111,7 +121,7 @@ void setup() {
     testRc522Connection();
 
     // Koneksi ke WiFi Hotspot
-    Serial.printf("\n[WIFI] Menghubungkan ke: %s ...\n", WIFI_SSID);
+    Serial.printf("[WIFI] Menghubungkan ke: %s ...\n", WIFI_SSID);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
     int retries = 0;
@@ -125,18 +135,22 @@ void setup() {
         Serial.println(F("\n[WIFI] Berhasil terhubung!"));
         Serial.printf("[WIFI] IP Address ESP32: %s\n", WiFi.localIP().toString().c_str());
         Serial.printf("[WIFI] Kualitas Sinyal: %d dBm\n", WiFi.RSSI());
-        beepSuccess();
+        if (rc522Ready) beepSuccess();
     } else {
         Serial.println(F("\n⚠️  [WIFI GAGAL] Tidak dapat terhubung ke WiFi/Hotspot."));
         Serial.println(F("    Pastikan Hotspot HP aktif dan password benar."));
-        Serial.println(F("    Alat tetap dapat mendeteksi kartu secara offline di Serial Monitor."));
     }
 
-    Serial.println(F("\n=================================================="));
-    Serial.println(F("STATUS: SIAP MEMBACA KARTU e-KTP!"));
-    Serial.println(F(">>> Buka web: smartos-rw.unique-monsters.my.id/kartu-rfid"));
-    Serial.println(F(">>> Klik tombol 'Buka Sesi Tap Mandiri' di web,"));
-    Serial.println(F(">>> lalu dekatkan kartu e-KTP ke sensor RFID."));
+    Serial.println(F("=================================================="));
+    if (rc522Ready) {
+        Serial.println(F("STATUS: SIAP MEMBACA KARTU e-KTP!"));
+        Serial.println(F(">>> Buka web: smartos-rw.unique-monsters.my.id/kartu-rfid"));
+        Serial.println(F(">>> Klik tombol 'Buka Sesi Tap Mandiri' di web,"));
+        Serial.println(F(">>> lalu dekatkan kartu e-KTP ke sensor RFID."));
+    } else {
+        Serial.println(F("❌ STATUS: SENSOR RC522 BELUM TERHUBUNG / KABEL KENDOR!"));
+        Serial.println(F("   Alat akan terus mencoba mendeteksi modul secara berkala..."));
+    }
     Serial.println(F("==================================================\n"));
 }
 
@@ -154,13 +168,32 @@ void loop() {
         }
     }
 
-    // 2. Cek apakah ada kartu e-KTP / RFID di sensor (Dukungan REQA + WUPA Fallback)
+    // 2. Jika RC522 belum terdeteksi saat boot, coba deteksi ulang setiap 2.5 detik
+    if (!rc522Ready) {
+        static unsigned long lastRetryTime = 0;
+        if (millis() - lastRetryTime > 2500) {
+            lastRetryTime = millis();
+            Serial.println(F("⏳ [AUTODETECT] Mencoba mendeteksi sensor RC522... Cek kabel jumper!"));
+            testRc522Connection();
+            if (rc522Ready) {
+                Serial.println(F("🎉 [SUKSES] SENSOR RC522 TERDETEKSI! SIAP SCAN KARTU e-KTP!"));
+                beepSuccess();
+            }
+        }
+        return;
+    }
+
+    // 3. Cek apakah ada kartu e-KTP / RFID di sensor (REQA + WUPA Fallback)
     bool cardPresent = rfid.PICC_IsNewCardPresent();
     if (!cardPresent) {
-        // Kartu ISO 14443-4 (seperti e-KTP) yang tertahan di RF field memerlukan WUPA (Wakeup A)
+        // Kartu ISO 14443-4 (e-KTP) yang tertahan di RF field memerlukan perintah WUPA
         byte bufferATQA[2];
         byte bufferSize = sizeof(bufferATQA);
-        if (rfid.PICC_WakeupA(bufferATQA, &bufferSize) == MFRC522::STATUS_OK) {
+        rfid.PCD_WriteRegister(rfid.TxModeReg, 0x00);
+        rfid.PCD_WriteRegister(rfid.RxModeReg, 0x00);
+        rfid.PCD_WriteRegister(rfid.ModWidthReg, 0x26);
+        auto status = rfid.PICC_WakeupA(bufferATQA, &bufferSize);
+        if (status == MFRC522::STATUS_OK || status == MFRC522::STATUS_COLLISION) {
             cardPresent = true;
         }
     }
@@ -171,11 +204,12 @@ void loop() {
     }
 
     if (!rfid.PICC_ReadCardSerial()) {
-        delay(10);
+        Serial.println(F("🔍 [SENSOR] Sinyal kartu terdeteksi! Tahan kartu di atas sensor..."));
+        delay(15);
         return;
     }
 
-    // 3. Baca nomor seri (UID) kartu
+    // 4. Baca nomor seri (UID) kartu
     String uid = readUID();
 
     // Validasi panjang UID
@@ -202,7 +236,7 @@ void loop() {
     Serial.printf ("💳 [SCAN] KARTU TERDETEKSI! UID: %s (%d byte)\n", uid.c_str(), uidSize);
     Serial.println(F("=================================================="));
 
-    // 4. Kirim UID ke server Smart RW
+    // 5. Kirim UID ke server Smart RW
     sendTapToServer(uid);
 
     rfid.PICC_HaltA();
@@ -216,12 +250,18 @@ void testRc522Connection() {
     byte v = rfid.PCD_ReadRegister(MFRC522::VersionReg);
 
 #if !defined(ARDUINO_NANO_ESP32)
-    // Coba fallback pin RST 22 jika pin 27 tidak merespon
+    // Coba fallback pin RST 27 jika pin 22 belum merespon
     if (v == 0x00 || v == 0xFF) {
-        Serial.println(F("[RC522] RST di pin 27 belum merespon, mencoba pin 22..."));
-        rfid = MFRC522(PIN_SS, 22);
+        rfid = MFRC522(PIN_SS, 27);
         rfid.PCD_Init();
-        delay(50);
+        delay(40);
+        v = rfid.PCD_ReadRegister(MFRC522::VersionReg);
+    }
+    // Coba soft-reset (tanpa pin RST fisik)
+    if (v == 0x00 || v == 0xFF) {
+        rfid = MFRC522(PIN_SS, UINT8_MAX);
+        rfid.PCD_Init();
+        delay(40);
         v = rfid.PCD_ReadRegister(MFRC522::VersionReg);
     }
 #endif
@@ -229,19 +269,21 @@ void testRc522Connection() {
     Serial.printf("[RC522] Versi Chip Firmware: 0x%02X\n", v);
 
     if (v == 0x00 || v == 0xFF) {
+        rc522Ready = false;
         Serial.println();
         Serial.println(F("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"));
-        Serial.println(F("❌ PERINGATAN KERAS: Modul RC522 TIDAK TERBACA OLEH ESP32!"));
-        Serial.println(F("   Penyebab utama modul tidak terbaca:"));
-        Serial.println(F("   1. Kaki 8 pin RC522 BELUM DISOLDER dengan timah panas."));
-        Serial.println(F("   2. VCC wajib ke pin 3.3V (JANGAN KE 5V/VIN!)."));
-        Serial.println(F("   3. Pin SPI: SDA->GPIO 5, SCK->18, MOSI->23, MISO->19, RST->27/22."));
-        Serial.println(F("   4. Periksa apakah ada kabel jumper yang kendor."));
+        Serial.println(F("❌ PERINGATAN KERAS: Modul RC522 TIDAK TERBACA OLEH ESP32 (0x00)!"));
+        Serial.println(F("   Penyebab utama kartu tidak bisa terscan:"));
+        Serial.println(F("   1. Pin RST sambungkan ke pin GPIO 22 (atau 27)."));
+        Serial.println(F("   2. Kaki pin header RC522 BELUM DISOLDER dengan timah panas."));
+        Serial.println(F("   3. VCC wajib ke pin 3.3V (JANGAN KE 5V/VIN!)."));
+        Serial.println(F("   4. Pin SPI: SDA->GPIO 5, SCK->18, MOSI->23, MISO->19."));
         Serial.println(F("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"));
         beepError();
     } else {
+        rc522Ready = true;
         rfid.PCD_SetAntennaGain(rfid.RxGain_43dB); // Gain 43 dB: stabil dan toleran tanpa saturasi/clipping ADC
-        Serial.println(F("✅ Modul RC522 BERHASIL TERHUBUNG DENGAN BAIK!\n"));
+        Serial.printf("✅ Modul RC522 BERHASIL TERHUBUNG DENGAN BAIK! (Chip 0x%02X)\n\n", v);
     }
 }
 
