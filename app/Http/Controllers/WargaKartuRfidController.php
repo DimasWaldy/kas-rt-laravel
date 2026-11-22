@@ -162,6 +162,9 @@ class WargaKartuRfidController extends Controller
         $remainingSeconds = $isEnrolled ? max(0, (int) now()->diffInSeconds($session->enrollment_expires_at, false)) : 0;
         $notice = Cache::pull("rfid_enrollment_notice:{$user->id}");
 
+        // Cek apakah ESP32 mengirim heartbeat dalam 30 detik terakhir
+        $deviceOnline = Cache::has('rfid_device_online');
+
         return response()->json([
             'is_enrolling' => $isEnrolled,
             'remaining_seconds' => $remainingSeconds,
@@ -169,6 +172,7 @@ class WargaKartuRfidController extends Controller
             'verified_at' => $card?->ktp_verified_at?->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i'),
             'uid_preview' => $card?->uid_hash ? substr($card->uid_hash, 0, 16).'••••' : null,
             'reader_active' => $session && $session->expires_at->isFuture(),
+            'device_online' => $deviceOnline,
             'notice' => $notice,
         ]);
     }

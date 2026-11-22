@@ -40,9 +40,11 @@ const char* WIFI_PASSWORD = "dimas12345";
 
 // Endpoint API Server Smart RW (Mendukung /tap dan /scan)
 const char* API_URL       = "https://smartos-rw.unique-monsters.my.id/api/rfid/tap";
+const char* HEARTBEAT_URL = "https://smartos-rw.unique-monsters.my.id/api/rfid/heartbeat";
 
 // Master Device Key (Hardware Key permanen — bebas token manual)
 const char* DEVICE_KEY    = "smartrw-rfid-device";
+const char* DEVICE_ID     = "esp32-scanner-01";
 
 // ============================================================
 // 2. KONFIGURASI PIN SPI RC522
@@ -73,11 +75,14 @@ MFRC522 rfid(PIN_SS, PIN_RST);
 bool rc522Ready = false;
 String lastUID = "";
 unsigned long lastScanTime = 0;
+unsigned long lastHeartbeatTime = 0;
 const unsigned long SCAN_COOLDOWN_MS = 2500; // Jeda 2.5 detik untuk kartu yang sama
+const unsigned long HEARTBEAT_INTERVAL_MS = 10000; // Heartbeat setiap 10 detik
 
 // Prototype Fungsi
 String readUID();
 void sendTapToServer(const String& uid);
+void sendHeartbeat();
 void testRc522Connection();
 void beepSuccess();
 void beepError();
@@ -136,6 +141,8 @@ void setup() {
         Serial.printf("[WIFI] IP Address ESP32: %s\n", WiFi.localIP().toString().c_str());
         Serial.printf("[WIFI] Kualitas Sinyal: %d dBm\n", WiFi.RSSI());
         if (rc522Ready) beepSuccess();
+        // Kirim heartbeat pertama kali saat baru menyala
+        sendHeartbeat();
     } else {
         Serial.println(F("\n⚠️  [WIFI GAGAL] Tidak dapat terhubung ke WiFi/Hotspot."));
         Serial.println(F("    Pastikan Hotspot HP aktif dan password benar."));
@@ -166,6 +173,12 @@ void loop() {
             Serial.println(F("[WIFI] Terputus! Mencoba menyambung kembali..."));
             WiFi.reconnect();
         }
+    }
+
+    // 1b. Heartbeat berkala ke server (agar web tahu ESP32 ONLINE)
+    if (WiFi.status() == WL_CONNECTED && millis() - lastHeartbeatTime >= HEARTBEAT_INTERVAL_MS) {
+        lastHeartbeatTime = millis();
+        sendHeartbeat();
     }
 
     // 2. Jika RC522 belum terdeteksi saat boot, coba deteksi ulang setiap 2.5 detik
@@ -375,7 +388,35 @@ void sendTapToServer(const String& uid) {
 }
 
 // ============================================================
-// 9. NADA BUZZER (OPSIONAL)
+// 9. HEARTBEAT KE SERVER (STATUS ONLINE)
+// ============================================================
+void sendHeartbeat() {
+    if (WiFi.status() != WL_CONNECTED) return;
+
+    WiFiClientSecure client;
+    client.setInsecure();
+
+    HTTPClient http;
+    http.begin(client, HEARTBEAT_URL);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-Key", String(DEVICE_KEY));
+    http.setTimeout(4000);
+
+    String payload = "{\"device_id\":\"" + String(DEVICE_ID)
+                   + "\",\"ip\":\"" + WiFi.localIP().toString() + "\"}";
+
+    int code = http.POST(payload);
+
+    if (code == 200) {
+        Serial.print(F("."));  // Titik heartbeat tanda normal
+    } else {
+        Serial.printf("\n[HEARTBEAT] Gagal (HTTP %d)\n", code);
+    }
+    http.end();
+}
+
+// ============================================================
+// 10. NADA BUZZER (OPSIONAL)
 // ============================================================
 void beepSuccess() {
     digitalWrite(PIN_BUZZER, HIGH);

@@ -252,7 +252,7 @@ test('warga dapat melihat kartu digital dan panduan verifikasi rfid di halaman k
         ->assertSee('Cara Melakukan Verifikasi KTP via RFID')
         ->assertSee('Tanya Jawab (FAQ) Verifikasi e-KTP')
         ->assertSee('Belum Di-Tap')
-        ->assertSee('Sesi Alat Belum Dibuka');
+        ->assertSee('Alat Reader ESP32 Tidak Terhubung');
 
     $this->actingAs($this->wargaUser)
         ->get(route('dashboard'))

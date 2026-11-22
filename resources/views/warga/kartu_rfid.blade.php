@@ -468,30 +468,43 @@
                 </div>
             </div>
 
-            {{-- Status Alat Reader RT --}}
-            <div class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            {{-- Status Alat Reader RT (LIVE dari heartbeat ESP32) --}}
+            <div
+                x-data="readerStatus({ statusUrl: '{{ route('warga.rfid.status') }}' })"
+                x-init="startDevicePolling()"
+                class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900"
+            >
                 <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Status Reader RT</h3>
-                @if($activeSession)
-                    <div class="mt-3 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
-                        <span class="mt-0.5 flex h-3 w-3 shrink-0 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <div class="text-xs leading-relaxed">
-                            <p class="font-bold text-emerald-900 dark:text-emerald-100">Sesi Alat Reader RT Sedang Aktif</p>
-                            <p class="mt-0.5 text-emerald-700 dark:text-emerald-300">
-                                Petugas RT sedang membuka sesi tap (berlaku s/d {{ $activeSession->expires_at->timezone('Asia/Jakarta')->format('H:i') }} WIB). Anda bisa langsung mendatangi petugas untuk tap e-KTP fisik Anda sekarang.
-                            </p>
-                        </div>
+
+                {{-- 🟢 ESP32 Online & Siap Scan --}}
+                <div x-show="deviceOnline" x-cloak class="mt-3 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                    <span class="mt-0.5 flex h-3 w-3 shrink-0 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <div class="text-xs leading-relaxed">
+                        <p class="font-bold text-emerald-900 dark:text-emerald-100">Alat Reader ESP32 Online & Siap Scan</p>
+                        <p class="mt-0.5 text-emerald-700 dark:text-emerald-300">
+                            Perangkat RFID reader terhubung ke server. Anda bisa langsung buka sesi tap mandiri dan tempelkan e-KTP ke alat.
+                        </p>
                     </div>
-                @else
-                    <div class="mt-3 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        <span class="mt-1 flex h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400"></span>
-                        <div class="text-xs leading-relaxed">
-                            <p class="font-bold text-slate-900 dark:text-slate-100">Sesi Alat Belum Dibuka</p>
-                            <p class="mt-0.5 text-slate-500 dark:text-slate-400">
-                                Sesi reader diaktifkan oleh pengurus saat Anda hadir di pos/kantor RT untuk melakukan tap verifikasi e-KTP.
-                            </p>
-                        </div>
+                </div>
+
+                {{-- 🔴 ESP32 Offline --}}
+                <div x-show="!deviceOnline && !isCheckingDevice" x-cloak class="mt-3 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    <span class="mt-1 flex h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400"></span>
+                    <div class="text-xs leading-relaxed">
+                        <p class="font-bold text-slate-900 dark:text-slate-100">Alat Reader ESP32 Tidak Terhubung</p>
+                        <p class="mt-0.5 text-slate-500 dark:text-slate-400">
+                            Perangkat RFID reader belum menyala atau belum tersambung ke server. Hubungi petugas RT untuk menyalakan alat.
+                        </p>
                     </div>
-                @endif
+                </div>
+
+                {{-- 🟡 Sedang Mengecek --}}
+                <div x-show="isCheckingDevice" class="mt-3 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                    <i class="fa-solid fa-circle-notch fa-spin mt-0.5 text-amber-500 shrink-0"></i>
+                    <div class="text-xs leading-relaxed">
+                        <p class="font-bold">Mengecek Status Alat Reader...</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -646,6 +659,44 @@
 </div>
 
 <script>
+function readerStatus(config) {
+    return {
+        deviceOnline: false,
+        isCheckingDevice: true,
+        devicePollTimer: null,
+
+        startDevicePolling() {
+            this.checkDeviceStatus();
+            this.devicePollTimer = setInterval(() => {
+                this.checkDeviceStatus();
+            }, 5000); // Cek setiap 5 detik
+        },
+
+        async checkDeviceStatus() {
+            try {
+                const response = await fetch(config.statusUrl, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    this.deviceOnline = !!data.device_online;
+                }
+            } catch (e) {
+                this.deviceOnline = false;
+            } finally {
+                this.isCheckingDevice = false;
+            }
+        },
+
+        destroy() {
+            if (this.devicePollTimer) {
+                clearInterval(this.devicePollTimer);
+                this.devicePollTimer = null;
+            }
+        }
+    };
+}
+
 function wargaRfidTap(config) {
     return {
         isEnrolled: config.isEnrolled,
@@ -681,6 +732,10 @@ function wargaRfidTap(config) {
                 this.activeTab = 'rfid';
                 this.startCountdown();
                 this.startPolling();
+            }
+            // Polling background: cek perubahan status kartu bahkan saat tidak enrolling
+            if (!this.isVerified && !this.isEnrolling) {
+                this.startBackgroundPolling();
             }
         },
 
@@ -888,6 +943,33 @@ function wargaRfidTap(config) {
                     // silent fail on network blip
                 }
             }, 1500);
+        },
+
+        // Background polling: cek perubahan status kartu setiap 3 detik
+        // bahkan saat user TIDAK sedang enrolling (agar deteksi scan dari ESP32)
+        startBackgroundPolling() {
+            if (this.pollTimer) clearInterval(this.pollTimer);
+            this.pollTimer = setInterval(async () => {
+                try {
+                    const response = await fetch(config.statusUrl, {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.is_verified) {
+                            this.stopTimers();
+                            this.isVerified = true;
+                            this.isEnrolled = false;
+                            this.justVerified = true;
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        }
+                    }
+                } catch (e) {
+                    // silent fail
+                }
+            }, 3000);
         },
 
         stopTimers() {
