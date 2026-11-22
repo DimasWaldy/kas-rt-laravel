@@ -234,7 +234,7 @@
                         <div class="flex-1">
                             <div class="flex items-center justify-between">
                                 <h4 class="font-extrabold text-sm text-rose-900 dark:text-rose-200">Kartu Sudah Terdaftar di Akun Warga Lain!</h4>
-                                <button type="button" @click="conflictNotice = null" class="text-rose-500 hover:text-rose-700 p-1" title="Tutup Notifikasi">
+                                <button type="button" @click="conflictNotice = null; lastScanMessage = null" class="text-rose-500 hover:text-rose-700 p-1" title="Tutup Notifikasi">
                                     <i class="fa-solid fa-xmark"></i>
                                 </button>
                             </div>
@@ -262,6 +262,31 @@
                         <div>
                             <p class="font-bold text-sm">Verifikasi Berhasil!</p>
                             <p class="mt-0.5 text-emerald-700 dark:text-emerald-300">e-KTP fisik Anda telah berhasil terdaftar dan aktif secara resmi di RT dan sistem!</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Live Scan Result dari ESP32 (sukses/error ditampilkan real-time) --}}
+                <div x-show="lastScanMessage && !conflictNotice && !justVerified" x-cloak class="mt-4 rounded-2xl p-4 text-xs font-semibold transition-all"
+                     :class="lastScanStatus === 'error'
+                        ? 'border-2 border-rose-400 bg-linear-to-r from-rose-50 via-red-50 to-amber-50 text-rose-900 shadow-md shadow-rose-100 dark:border-rose-700 dark:from-rose-950/80 dark:via-red-950/70 dark:to-amber-950/60 dark:text-rose-100'
+                        : 'border border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-100'"
+                >
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-xs"
+                             :class="lastScanStatus === 'error' ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'">
+                            <i class="text-base" :class="lastScanStatus === 'error' ? 'fa-solid fa-triangle-exclamation animate-bounce' : 'fa-solid fa-circle-check'"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-extrabold text-sm"
+                                    :class="lastScanStatus === 'error' ? 'text-rose-900 dark:text-rose-200' : 'text-emerald-900 dark:text-emerald-100'"
+                                    x-text="lastScanStatus === 'error' ? '⚠️ Hasil Scan ESP32: Ditolak' : '✅ Hasil Scan ESP32: Berhasil'"></h4>
+                                <button type="button" @click="lastScanMessage = null" class="p-1 hover:opacity-70" title="Tutup">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                            <p class="mt-1 text-[11.5px] leading-relaxed font-medium" x-text="lastScanMessage"></p>
                         </div>
                     </div>
                 </div>
@@ -705,6 +730,8 @@ function wargaRfidTap(config) {
         isLoading: false,
         errorMessage: null,
         conflictNotice: null,
+        lastScanMessage: null,
+        lastScanStatus: null,
         justVerified: false,
         pollTimer: null,
         countdownTimer: null,
@@ -843,6 +870,8 @@ function wargaRfidTap(config) {
             this.isLoading = true;
             this.errorMessage = null;
             this.conflictNotice = null;
+            this.lastScanMessage = null;
+            this.lastScanStatus = null;
 
             try {
                 const response = await fetch(config.openUrl, {
@@ -875,6 +904,8 @@ function wargaRfidTap(config) {
             this.isLoading = true;
             this.errorMessage = null;
             this.conflictNotice = null;
+            this.lastScanMessage = null;
+            this.lastScanStatus = null;
 
             try {
                 const response = await fetch(config.cancelUrl, {
@@ -924,11 +955,25 @@ function wargaRfidTap(config) {
                                 try { navigator.vibrate([200, 100, 200]); } catch (e) {}
                             }
                         }
+                        if (data.last_scan) {
+                            this.lastScanMessage = data.last_scan.message;
+                            this.lastScanStatus = data.last_scan.status;
+                            if (data.last_scan.status === 'error') {
+                                if (data.last_scan.message.includes('warga lain') || data.last_scan.message.includes('sudah terdaftar di akun')) {
+                                    this.conflictNotice = data.last_scan.message;
+                                    this.errorMessage = null;
+                                }
+                            }
+                            if (navigator.vibrate) {
+                                try { navigator.vibrate(data.last_scan.status === 'error' ? [200, 100, 200] : [150, 60, 150]); } catch (e) {}
+                            }
+                        }
                         if (data.is_verified) {
                             this.stopTimers();
                             this.isVerified = true;
                             this.isEnrolled = false;
                             this.conflictNotice = null;
+                            this.lastScanMessage = null;
                             this.justVerified = true;
                             setTimeout(() => {
                                 window.location.reload();
@@ -956,10 +1001,32 @@ function wargaRfidTap(config) {
                     });
                     if (response.ok) {
                         const data = await response.json();
+                        if (data.notice) {
+                            this.conflictNotice = data.notice;
+                            this.errorMessage = null;
+                            if (navigator.vibrate) {
+                                try { navigator.vibrate([200, 100, 200]); } catch (e) {}
+                            }
+                        }
+                        if (data.last_scan) {
+                            this.lastScanMessage = data.last_scan.message;
+                            this.lastScanStatus = data.last_scan.status;
+                            if (data.last_scan.status === 'error') {
+                                if (data.last_scan.message.includes('warga lain') || data.last_scan.message.includes('sudah terdaftar di akun')) {
+                                    this.conflictNotice = data.last_scan.message;
+                                    this.errorMessage = null;
+                                }
+                            }
+                            if (navigator.vibrate) {
+                                try { navigator.vibrate(data.last_scan.status === 'error' ? [200, 100, 200] : [150, 60, 150]); } catch (e) {}
+                            }
+                        }
                         if (data.is_verified) {
                             this.stopTimers();
                             this.isVerified = true;
                             this.isEnrolled = false;
+                            this.conflictNotice = null;
+                            this.lastScanMessage = null;
                             this.justVerified = true;
                             setTimeout(() => {
                                 window.location.reload();

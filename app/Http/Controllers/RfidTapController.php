@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class RfidTapController extends Controller
 {
@@ -94,7 +95,7 @@ class RfidTapController extends Controller
                     [
                         'scope_type' => 'warga',
                         'created_by' => $admin?->id ?? 1,
-                        'token_hash' => hash('sha256', $deviceKey),
+                        'token_hash' => hash('sha256', (string) $token),
                         'expires_at' => now()->addYears(10),
                     ]
                 );
@@ -109,18 +110,77 @@ class RfidTapController extends Controller
 
         $data = $request->validate(['uid' => ['required', 'string', 'regex:/\A(?:[a-fA-F0-9]{8}|[a-fA-F0-9]{14}|[a-fA-F0-9]{20})\z/']]);
 
+        // Simpan enrollment_user_id SEBELUM masuk transaksi (untuk notifikasi di luar transaksi)
+        $enrollmentUserId = $initial->enrollment_user_id;
+
         try {
             if ($initial->scope_type === 'koperasi') {
-                return $this->handleKoperasiTap($initial, $hash, $data['uid'], $isDeviceKey);
+                $response = $this->handleKoperasiTap($initial, $hash, $data['uid'], $isDeviceKey);
+            } elseif ($initial->scope_type === 'warga') {
+                $response = $this->handleWargaKtpTap($initial, $hash, $data['uid'], $isDeviceKey);
+            } else {
+                $response = $this->handleKegiatanTap($initial, $hash, $data['uid'], $isDeviceKey);
             }
 
-            if ($initial->scope_type === 'warga') {
-                return $this->handleWargaKtpTap($initial, $hash, $data['uid'], $isDeviceKey);
+            // SUKSES: Tulis notifikasi ke cache DI LUAR DB::transaction
+            if ($enrollmentUserId) {
+                $responseData = $response->getData();
+                $msg = $responseData->message ?? 'Operasi berhasil.';
+                Cache::put("rfid_scan_result:{$enrollmentUserId}", [
+                    'status' => $responseData->status ?? 'success',
+                    'message' => $msg,
+                    'at' => now()->toIso8601String(),
+                ], now()->addMinutes(2));
             }
 
-            return $this->handleKegiatanTap($initial, $hash, $data['uid'], $isDeviceKey);
+            return $response;
+        } catch (ValidationException $e) {
+            // ERROR: Tulis notifikasi ke cache DI LUAR DB::transaction
+            // (Cache::put di dalam transaction + database driver = ROLLBACK = hilang)
+            if ($enrollmentUserId) {
+                $msg = collect($e->errors())->flatten()->first() ?? $e->getMessage();
+                Cache::put("rfid_scan_result:{$enrollmentUserId}", [
+                    'status' => 'error',
+                    'message' => $msg,
+                    'at' => now()->toIso8601String(),
+                ], now()->addMinutes(2));
+                Cache::put("rfid_enrollment_notice:{$enrollmentUserId}", $msg, now()->addMinutes(2));
+                if ($initial?->id) {
+                    Cache::put("rfid_session_notice:{$initial->id}", $msg, now()->addMinutes(2));
+                }
+            }
+
+            throw $e;
         } catch (UniqueConstraintViolationException $e) {
-            throw ValidationException::withMessages(['uid' => 'Kartu atau warga sudah terdaftar. Silakan periksa kembali.']);
+            $msg = 'Kartu atau warga sudah terdaftar. Silakan periksa kembali.';
+            if ($enrollmentUserId) {
+                Cache::put("rfid_scan_result:{$enrollmentUserId}", [
+                    'status' => 'error',
+                    'message' => $msg,
+                    'at' => now()->toIso8601String(),
+                ], now()->addMinutes(2));
+                Cache::put("rfid_enrollment_notice:{$enrollmentUserId}", $msg, now()->addMinutes(2));
+                if ($initial?->id) {
+                    Cache::put("rfid_session_notice:{$initial->id}", $msg, now()->addMinutes(2));
+                }
+            }
+
+            throw ValidationException::withMessages(['uid' => $msg]);
+        } catch (HttpExceptionInterface $e) {
+            if ($enrollmentUserId) {
+                $msg = $e->getMessage();
+                Cache::put("rfid_scan_result:{$enrollmentUserId}", [
+                    'status' => 'error',
+                    'message' => $msg,
+                    'at' => now()->toIso8601String(),
+                ], now()->addMinutes(2));
+                Cache::put("rfid_enrollment_notice:{$enrollmentUserId}", $msg, now()->addMinutes(2));
+                if ($initial?->id) {
+                    Cache::put("rfid_session_notice:{$initial->id}", $msg, now()->addMinutes(2));
+                }
+            }
+
+            throw $e;
         }
     }
 

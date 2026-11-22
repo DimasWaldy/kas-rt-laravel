@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\RfidCard;
 use App\Models\RfidSession;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -165,6 +166,21 @@ class WargaKartuRfidController extends Controller
         // Cek apakah ESP32 mengirim heartbeat dalam 30 detik terakhir
         $deviceOnline = Cache::has('rfid_device_online');
 
+        // Cek hasil scan terakhir dari ESP32 (ditulis di luar transaksi oleh RfidTapController)
+        $scanResult = Cache::pull("rfid_scan_result:{$user->id}");
+        $lastScan = null;
+        if ($scanResult && isset($scanResult['at'])) {
+            $scanTime = Carbon::parse($scanResult['at']);
+            // Hanya tampilkan jika scan terjadi dalam 60 detik terakhir
+            if (abs($scanTime->diffInSeconds(now(), false)) < 60) {
+                $lastScan = $scanResult;
+            }
+        }
+
+        if (! $notice && $lastScan && ($lastScan['status'] ?? '') === 'error') {
+            $notice = $lastScan['message'] ?? null;
+        }
+
         return response()->json([
             'is_enrolling' => $isEnrolled,
             'remaining_seconds' => $remainingSeconds,
@@ -174,6 +190,7 @@ class WargaKartuRfidController extends Controller
             'reader_active' => $session && $session->expires_at->isFuture(),
             'device_online' => $deviceOnline,
             'notice' => $notice,
+            'last_scan' => $lastScan,
         ]);
     }
 
