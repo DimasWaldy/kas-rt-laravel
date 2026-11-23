@@ -24,10 +24,18 @@
                 </p>
             </div>
 
-            <button type="button" onclick="window.print()" class="rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-xs transition hover:bg-emerald-50">
-                <i class="fa-solid fa-print mr-2"></i>
-                Cetak
-            </button>
+            <div class="flex flex-wrap items-center gap-2.5">
+                @if(auth()->user()->hasPermission('export-finance') || auth()->user()->canManageFinance())
+                    <a href="{{ route('laporan-kas.export', request()->query()) }}" target="_blank" class="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-xs transition hover:bg-emerald-50">
+                        <i class="fa-solid fa-file-pdf text-rose-600"></i>
+                        Ekspor / Cetak Resmi
+                    </a>
+                @endif
+                <button type="button" onclick="window.print()" class="rounded-2xl border border-emerald-300 bg-emerald-800/60 px-5 py-3 text-sm font-black text-white shadow-xs transition hover:bg-emerald-800">
+                    <i class="fa-solid fa-print mr-2"></i>
+                    Cetak Cepat
+                </button>
+            </div>
         </div>
     </div>
 

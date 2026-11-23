@@ -146,6 +146,14 @@
                     'iconClass' => 'text-emerald-600',
                     'visible' => $user->canViewFinance(),
                 ],
+                [
+                    'label' => 'Laporan Iuran Warga',
+                    'route' => 'laporan-iuran.index',
+                    'active' => 'admin/laporan-iuran*',
+                    'icon' => 'fa-file-invoice-dollar',
+                    'iconClass' => 'text-teal-600',
+                    'visible' => $user->canViewFinance(),
+                ],
             ],
         ],
         [
