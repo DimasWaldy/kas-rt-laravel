@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\EvotingAdminController;
 use App\Http\Controllers\Admin\KoperasiController as KoperasiAdminController;
 use App\Http\Controllers\Admin\KoperasiRfidController;
+use App\Http\Controllers\Admin\RukemAdminController;
 use App\Http\Controllers\Admin\RumahController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WargaRfidController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\PenjualanSampahController;
 use App\Http\Controllers\PosyanduController;
 use App\Http\Controllers\ProdukUmkmController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RukemWargaController;
 use App\Http\Controllers\SetoranSampahController;
 use App\Http\Controllers\SuratController;
 use App\Http\Controllers\TagihanController;
@@ -601,6 +603,42 @@ Route::middleware('auth')->group(function () {
         Route::post('/{pemilihan:slug}/kandidat', [EvotingAdminController::class, 'addKandidat'])->name('kandidat.store');
         Route::delete('/kandidat/{kandidat}', [EvotingAdminController::class, 'deleteKandidat'])->name('kandidat.destroy');
         Route::patch('/{pemilihan:slug}/status', [EvotingAdminController::class, 'updateStatus'])->name('status');
+    });
+
+    // Rukun Kematian (Rukem) Warga
+    Route::middleware('permission:view-rukem')->group(function () {
+        Route::get('/rukem', [RukemWargaController::class, 'index'])->name('rukem.index');
+        Route::get('/rukem/lapor', [RukemWargaController::class, 'createClaim'])
+            ->middleware('permission:submit-rukem')
+            ->name('rukem.create-claim');
+        Route::post('/rukem/lapor', [RukemWargaController::class, 'storeClaim'])
+            ->middleware('permission:submit-rukem')
+            ->name('rukem.store-claim');
+        Route::post('/rukem/daftar', [RukemWargaController::class, 'storeDaftar'])
+            ->middleware('permission:submit-rukem')
+            ->name('rukem.store-daftar');
+        Route::post('/rukem/iuran', [RukemWargaController::class, 'storeIuran'])
+            ->middleware('permission:submit-rukem')
+            ->name('rukem.store-iuran');
+        Route::get('/rukem/claim/{claim}', [RukemWargaController::class, 'showClaim'])->name('rukem.show-claim');
+        Route::get('/rukem/iuran/{iuran}/bukti', [RukemWargaController::class, 'buktiIuran'])->name('rukem.iuran-bukti');
+        Route::get('/rukem/claim/{claim}/bukti', [RukemWargaController::class, 'buktiClaim'])->name('rukem.claim-bukti');
+    });
+
+    // Rukun Kematian (Rukem) Admin / Pengurus
+    Route::middleware('permission:manage-rukem')->prefix('admin/rukem')->name('admin.rukem.')->group(function () {
+        Route::get('/', [RukemAdminController::class, 'index'])->name('index');
+        Route::get('/export', [RukemAdminController::class, 'export'])->name('export');
+        Route::patch('/member/{member}/status', [RukemAdminController::class, 'updateMemberStatus'])->name('member-status');
+        Route::patch('/iuran/{iuran}/verify', [RukemAdminController::class, 'verifyIuran'])->name('verify-iuran');
+        Route::get('/claim/{claim}', [RukemAdminController::class, 'showClaim'])->name('show-claim');
+        Route::patch('/claim/{claim}/verify', [RukemAdminController::class, 'verifyClaim'])->name('verify-claim');
+        Route::get('/bantuan/{bantuan}/bukti', [RukemAdminController::class, 'buktiBantuan'])->name('bantuan-bukti');
+
+        Route::middleware('permission:approve-rukem')->group(function () {
+            Route::patch('/claim/{claim}/approve', [RukemAdminController::class, 'approveClaim'])->name('approve-claim');
+            Route::post('/claim/{claim}/bantuan', [RukemAdminController::class, 'disalurkanBantuan'])->name('disalurkan-bantuan');
+        });
     });
 });
 

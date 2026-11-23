@@ -131,6 +131,21 @@ class User extends Authenticatable
         return $this->hasMany(KoperasiPinjam::class);
     }
 
+    public function rukemMember(): HasOne
+    {
+        return $this->hasOne(RukemMember::class);
+    }
+
+    public function rukemIurans(): HasMany
+    {
+        return $this->hasMany(RukemIuran::class);
+    }
+
+    public function rukemClaims(): HasMany
+    {
+        return $this->hasMany(RukemClaim::class);
+    }
+
     public function scopeInRt(Builder $query, int $rtId): Builder
     {
         return $query->where('rt_id', $rtId);
