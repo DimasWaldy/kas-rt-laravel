@@ -112,7 +112,7 @@
 
             <div class="flex flex-col sm:flex-row sm:items-center gap-5">
                 {{-- Avatar Image / Initial / Live Preview --}}
-                <div class="relative flex-shrink-0">
+                <div class="relative shrink-0">
                     <template x-if="photoPreview && !deletePhoto">
                         <img :src="photoPreview" alt="Preview Foto Profil" class="h-24 w-24 rounded-full object-cover border-4 border-emerald-500 shadow-md">
                     </template>
