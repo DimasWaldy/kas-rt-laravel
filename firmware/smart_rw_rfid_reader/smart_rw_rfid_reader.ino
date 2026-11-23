@@ -1,53 +1,38 @@
 /*
  * ============================================================
- * Smart RW - Terminal Registrasi & Verifikasi e-KTP (ESP32)
+ * Smart RW - Terminal Universal RFID / e-KTP (Multi-Projek)
  * ============================================================
- * Fitur:
- *   - Membaca UID e-KTP / kartu RFID / tag RFID (13.56 MHz)
- *   - Otomatis kirim UID ke server Smart RW tanpa perlu token manual
- *   - Diagnosis otomatis koneksi modul RC522 di Serial Monitor
- *   - Auto-detect pin RST (GPIO 27 atau GPIO 22)
- *   - Kompatibel dengan ESP32 DevKit (30/38 pin) & Arduino Nano ESP32
- *
- * Wiring RC522 ke ESP32 Standar (DevKit 30/38 pin):
- *   RC522 Pin  | ESP32 GPIO | Keterangan
- *   -----------|------------|--------------------------------
- *   SDA (SS)   | GPIO 5     | SPI Chip Select
- *   SCK        | GPIO 18    | SPI Clock
- *   MOSI       | GPIO 23    | SPI Master Out
- *   MISO       | GPIO 19    | SPI Master In
- *   RST        | GPIO 27    | Reset Pin (Bisa juga GPIO 22)
- *   GND        | GND        | Ground
- *   3.3V (VCC) | 3.3V       | ⚠️ WAJIB 3.3V! JANGAN KE 5V / VIN!
- *
- * Pin Buzzer Opsional:
- *   Buzzer (+) -> GPIO 25 | Buzzer (-) -> GND
+ * Fitur Universal:
+ *   - 1 Firmware untuk 4 Mahasiswa / Projek Berbeda:
+ *       1. Dimas  : https://smartos-rw.unique-monsters.my.id/
+ *       2. Julis  : https://guyub.unique-monsters.my.id/
+ *       3. Ilham  : https://kawan.unique-monsters.my.id/
+ *       4. Fabian : https://e-warga.unique-monsters.my.id/
+ *       5. Custom / Bebas (isi URL & Token sendiri)
+ *   - Web Portal Konfigurasi via HP:
+ *       Hotspot AP : ESP32_1_JDIF
+ *       Password   : 876543210
+ *       IP Portal  : http://192.168.4.1
+ *   - Pemicu Masuk ke Portal:
+ *       1. Tahan tombol fisik BOOT (GPIO 0) selama 3 detik.
+ *       2. Otomatis menyala jika WiFi gagal terhubung dalam 25 detik.
+ *       3. Portal otomatis timeout setelah 5 menit jika tidak digunakan.
+ *   - Penyimpanan Permanen: Konfigurasi disimpan di NVS Flash (Preferences)
+ *   - Hardware: Kompatibel ESP32 DevKit (30/38 pin) & Nano ESP32 + RC522
  * ============================================================
  */
 
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
+#include <WebServer.h>
+#include <DNSServer.h>
+#include <Preferences.h>
 #include <SPI.h>
 #include <MFRC522.h>
 
 // ============================================================
-// 1. KONFIGURASI WIFI & SERVER SMART RW
-// ============================================================
-// Nama Hotspot HP dan Password Anda:
-const char* WIFI_SSID     = "Poco F6505";
-const char* WIFI_PASSWORD = "dimas12345";
-
-// Endpoint API Server Smart RW (Mendukung /tap dan /scan)
-const char* API_URL       = "https://smartos-rw.unique-monsters.my.id/api/rfid/tap";
-const char* HEARTBEAT_URL = "https://smartos-rw.unique-monsters.my.id/api/rfid/heartbeat";
-
-// Master Device Key (Hardware Key permanen — bebas token manual)
-const char* DEVICE_KEY    = "smartrw-rfid-device";
-const char* DEVICE_ID     = "esp32-scanner-01";
-
-// ============================================================
-// 2. KONFIGURASI PIN SPI RC522
+// 1. PIN RC522 & BUZZER & TOMBOL BOOT
 // ============================================================
 #if defined(ARDUINO_NANO_ESP32)
   #define BOARD_NAME "Arduino Nano ESP32"
@@ -59,53 +44,75 @@ const char* DEVICE_ID     = "esp32-scanner-01";
 #else
   #define BOARD_NAME "ESP32 DevKit Standar"
   constexpr uint8_t PIN_SS   = 5;
-  constexpr uint8_t PIN_RST  = 22; // Pin 22 adalah standar wiring DevKit ESP32
+  constexpr uint8_t PIN_RST  = 22; // Pin 22 standar, otomatis fallback ke 27 jika perlu
   constexpr uint8_t PIN_SCK  = 18;
   constexpr uint8_t PIN_MOSI = 23;
   constexpr uint8_t PIN_MISO = 19;
 #endif
 
-// Pin Buzzer Opsional (Active HIGH)
-constexpr uint8_t PIN_BUZZER = 25;
+constexpr uint8_t PIN_BUZZER = 25; // Buzzer (+) ke GPIO 25, (-) ke GND
+constexpr uint8_t PIN_BOOT   = 0;  // Tombol BOOT bawaan ESP32 (GPIO 0)
+
+// Hotspot Konfigurasi ESP32
+const char* AP_SSID = "ESP32_1_JDIF";
+const char* AP_PASS = "876543210";
 
 // ============================================================
-// 3. VARIABEL GLOBAL & OBJEK
+// 2. OBJEK GLOBAL & VARIABEL KONFIGURASI
 // ============================================================
+Preferences prefs;
+DNSServer dnsServer;
+WebServer webServer(80);
 MFRC522 rfid(PIN_SS, PIN_RST);
+
+// Konfigurasi Dinamis (disimpan di NVS Flash)
+String cfg_proj_name;
+String cfg_wifi_ssid;
+String cfg_wifi_pass;
+String cfg_api_url;
+String cfg_hb_url;
+String cfg_dev_key;
+String cfg_dev_id;
+
 bool rc522Ready = false;
+bool inPortalMode = false;
 String lastUID = "";
 unsigned long lastScanTime = 0;
 unsigned long lastHeartbeatTime = 0;
-const unsigned long SCAN_COOLDOWN_MS = 2000; // Jeda 2 detik untuk kartu yang sama
-const unsigned long HEARTBEAT_INTERVAL_MS = 2000; // Heartbeat setiap 2 detik untuk stabilitas koneksi HTTPS tanpa overload heap
+unsigned long bootPressStartTime = 0;
+
+const unsigned long SCAN_COOLDOWN_MS = 2000;
+const unsigned long HEARTBEAT_INTERVAL_MS = 2000;
 
 // Prototype Fungsi
+void loadConfig();
+void saveConfig(const String& proj, const String& ssid, const String& pass, 
+                const String& tapUrl, const String& hbUrl, const String& key, const String& id);
+void startConfigPortal();
+void handlePortalRoot();
+void handlePortalSave();
+void handlePortalExit();
+void connectWiFi();
+void testRc522Connection();
 String readUID();
 void sendTapToServer(const String& uid);
 void sendHeartbeat();
-void testRc522Connection();
 void beepSuccess();
 void beepError();
+void beepPortal();
 
 // ============================================================
-// 4. SETUP
+// 3. SETUP UTAMA
 // ============================================================
 void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    Serial.println();
-    Serial.println(F("=================================================="));
-    Serial.println(F("   SMART RW - ESP32 RFID / e-KTP TERMINAL         "));
-    Serial.printf ("   Board: %s\n", BOARD_NAME);
-    Serial.println(F("=================================================="));
-
-    // Inisialisasi Buzzer
+    pinMode(PIN_BOOT, INPUT_PULLUP);
     pinMode(PIN_BUZZER, OUTPUT);
     digitalWrite(PIN_BUZZER, LOW);
 
 #if !defined(ARDUINO_NANO_ESP32)
-    // Tarik kedua pin RST (GPIO 22 dan 27) ke HIGH agar modul keluar dari power-down mode
     pinMode(22, OUTPUT);
     digitalWrite(22, HIGH);
     pinMode(27, OUTPUT);
@@ -113,142 +120,110 @@ void setup() {
     delay(20);
 #endif
 
-    // Inisialisasi SPI & Modul RFID
+    // Inisialisasi SPI & RC522
 #if defined(ARDUINO_NANO_ESP32)
     SPI.begin();
 #else
     SPI.begin(PIN_SCK, PIN_MISO, PIN_MOSI, PIN_SS);
 #endif
     rfid.PCD_Init();
-    delay(50);
-
-    // Diagnosis koneksi modul RC522
+    delay(40);
     testRc522Connection();
 
-    // Reset dan konfigurasi WiFi Station
-    WiFi.persistent(false);
-    WiFi.disconnect(true);
-    delay(100);
-    WiFi.mode(WIFI_STA);
-    WiFi.setAutoReconnect(true);
+    // Muat konfigurasi dari memori flash NVS
+    loadConfig();
 
-    // Event handler untuk diagnosis penyebab gagal koneksi WiFi
-    WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
-        if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
-            uint8_t reason = info.wifi_sta_disconnected.reason;
-            Serial.printf("\n[WIFI GAGAL] Terputus / Gagal Terhubung (Alasan Kode: %d)\n", reason);
-            if (reason == 201) { // WIFI_REASON_NO_AP_FOUND
-                Serial.println(F("👉 PENYEBAB: Sinyal Hotspot Tidak Terdeteksi (NO_AP_FOUND)!"));
-                Serial.println(F("   1. Pastikan Hotspot HP sudah AKTIF dan SSID 'Poco F6505' sudah tepat."));
-                Serial.println(F("   2. ⚠️ PENTING: Pada HP Poco / Xiaomi, ganti 'Pita AP' ke '2.4 GHz'!"));
-                Serial.println(F("      (Buka Setelan HP -> Hotspot Portabel -> Atur Hotspot -> Pita AP -> Pilih 2,4 GHz)."));
-                Serial.println(F("      ESP32 TIDAK BISA mendeteksi pita 5.0 GHz / Wi-Fi 6."));
-                Serial.println(F("   3. Matikan opsi 'Hotspot Wi-Fi 6' dan aktifkan 'Maksimalkan Kompatibilitas'."));
-            } else if (reason == 202 || reason == 15) { // AUTH_FAIL / 4WAY_HANDSHAKE_TIMEOUT
-                Serial.println(F("👉 PENYEBAB: Password Salah atau Keamanan WPA3 Tidak Didukung!"));
-                Serial.println(F("   Ubah keamanan Hotspot HP dari 'WPA3' menjadi 'WPA2-Personal'."));
-            } else if (reason == 200) {
-                Serial.println(F("👉 PENYEBAB: Sinyal terlalu jauh atau terhalang. Dekatkan ESP32 ke HP."));
-            }
-        }
-    });
-
-    // Koneksi ke WiFi Hotspot
-    Serial.printf("[WIFI] Menghubungkan ke: %s ...\n", WIFI_SSID);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-    int retries = 0;
-    while (WiFi.status() != WL_CONNECTED && retries < 25) {
-        delay(500);
-        Serial.print(F("."));
-        retries++;
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-        Serial.println(F("\n[WIFI] Berhasil terhubung!"));
-        Serial.printf("[WIFI] IP Address ESP32: %s\n", WiFi.localIP().toString().c_str());
-        Serial.printf("[WIFI] Gateway: %s\n", WiFi.gatewayIP().toString().c_str());
-        Serial.printf("[WIFI] DNS Asli HP: %s\n", WiFi.dnsIP().toString().c_str());
-        Serial.printf("[WIFI] Kualitas Sinyal: %d dBm\n", WiFi.RSSI());
-
-        // Atur DNS Publik Google (8.8.8.8) dan Cloudflare (1.1.1.1)
-        // untuk mengatasi DNS proxy Hotspot Android yang sering menolak query domain
-        IPAddress dnsGoogle(8, 8, 8, 8);
-        IPAddress dnsCloudflare(1, 1, 1, 1);
-        WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, dnsGoogle, dnsCloudflare);
-        Serial.printf("[WIFI] DNS Aktif: %s, %s\n", WiFi.dnsIP(0).toString().c_str(), WiFi.dnsIP(1).toString().c_str());
-
-        // Uji DNS resolve ke domain server
-        IPAddress serverIP;
-        if (WiFi.hostByName("smartos-rw.unique-monsters.my.id", serverIP)) {
-            Serial.printf("[DNS SUKSES] Domain server terdeteksi ke IP: %s\n", serverIP.toString().c_str());
-        } else {
-            Serial.println(F("❌ [DNS GAGAL] Tidak dapat mengubah domain server menjadi IP!"));
-            Serial.println(F("   Pastikan Hotspot HP benar-benar terhubung ke internet."));
-        }
-
-        if (rc522Ready) beepSuccess();
-        // Kirim burst heartbeat pertama kali saat baru menyala
-        sendHeartbeat();
-    } else {
-        Serial.println(F("\n⚠️  [WIFI GAGAL] Tidak dapat terhubung ke WiFi/Hotspot."));
-        Serial.println(F("    Pastikan Hotspot HP aktif dan password benar."));
-    }
-
+    Serial.println();
     Serial.println(F("=================================================="));
-    if (rc522Ready) {
-        Serial.println(F("STATUS: SIAP MEMBACA KARTU e-KTP!"));
-        Serial.println(F(">>> Buka web: smartos-rw.unique-monsters.my.id/kartu-rfid"));
-        Serial.println(F(">>> Klik tombol 'Buka Sesi Tap Mandiri' di web,"));
-        Serial.println(F(">>> lalu dekatkan kartu e-KTP ke sensor RFID."));
-    } else {
-        Serial.println(F("❌ STATUS: SENSOR RC522 BELUM TERHUBUNG / KABEL KENDOR!"));
-        Serial.println(F("   Alat akan terus mencoba mendeteksi modul secara berkala..."));
+    Serial.println(F("   ESP32 UNIVERSAL RFID READER (4 IN 1 PROJECT)   "));
+    Serial.printf ("   Board          : %s\n", BOARD_NAME);
+    Serial.printf ("   Projek Aktif   : %s\n", cfg_proj_name.c_str());
+    Serial.printf ("   Target Tap URL : %s\n", cfg_api_url.c_str());
+    Serial.printf ("   Device Key     : %s\n", cfg_dev_key.c_str());
+    Serial.println(F("--------------------------------------------------"));
+    Serial.println(F("💡 TIPS GANTI PROJEK / WIFI:"));
+    Serial.println(F("   Tahan tombol BOOT di ESP32 selama 3 detik, atau"));
+    Serial.println(F("   sambungkan ke Hotspot: ESP32_1_JDIF (192.168.4.1)"));
+    Serial.println(F("=================================================="));
+
+    // Cek apakah tombol BOOT sedang ditahan saat dinyalakan
+    if (digitalRead(PIN_BOOT) == LOW) {
+        Serial.println(F("\n[PORTAL] Tombol BOOT terdeteksi ditekan saat start! Masuk Portal..."));
+        beepPortal();
+        startConfigPortal();
+        return;
     }
-    Serial.println(F("==================================================\n"));
+
+    // Jika SSID kosong, langsung masuk ke Portal
+    if (cfg_wifi_ssid.length() == 0) {
+        Serial.println(F("\n[PORTAL] Belum ada konfigurasi WiFi tersimpan. Membuka Portal..."));
+        beepPortal();
+        startConfigPortal();
+        return;
+    }
+
+    // Coba koneksi ke WiFi yang tersimpan
+    connectWiFi();
 }
 
 // ============================================================
-// 5. LOOP PEMBACAAN KARTU
+// 4. LOOP UTAMA
 // ============================================================
 void loop() {
-    // 1. Cek Koneksi WiFi (Auto-Reconnect yang aman tanpa memicu bentrok driver)
+    // 1. Deteksi Tombol Fisik BOOT (GPIO 0) ditahan 3 detik
+    if (digitalRead(PIN_BOOT) == LOW) {
+        if (bootPressStartTime == 0) {
+            bootPressStartTime = millis();
+        } else if (millis() - bootPressStartTime > 3000) {
+            Serial.println(F("\n[PORTAL] Tombol BOOT ditekan 3 detik! Buka Portal Konfigurasi..."));
+            beepPortal();
+            startConfigPortal();
+            bootPressStartTime = 0;
+            return;
+        }
+    } else {
+        bootPressStartTime = 0;
+    }
+
+    // 2. Jika sedang di mode Portal Konfigurasi, proses request HTTP & DNS
+    if (inPortalMode) {
+        dnsServer.processNextRequest();
+        webServer.handleClient();
+        delay(5);
+        return;
+    }
+
+    // 3. Jaga koneksi WiFi (Auto-reconnect aman tanpa spam)
     if (WiFi.status() != WL_CONNECTED) {
-        static unsigned long lastReconnectAttempt = 0;
-        if (millis() - lastReconnectAttempt > 12000) {
-            lastReconnectAttempt = millis();
-            Serial.println(F("[WIFI] Sedang mencoba menyambung kembali ke Hotspot..."));
+        static unsigned long lastReconnect = 0;
+        if (millis() - lastReconnect > 15000) {
+            lastReconnect = millis();
+            Serial.println(F("[WIFI] Terputus. Sedang mencoba menyambung ulang..."));
             WiFi.disconnect();
             delay(100);
-            WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+            WiFi.begin(cfg_wifi_ssid.c_str(), cfg_wifi_pass.c_str());
         }
     }
 
-    // 1b. Heartbeat berkala ke server (agar web tahu ESP32 ONLINE)
+    // 4. Heartbeat berkala ke web server (tanda alat ONLINE)
     if (WiFi.status() == WL_CONNECTED && millis() - lastHeartbeatTime >= HEARTBEAT_INTERVAL_MS) {
         lastHeartbeatTime = millis();
         sendHeartbeat();
     }
 
-    // 2. Jika RC522 belum terdeteksi saat boot, coba deteksi ulang setiap 2.5 detik
+    // 5. Cek sensor RC522 jika belum terhubung
     if (!rc522Ready) {
-        static unsigned long lastRetryTime = 0;
-        if (millis() - lastRetryTime > 2500) {
-            lastRetryTime = millis();
-            Serial.println(F("⏳ [AUTODETECT] Mencoba mendeteksi sensor RC522... Cek kabel jumper!"));
+        static unsigned long lastRetry = 0;
+        if (millis() - lastRetry > 3000) {
+            lastRetry = millis();
             testRc522Connection();
-            if (rc522Ready) {
-                Serial.println(F("🎉 [SUKSES] SENSOR RC522 TERDETEKSI! SIAP SCAN KARTU e-KTP!"));
-                beepSuccess();
-            }
         }
         return;
     }
 
-    // 3. Cek apakah ada kartu e-KTP / RFID di sensor (REQA + WUPA Fallback)
+    // 6. Cek kehadiran kartu RFID / e-KTP
     bool cardPresent = rfid.PICC_IsNewCardPresent();
     if (!cardPresent) {
-        // Kartu ISO 14443-4 (e-KTP) yang tertahan di RF field memerlukan perintah WUPA
         byte bufferATQA[2];
         byte bufferSize = sizeof(bufferATQA);
         rfid.PCD_WriteRegister(rfid.TxModeReg, 0x00);
@@ -266,15 +241,11 @@ void loop() {
     }
 
     if (!rfid.PICC_ReadCardSerial()) {
-        Serial.println(F("🔍 [SENSOR] Sinyal kartu terdeteksi! Tahan kartu di atas sensor..."));
         delay(15);
         return;
     }
 
-    // 4. Baca nomor seri (UID) kartu
     String uid = readUID();
-
-    // Validasi panjang UID
     uint8_t uidSize = rfid.uid.size;
     if (uidSize != 4 && uidSize != 7 && uidSize != 10) {
         rfid.PICC_HaltA();
@@ -283,7 +254,7 @@ void loop() {
         return;
     }
 
-    // Jeda anti-spam jika kartu yang sama ditempel terus
+    // Anti-spam jika kartu yang sama ditempel terus
     if (uid == lastUID && (millis() - lastScanTime) < SCAN_COOLDOWN_MS) {
         rfid.PICC_HaltA();
         rfid.PCD_StopCrypto1();
@@ -296,9 +267,9 @@ void loop() {
     Serial.println();
     Serial.println(F("=================================================="));
     Serial.printf ("💳 [SCAN] KARTU TERDETEKSI! UID: %s (%d byte)\n", uid.c_str(), uidSize);
+    Serial.printf ("🎯 [TARGET] Mengirim ke Projek: %s\n", cfg_proj_name.c_str());
     Serial.println(F("=================================================="));
 
-    // 5. Kirim UID ke server Smart RW
     sendTapToServer(uid);
 
     rfid.PICC_HaltA();
@@ -306,51 +277,303 @@ void loop() {
 }
 
 // ============================================================
-// 6. DIAGNOSIS KONEKSI HARDWARE RC522
+// 5. MANAJEMEN KONFIGURASI NVS (PREFERENCES)
+// ============================================================
+void loadConfig() {
+    prefs.begin("rfid_cfg", true); // Mode read-only
+
+    cfg_proj_name = prefs.getString("proj", "Dimas (Smart RW)");
+    cfg_wifi_ssid = prefs.getString("ssid", "Poco F6505");
+    cfg_wifi_pass = prefs.getString("pass", "dimas12345");
+    cfg_api_url   = prefs.getString("tap",  "https://smartos-rw.unique-monsters.my.id/api/rfid/tap");
+    cfg_hb_url    = prefs.getString("hb",   "https://smartos-rw.unique-monsters.my.id/api/rfid/heartbeat");
+    cfg_dev_key   = prefs.getString("key",  "smartrw-rfid-device");
+    cfg_dev_id    = prefs.getString("id",   "esp32-scanner-01");
+
+    prefs.end();
+}
+
+void saveConfig(const String& proj, const String& ssid, const String& pass, 
+                const String& tapUrl, const String& hbUrl, const String& key, const String& id) {
+    prefs.begin("rfid_cfg", false); // Mode read-write
+
+    prefs.putString("proj", proj);
+    prefs.putString("ssid", ssid);
+    prefs.putString("pass", pass);
+    prefs.putString("tap",  tapUrl);
+    prefs.putString("hb",   hbUrl);
+    prefs.putString("key",  key);
+    prefs.putString("id",   id);
+
+    prefs.end();
+    Serial.println(F("[NVS] Konfigurasi berhasil disimpan permanen ke Flash ESP32!"));
+}
+
+// ============================================================
+// 6. KONEKSI KE WIFI
+// ============================================================
+void connectWiFi() {
+    WiFi.persistent(false);
+    WiFi.disconnect(true);
+    delay(100);
+    WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
+
+    Serial.printf("[WIFI] Menghubungkan ke: %s ...\n", cfg_wifi_ssid.c_str());
+    WiFi.begin(cfg_wifi_ssid.c_str(), cfg_wifi_pass.c_str());
+
+    unsigned long startAttempt = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 25000) {
+        delay(500);
+        Serial.print(F("."));
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println(F("\n[WIFI] Berhasil terhubung!"));
+        Serial.printf("[WIFI] IP ESP32 : %s\n", WiFi.localIP().toString().c_str());
+        Serial.printf("[WIFI] RSSI     : %d dBm\n", WiFi.RSSI());
+
+        // Konfigurasi DNS Google & Cloudflare untuk stabilitas
+        IPAddress dnsGoogle(8, 8, 8, 8);
+        IPAddress dnsCloudflare(1, 1, 1, 1);
+        WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, dnsGoogle, dnsCloudflare);
+
+        // Uji DNS resolve
+        IPAddress srvIP;
+        if (WiFi.hostByName("smartos-rw.unique-monsters.my.id", srvIP)) {
+            Serial.printf("[DNS SUKSES] VPS IP terdeteksi: %s\n", srvIP.toString().c_str());
+        }
+
+        if (rc522Ready) beepSuccess();
+        sendHeartbeat();
+    } else {
+        Serial.println(F("\n⚠️ [WIFI GAGAL] Tidak dapat terhubung dalam 25 detik!"));
+        Serial.println(F("👉 Otomatis membuka Portal Konfigurasi Hotspot..."));
+        beepPortal();
+        startConfigPortal();
+    }
+}
+
+// ============================================================
+// 7. WEB PORTAL KONFIGURASI (CAPTIVE PORTAL VIA HP)
+// ============================================================
+void startConfigPortal() {
+    inPortalMode = true;
+    WiFi.disconnect();
+    WiFi.mode(WIFI_AP);
+
+    IPAddress apIP(192, 168, 4, 1);
+    IPAddress netMsk(255, 255, 255, 0);
+    WiFi.softAPConfig(apIP, apIP, netMsk);
+    WiFi.softAP(AP_SSID, AP_PASS);
+
+    Serial.println();
+    Serial.println(F("=================================================="));
+    Serial.println(F("🚀 [PORTAL KONFIGURASI AKTIF]"));
+    Serial.printf ("   Nama Hotspot ESP32 : %s\n", AP_SSID);
+    Serial.printf ("   Password Hotspot   : %s\n", AP_PASS);
+    Serial.println(F("   Alamat Web Portal  : http://192.168.4.1"));
+    Serial.println(F("=================================================="));
+
+    // Redirect semua query DNS ke 192.168.4.1 (Captive Portal)
+    dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+    dnsServer.start(53, "*", apIP);
+
+    webServer.on("/", HTTP_GET, handlePortalRoot);
+    webServer.on("/save", HTTP_POST, handlePortalSave);
+    webServer.on("/exit", HTTP_GET, handlePortalExit);
+
+    // Endpoint khusus deteksi captive portal di berbagai smartphone
+    webServer.on("/generate_204", HTTP_GET, handlePortalRoot);
+    webServer.on("/fwlink", HTTP_GET, handlePortalRoot);
+    webServer.on("/connecttest.txt", HTTP_GET, handlePortalRoot);
+
+    webServer.onNotFound([]() {
+        webServer.sendHeader("Location", "http://192.168.4.1/", true);
+        webServer.send(302, "text/plain", "");
+    });
+
+    webServer.begin();
+
+    unsigned long portalStart = millis();
+    const unsigned long PORTAL_TIMEOUT_MS = 300000; // 5 Menit timeout
+
+    while (inPortalMode) {
+        dnsServer.processNextRequest();
+        webServer.handleClient();
+        delay(5);
+
+        // Timeout 5 menit jika tidak ada aktivitas
+        if (millis() - portalStart > PORTAL_TIMEOUT_MS) {
+            Serial.println(F("[PORTAL] Timeout 5 menit tercapai. Restarting ESP32..."));
+            ESP.restart();
+        }
+    }
+}
+
+// Tampilan HTML Portal yang Cantik & Responsive di HP
+void handlePortalRoot() {
+    String html = F("<!DOCTYPE html><html lang='id'><head><meta charset='UTF-8'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1.0'>"
+        "<title>ESP32 Universal Reader</title>"
+        "<style>"
+        "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0fdf4;color:#1e293b;padding:15px;margin:0;}"
+        ".card{background:#fff;border-radius:14px;padding:20px;max-width:440px;margin:auto;box-shadow:0 8px 24px rgba(0,0,0,0.08);}"
+        "h2{color:#166534;margin-top:0;font-size:1.3rem;text-align:center;}"
+        ".badge{background:#dcfce7;color:#15803d;padding:6px 12px;border-radius:20px;font-size:0.82rem;font-weight:600;display:inline-block;margin-bottom:15px;width:100%;box-sizing:border-box;text-align:center;}"
+        ".btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;}"
+        ".p-btn{background:#f1f5f9;border:1px solid #cbd5e1;padding:10px 8px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;}"
+        ".p-btn:hover,.p-btn.active{background:#22c55e;color:#fff;border-color:#16a34a;}"
+        "label{font-size:0.82rem;font-weight:600;color:#475569;display:block;margin-top:10px;margin-bottom:4px;}"
+        "input{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;box-sizing:border-box;}"
+        "input:focus{outline:none;border-color:#22c55e;}"
+        ".btn-submit{background:#16a34a;color:#fff;border:none;width:100%;padding:12px;border-radius:8px;font-size:1rem;font-weight:700;margin-top:20px;cursor:pointer;}"
+        ".btn-exit{background:#64748b;color:#fff;border:none;width:100%;padding:10px;border-radius:8px;font-size:0.9rem;font-weight:600;margin-top:8px;cursor:pointer;}"
+        ".footer{font-size:0.75rem;color:#94a3b8;text-align:center;margin-top:15px;}"
+        "</style></head><body><div class='card'>"
+        "<h2>⚡ Universal RFID Reader</h2>"
+        "<div class='badge'>Aktif Sekarang: <b>");
+    html += cfg_proj_name;
+    html += F("</b></div>"
+        "<label>PILIH SHORTCUT PROJEK:</label>"
+        "<div class='btn-grid'>"
+        "<button type='button' class='p-btn' onclick='pick(\"dimas\")'>🟢 Dimas (Smart RW)</button>"
+        "<button type='button' class='p-btn' onclick='pick(\"julis\")'>🔵 Julis (Guyub)</button>"
+        "<button type='button' class='p-btn' onclick='pick(\"ilham\")'>🟠 Ilham (Kawan)</button>"
+        "<button type='button' class='p-btn' onclick='pick(\"fabian\")'>🟣 Fabian (E-Warga)</button>"
+        "</div>"
+        "<form action='/save' method='POST'>"
+        "<label>Nama Projek / Pemilik:</label>"
+        "<input type='text' id='proj' name='proj' value='");
+    html += cfg_proj_name;
+    html += F("' required>"
+        "<label>Nama WiFi / Hotspot HP (SSID):</label>"
+        "<input type='text' id='ssid' name='ssid' value='");
+    html += cfg_wifi_ssid;
+    html += F("' placeholder='Nama Hotspot HP Anda' required>"
+        "<label>Password WiFi / Hotspot:</label>"
+        "<input type='text' id='pass' name='pass' value='");
+    html += cfg_wifi_pass;
+    html += F("' placeholder='Password Hotspot'>"
+        "<label>Target URL Endpoint Tap:</label>"
+        "<input type='text' id='tap' name='tap' value='");
+    html += cfg_api_url;
+    html += F("' required>"
+        "<label>Target URL Heartbeat (Status Online):</label>"
+        "<input type='text' id='hb' name='hb' value='");
+    html += cfg_hb_url;
+    html += F("' required>"
+        "<label>Device Secret Key:</label>"
+        "<input type='text' id='key' name='key' value='");
+    html += cfg_dev_key;
+    html += F("' required>"
+        "<label>Device ID:</label>"
+        "<input type='text' id='id' name='id' value='");
+    html += cfg_dev_id;
+    html += F("' required>"
+        "<button type='submit' class='btn-submit'>💾 SIMPAN & REBOOT ALAT</button>"
+        "</form>"
+        "<form action='/exit' method='GET'>"
+        "<button type='submit' class='btn-exit'>❌ Batal & Keluar</button>"
+        "</form>"
+        "<div class='footer'>ESP32 JDIF Multi-Project Universal Reader &bull; Port 192.168.4.1</div>"
+        "</div>"
+        "<script>"
+        "const p={"
+        "dimas:{n:'Dimas (Smart RW)',t:'https://smartos-rw.unique-monsters.my.id/api/rfid/tap',h:'https://smartos-rw.unique-monsters.my.id/api/rfid/heartbeat',k:'smartrw-rfid-device',i:'esp32-scanner-01'},"
+        "julis:{n:'Julis (Guyub)',t:'https://guyub.unique-monsters.my.id/api/rfid/tap',h:'https://guyub.unique-monsters.my.id/api/rfid/heartbeat',k:'smartrw-rfid-device',i:'esp32-scanner-01'},"
+        "ilham:{n:'Ilham (Kawan)',t:'https://kawan.unique-monsters.my.id/api/rfid/tap',h:'https://kawan.unique-monsters.my.id/api/rfid/heartbeat',k:'smartrw-rfid-device',i:'esp32-scanner-01'},"
+        "fabian:{n:'Fabian (E-Warga)',t:'https://e-warga.unique-monsters.my.id/api/rfid/tap',h:'https://e-warga.unique-monsters.my.id/api/rfid/heartbeat',k:'smartrw-rfid-device',i:'esp32-scanner-01'}"
+        "};"
+        "function pick(k){"
+        "if(!p[k])return;"
+        "document.getElementById('proj').value=p[k].n;"
+        "document.getElementById('tap').value=p[k].t;"
+        "document.getElementById('hb').value=p[k].h;"
+        "document.getElementById('key').value=p[k].k;"
+        "document.getElementById('id').value=p[k].i;"
+        "}"
+        "</script></body></html>");
+
+    webServer.send(200, "text/html", html);
+}
+
+void handlePortalSave() {
+    String proj = webServer.arg("proj");
+    String ssid = webServer.arg("ssid");
+    String pass = webServer.arg("pass");
+    String tap  = webServer.arg("tap");
+    String hb   = webServer.arg("hb");
+    String key  = webServer.arg("key");
+    String id   = webServer.arg("id");
+
+    saveConfig(proj, ssid, pass, tap, hb, key, id);
+
+    String resp = F("<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1.0'>"
+        "<title>Tersimpan</title>"
+        "<style>body{font-family:sans-serif;text-align:center;padding:40px 20px;background:#f0fdf4;color:#166534;}</style>"
+        "</head><body>"
+        "<h1>🎉 Konfigurasi Tersimpan!</h1>"
+        "<p>Alat sedang me-restart ke Projek: <b>");
+    resp += proj;
+    resp += F("</b></p>"
+        "<p>Silakan putuskan sambungan dari WiFi ESP32 dan buka website projek Anda.</p>"
+        "<script>setTimeout(function(){window.close();}, 4000);</script>"
+        "</body></html>");
+
+    webServer.send(200, "text/html", resp);
+    delay(1500);
+
+    Serial.println(F("[PORTAL] Konfigurasi baru diterima. Restarting ESP32 sekarang..."));
+    ESP.restart();
+}
+
+void handlePortalExit() {
+    String resp = F("<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1.0'>"
+        "<title>Keluar</title>"
+        "<style>body{font-family:sans-serif;text-align:center;padding:40px 20px;background:#f8fafc;color:#334155;}</style>"
+        "</head><body>"
+        "<h2>Keluar dari Portal</h2>"
+        "<p>ESP32 kembali mencoba menyambung ke konfigurasi sebelumnya...</p>"
+        "</body></html>");
+
+    webServer.send(200, "text/html", resp);
+    delay(1000);
+    inPortalMode = false;
+    ESP.restart();
+}
+
+// ============================================================
+// 8. DIAGNOSIS HARDWARE RC522
 // ============================================================
 void testRc522Connection() {
     byte v = rfid.PCD_ReadRegister(MFRC522::VersionReg);
 
 #if !defined(ARDUINO_NANO_ESP32)
-    // Coba fallback pin RST 27 jika pin 22 belum merespon
     if (v == 0x00 || v == 0xFF) {
         rfid = MFRC522(PIN_SS, 27);
         rfid.PCD_Init();
         delay(40);
         v = rfid.PCD_ReadRegister(MFRC522::VersionReg);
     }
-    // Coba soft-reset (tanpa pin RST fisik)
-    if (v == 0x00 || v == 0xFF) {
-        rfid = MFRC522(PIN_SS, UINT8_MAX);
-        rfid.PCD_Init();
-        delay(40);
-        v = rfid.PCD_ReadRegister(MFRC522::VersionReg);
-    }
 #endif
-
-    Serial.printf("[RC522] Versi Chip Firmware: 0x%02X\n", v);
 
     if (v == 0x00 || v == 0xFF) {
         rc522Ready = false;
-        Serial.println();
-        Serial.println(F("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"));
-        Serial.println(F("❌ PERINGATAN KERAS: Modul RC522 TIDAK TERBACA OLEH ESP32 (0x00)!"));
-        Serial.println(F("   Penyebab utama kartu tidak bisa terscan:"));
-        Serial.println(F("   1. Pin RST sambungkan ke pin GPIO 22 (atau 27)."));
-        Serial.println(F("   2. Kaki pin header RC522 BELUM DISOLDER dengan timah panas."));
-        Serial.println(F("   3. VCC wajib ke pin 3.3V (JANGAN KE 5V/VIN!)."));
-        Serial.println(F("   4. Pin SPI: SDA->GPIO 5, SCK->18, MOSI->23, MISO->19."));
-        Serial.println(F("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"));
+        Serial.println(F("\n⚠️  [RC522 ERROR] Modul RC522 tidak terdeteksi (0x00 / 0xFF)!"));
+        Serial.println(F("   Periksa kabel jumper ke ESP32 (VCC wajib ke 3.3V, bukan 5V)."));
         beepError();
     } else {
         rc522Ready = true;
-        rfid.PCD_SetAntennaGain(rfid.RxGain_43dB); // Gain 43 dB: stabil dan toleran tanpa saturasi/clipping ADC
-        Serial.printf("✅ Modul RC522 BERHASIL TERHUBUNG DENGAN BAIK! (Chip 0x%02X)\n\n", v);
+        rfid.PCD_SetAntennaGain(rfid.RxGain_43dB);
+        Serial.printf("✅ Modul RC522 BERHASIL TERHUBUNG DENGAN BAIK! (Chip 0x%02X)\n", v);
     }
 }
 
 // ============================================================
-// 7. FORMAT UID DARI BYTE KE STRING HEX
+// 9. BACA NOMOR UID KARTU
 // ============================================================
 String readUID() {
     String uid = "";
@@ -363,31 +586,30 @@ String readUID() {
 }
 
 // ============================================================
-// 8. KIRIM HASIL SCAN KE SERVER SMART RW
+// 10. KIRIM HASIL SCAN KE SERVER AKTIF
 // ============================================================
 void sendTapToServer(const String& uid) {
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println(F("⚠️  [WIFI OFFLINE] Kartu terbaca di alat, tetapi TIDAK terkirim ke web"));
-        Serial.println(F("    karena WiFi belum tersambung ke Hotspot HP."));
+        Serial.println(F("⚠️  [WIFI OFFLINE] Kartu terbaca, tapi belum terhubung ke WiFi/Hotspot."));
         beepError();
         return;
     }
 
     WiFiClientSecure client;
-    client.setInsecure(); // Memudahkan koneksi HTTPS tanpa manajemen sertifikat rumit
+    client.setInsecure();
     client.setTimeout(10);
 
     HTTPClient http;
-    http.begin(client, API_URL);
+    http.begin(client, cfg_api_url);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Accept", "application/json");
-    http.addHeader("Authorization", "Bearer " + String(DEVICE_KEY));
-    http.addHeader("X-Device-Key", String(DEVICE_KEY));
+    http.addHeader("Authorization", "Bearer " + cfg_dev_key);
+    http.addHeader("X-Device-Key", cfg_dev_key);
     http.setTimeout(10000);
 
-    String payload = "{\"uid\":\"" + uid + "\"}";
+    String payload = "{\"uid\":\"" + uid + "\",\"device_id\":\"" + cfg_dev_id + "\"}";
 
-    Serial.printf("[HTTP] Mengirim UID %s ke server...\n", uid.c_str());
+    Serial.printf("[HTTP] Mengirim UID %s ke %s ...\n", uid.c_str(), cfg_api_url.c_str());
     int httpCode = http.POST(payload);
     String response = (httpCode > 0) ? http.getString() : http.errorToString(httpCode);
 
@@ -395,39 +617,10 @@ void sendTapToServer(const String& uid) {
 
     if (httpCode == 200) {
         Serial.printf("[HTTP] Respons Server: %s\n", response.c_str());
-
-        if (response.indexOf("ktp_registered") >= 0) {
-            Serial.println(F("\n🎉 [SUKSES BESAR] e-KTP fisik berhasil didaftarkan ke akun warga!"));
-            Serial.println(F("🎉 Status di website kartu-rfid otomatis berubah 'Terdaftar Resmi'.\n"));
-            beepSuccess();
-        } else if (response.indexOf("ktp_verified") >= 0 || response.indexOf("ktp_already_verified") >= 0) {
-            Serial.println(F("\n✅ [TERVERIFIKASI] e-KTP ini sudah resmi terdaftar di RT dan sistem.\n"));
-            beepSuccess();
-        } else if (response.indexOf("present") >= 0) {
-            Serial.println(F("\n✅ [ABSENSI HADIR] Kehadiran rapat/kegiatan warga berhasil dicatat!\n"));
-            beepSuccess();
-        } else {
-            Serial.printf("\n[OK] Respon: %s\n", response.c_str());
-            beepSuccess();
-        }
+        Serial.println(F("🎉 [SUKSES] Data kartu berhasil diterima server!\n"));
+        beepSuccess();
     } else if (httpCode == 422) {
-        Serial.printf("[HTTP] Respon Validasi Server: %s\n", response.c_str());
-
-        if (response.indexOf("terdaftar di akun") >= 0 || response.indexOf("warga lain") >= 0) {
-            Serial.println(F("\n⚠️  [KARTU SUDAH DIGUNAKAN WARGA LAIN]"));
-            Serial.println(F("⚠️  Fisik kartu e-KTP ini sudah terdaftar atas nama warga lain!"));
-            Serial.println(F("⚠️  1 kartu fisik e-KTP hanya boleh terdaftar untuk 1 orang warga."));
-            Serial.println(F("⚠️  Silakan gunakan kartu e-KTP milik Anda sendiri.\n"));
-        } else if (response.indexOf("kedaluwarsa") >= 0) {
-            Serial.println(F("\n⚠️  [SESI TAP KEDALUWARSA]"));
-            Serial.println(F("⚠️  Waktu pendaftaran 3 menit telah habis."));
-            Serial.println(F("⚠️  Silakan buka web dan klik 'Buka Sesi Tap Mandiri' lagi.\n"));
-        } else if (response.indexOf("belum terdaftar") >= 0) {
-            Serial.println(F("\n⚠️  [KARTU BELUM TERDAFTAR]"));
-            Serial.println(F("⚠️  Kartu ini belum terdaftar di sistem."));
-            Serial.println(F("⚠️  Untuk mendaftar, buka web smartos-rw.unique-monsters.my.id/kartu-rfid"));
-            Serial.println(F("⚠️  klik 'Buka Sesi Tap Mandiri', lalu tempelkan kartu ini lagi.\n"));
-        }
+        Serial.printf("[HTTP 422] Validasi Server: %s\n", response.c_str());
         beepError();
     } else {
         Serial.printf("[HTTP ERROR] Kode: %d | Body: %s\n", httpCode, response.c_str());
@@ -438,53 +631,37 @@ void sendTapToServer(const String& uid) {
 }
 
 // ============================================================
-// 9. HEARTBEAT KE SERVER (STATUS ONLINE)
+// 11. HEARTBEAT KE SERVER (STATUS ONLINE REALTIME)
 // ============================================================
 void sendHeartbeat() {
-    if (WiFi.status() != WL_CONNECTED) return;
+    if (WiFi.status() != WL_CONNECTED || cfg_hb_url.length() == 0) return;
 
     WiFiClientSecure client;
     client.setInsecure();
-    client.setTimeout(6); // 6 detik socket timeout
+    client.setTimeout(6);
 
     HTTPClient http;
-    http.begin(client, HEARTBEAT_URL);
+    http.begin(client, cfg_hb_url);
     http.addHeader("Content-Type", "application/json");
-    http.addHeader("X-Device-Key", String(DEVICE_KEY));
-    http.setTimeout(6000); // 6 detik HTTP timeout
+    http.addHeader("X-Device-Key", cfg_dev_key);
+    http.setTimeout(6000);
 
-    String payload = "{\"device_id\":\"" + String(DEVICE_ID)
-                   + "\",\"ip\":\"" + WiFi.localIP().toString() + "\"}";
+    String payload = "{\"device_id\":\"" + cfg_dev_id + "\",\"ip\":\"" + WiFi.localIP().toString() + "\"}";
 
     int code = http.POST(payload);
-
     if (code == 200) {
         static unsigned long hbCount = 0;
         if (++hbCount % 5 == 0) {
-            Serial.print(F("."));  // Tanda heartbeat online setiap 10 detik
+            Serial.print(F("."));
         }
     } else {
-        Serial.printf("\n[HEARTBEAT] Gagal (Kode: %d | Info: %s) | Heap: %d B\n", 
-            code, 
-            http.errorToString(code).c_str(), 
-            ESP.getFreeHeap()
-        );
-        if (code == -1) {
-            static unsigned long lastDiagTime = 0;
-            if (millis() - lastDiagTime > 15000) {
-                lastDiagTime = millis();
-                Serial.println(F("💡 [PANDUAN ERROR -1]:"));
-                Serial.println(F("   1. Pastikan Hotspot HP benar-benar bisa browsing internet (bukan hanya konek lokal)."));
-                Serial.println(F("   2. Pada HP Poco, periksa apakah 'DNS Pribadi (Private DNS)' aktif. Coba matikan sementara."));
-                Serial.println(F("   3. Cara paling stabil: Sambungkan ESP32 langsung ke WiFi rumah Anda (bukan lewat Hotspot HP)."));
-            }
-        }
+        Serial.printf("\n[HEARTBEAT] Gagal (Kode: %d | Info: %s)\n", code, http.errorToString(code).c_str());
     }
     http.end();
 }
 
 // ============================================================
-// 10. NADA BUZZER (OPSIONAL)
+// 12. INDIKATOR NADA BUZZER
 // ============================================================
 void beepSuccess() {
     digitalWrite(PIN_BUZZER, HIGH);
@@ -503,4 +680,14 @@ void beepError() {
         digitalWrite(PIN_BUZZER, LOW);
         if (i < 2) delay(100);
     }
+}
+
+void beepPortal() {
+    digitalWrite(PIN_BUZZER, HIGH);
+    delay(400);
+    digitalWrite(PIN_BUZZER, LOW);
+    delay(100);
+    digitalWrite(PIN_BUZZER, HIGH);
+    delay(400);
+    digitalWrite(PIN_BUZZER, LOW);
 }

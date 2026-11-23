@@ -554,9 +554,13 @@
             <a href="{{ route('profile.edit') }}" class="group mb-3 block rounded-2xl border {{ request()->is('profile*') ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/60 dark:border-emerald-500' : 'border-emerald-100 bg-white dark:border-slate-800 dark:bg-slate-900/60' }} p-3 shadow-xs transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:bg-slate-800/80" title="Klik untuk edit profil">
                 <div class="flex items-center justify-between gap-3">
                     <div class="flex min-w-0 items-center gap-3">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700 transition group-hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
-                            {{ substr($user->name, 0, 1) }}
-                        </div>
+                        @if($user->foto_profil)
+                            <img src="{{ $user->foto_url }}" alt="{{ $user->name }}" class="h-10 w-10 shrink-0 rounded-full object-cover border border-emerald-300 shadow-xs dark:border-emerald-600">
+                        @else
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700 transition group-hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
+                                {{ substr($user->name, 0, 1) }}
+                            </div>
+                        @endif
                         <div class="min-w-0">
                             <p class="truncate text-xs font-bold text-slate-900 transition group-hover:text-emerald-800 dark:text-slate-100 dark:group-hover:text-emerald-300">{{ $user->name }}</p>
                             <p class="truncate text-[10px] capitalize text-emerald-700 dark:text-emerald-400">{{ $roleLabel }}</p>

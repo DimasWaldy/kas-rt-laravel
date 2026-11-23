@@ -31,6 +31,8 @@ class ProfileUpdateRequest extends FormRequest
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
+            'foto_profil' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'hapus_foto' => ['nullable', 'boolean'],
             'email' => [
                 'required',
                 'string',

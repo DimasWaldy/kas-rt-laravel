@@ -87,6 +87,108 @@
         @method('patch')
 
         <x-billing-contact-warning :rumah="$user->rumah" />
+
+        {{-- Foto Profil Section --}}
+        <div x-data="{
+            photoPreview: null,
+            deletePhoto: false,
+            updatePreview() {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.photoPreview = e.target.result;
+                    this.deletePhoto = false;
+                };
+                if (this.$refs.photoInput.files[0]) {
+                    reader.readAsDataURL(this.$refs.photoInput.files[0]);
+                }
+            },
+            removePhoto() {
+                this.photoPreview = null;
+                this.deletePhoto = true;
+                this.$refs.photoInput.value = null;
+            }
+        }" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
+            <input type="hidden" name="hapus_foto" :value="deletePhoto ? '1' : '0'">
+
+            <div class="flex flex-col sm:flex-row sm:items-center gap-5">
+                {{-- Avatar Image / Initial / Live Preview --}}
+                <div class="relative flex-shrink-0">
+                    <template x-if="photoPreview && !deletePhoto">
+                        <img :src="photoPreview" alt="Preview Foto Profil" class="h-24 w-24 rounded-full object-cover border-4 border-emerald-500 shadow-md">
+                    </template>
+                    <template x-if="!photoPreview && !deletePhoto">
+                        <div>
+                            @if($user->foto_profil)
+                                <img src="{{ $user->foto_url }}" alt="{{ $user->name }}" class="h-24 w-24 rounded-full object-cover border-4 border-emerald-500 shadow-md">
+                            @else
+                                <div class="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-100 font-black text-3xl text-emerald-700 shadow-md dark:bg-emerald-950 dark:text-emerald-300 border-4 border-emerald-200 dark:border-emerald-800">
+                                    {{ substr($user->name, 0, 1) }}
+                                </div>
+                            @endif
+                        </div>
+                    </template>
+                    <template x-if="deletePhoto">
+                        <div class="flex h-24 w-24 items-center justify-center rounded-full bg-slate-100 font-black text-3xl text-slate-400 shadow-md dark:bg-slate-800 dark:text-slate-500 border-4 border-dashed border-slate-300 dark:border-slate-700">
+                            {{ substr($user->name, 0, 1) }}
+                        </div>
+                    </template>
+                </div>
+
+                <div class="flex-1 space-y-2">
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Foto Profil</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Format yang didukung: JPG, JPEG, PNG, atau WEBP. Maksimal ukuran 2MB.
+                    </p>
+
+                    <div class="flex flex-wrap items-center gap-2 pt-1">
+                        <input
+                            type="file"
+                            id="foto_profil"
+                            name="foto_profil"
+                            accept="image/jpeg,image/png,image/webp,image/jpg"
+                            class="hidden"
+                            x-ref="photoInput"
+                            x-on:change="updatePreview()"
+                        >
+
+                        <button
+                            type="button"
+                            x-on:click="$refs.photoInput.click()"
+                            class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 active:scale-95"
+                        >
+                            <i class="fa-solid fa-camera"></i>
+                            <span x-text="photoPreview || {{ $user->foto_profil ? 'true' : 'false' }} ? 'Ganti Foto' : 'Unggah Foto'"></span>
+                        </button>
+
+                        @if($user->foto_profil)
+                            <button
+                                type="button"
+                                x-show="!deletePhoto"
+                                x-on:click="removePhoto()"
+                                class="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 active:scale-95"
+                            >
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span>Hapus Foto</span>
+                            </button>
+                        @endif
+
+                        <template x-if="deletePhoto">
+                            <button
+                                type="button"
+                                x-on:click="deletePhoto = false"
+                                class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 active:scale-95"
+                            >
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>Batalkan Hapus</span>
+                            </button>
+                        </template>
+                    </div>
+
+                    <x-input-error class="mt-2" :messages="$errors->get('foto_profil')" />
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
                 <x-input-label for="name" value="Nama" />
