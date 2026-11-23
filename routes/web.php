@@ -24,6 +24,7 @@ use App\Http\Controllers\KeamananController;
 use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\KegiatanRfidController;
 use App\Http\Controllers\KoperasiWargaController;
+use App\Http\Controllers\LaporanIuranController;
 use App\Http\Controllers\LaporanKasController;
 use App\Http\Controllers\PemeriksaanPosyanduController;
 use App\Http\Controllers\PeminjamanAsetController;
@@ -151,6 +152,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/laporan-kas', [LaporanKasController::class, 'index'])
         ->middleware('permission:view-finance')
         ->name('laporan-kas.index');
+    Route::get('/admin/laporan-kas/export', [LaporanKasController::class, 'export'])
+        ->middleware('permission:export-finance')
+        ->name('laporan-kas.export');
+
+    Route::get('/admin/laporan-iuran', [LaporanIuranController::class, 'index'])
+        ->middleware('permission:view-finance')
+        ->name('laporan-iuran.index');
+    Route::get('/admin/laporan-iuran/export', [LaporanIuranController::class, 'export'])
+        ->middleware('permission:export-finance')
+        ->name('laporan-iuran.export');
 
     Route::middleware(['permission:manage-warga'])->group(function () {
         Route::get('/admin/warga', [UserController::class, 'index'])->name('admin.warga.index');

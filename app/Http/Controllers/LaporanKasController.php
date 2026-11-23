@@ -11,6 +11,22 @@ class LaporanKasController extends Controller
 {
     public function index(Request $request)
     {
+        $data = $this->computeLaporanData($request);
+
+        return view('laporan_kas.index', $data);
+    }
+
+    public function export(Request $request)
+    {
+        abort_unless($request->user()->hasPermission('export-finance') || $request->user()->canManageFinance(), 403);
+
+        $data = $this->computeLaporanData($request);
+
+        return view('laporan_kas.export', $data);
+    }
+
+    private function computeLaporanData(Request $request): array
+    {
         $validated = $request->validate([
             'tanggal_mulai' => ['nullable', 'date'],
             'tanggal_selesai' => ['nullable', 'date', 'after_or_equal:tanggal_mulai'],
@@ -59,19 +75,33 @@ class LaporanKasController extends Controller
                 'user' => '-',
             ]))
             ->when($kategoriFilter, fn ($items) => $items->where('kategori', $kategoriFilter))
-            ->sortByDesc('tanggal')
+            ->sortBy('tanggal')
             ->values();
+
+        // Hitung saldo berjalan secara kronologis
+        $runningBalance = $saldoAwal;
+        $riwayatWithBalance = $riwayat->map(function ($trx) use (&$runningBalance) {
+            $runningBalance += ($trx['debit'] - $trx['kredit']);
+            $trx['saldo_berjalan'] = $runningBalance;
+
+            return $trx;
+        });
+
+        // Untuk tampilan web terbaru diurutkan dari terbaru (descending)
+        $riwayatDesc = $riwayatWithBalance->sortByDesc('tanggal')->values();
 
         $totalMasuk = (int) $riwayat->sum('debit');
         $totalKeluar = (int) $riwayat->sum('kredit');
         $saldoPeriode = $totalMasuk - $totalKeluar;
         $saldoAkhir = $saldoAwal + $saldoPeriode;
+
         $kategoriOptions = $riwayat->pluck('kategori')
             ->merge($kasMasuk->map(fn ($item) => $this->kategoriMasuk($item)))
             ->merge($kasKeluar->map(fn ($item) => $this->kategoriKeluar($item)))
             ->unique()
             ->sort()
             ->values();
+
         $ringkasanKategori = $riwayat
             ->groupBy('kategori')
             ->map(fn ($items, $kategori) => [
@@ -82,9 +112,13 @@ class LaporanKasController extends Controller
                 'transaksi' => $items->count(),
             ])
             ->values();
+
         $periodeLabel = $tanggalMulai->translatedFormat('d F Y').' - '.$tanggalSelesai->translatedFormat('d F Y');
 
-        return view('laporan_kas.index', compact(
+        $user = $request->user();
+        $rtLabel = $user->rt ? 'RT '.$user->rt->name : ($user->isRwOfficial() ? 'RW Lingkungan' : 'Kas Umum RT/RW');
+
+        return compact(
             'tanggalMulai',
             'tanggalSelesai',
             'kategoriFilter',
@@ -98,8 +132,11 @@ class LaporanKasController extends Controller
             'saldoAkhir',
             'ringkasanKategori',
             'riwayat',
+            'riwayatWithBalance',
+            'riwayatDesc',
             'periodeLabel',
-        ));
+            'rtLabel'
+        );
     }
 
     private function kategoriMasuk(KasMasuk $item): string
