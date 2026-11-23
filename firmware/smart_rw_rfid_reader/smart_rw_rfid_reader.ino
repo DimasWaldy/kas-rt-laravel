@@ -125,6 +125,34 @@ void setup() {
     // Diagnosis koneksi modul RC522
     testRc522Connection();
 
+    // Reset dan konfigurasi WiFi Station
+    WiFi.persistent(false);
+    WiFi.disconnect(true);
+    delay(100);
+    WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
+
+    // Event handler untuk diagnosis penyebab gagal koneksi WiFi
+    WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
+        if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+            uint8_t reason = info.wifi_sta_disconnected.reason;
+            Serial.printf("\n[WIFI GAGAL] Terputus / Gagal Terhubung (Alasan Kode: %d)\n", reason);
+            if (reason == 201) { // WIFI_REASON_NO_AP_FOUND
+                Serial.println(F("👉 PENYEBAB: Sinyal Hotspot Tidak Terdeteksi (NO_AP_FOUND)!"));
+                Serial.println(F("   1. Pastikan Hotspot HP sudah AKTIF dan SSID 'Poco F6505' sudah tepat."));
+                Serial.println(F("   2. ⚠️ PENTING: Pada HP Poco / Xiaomi, ganti 'Pita AP' ke '2.4 GHz'!"));
+                Serial.println(F("      (Buka Setelan HP -> Hotspot Portabel -> Atur Hotspot -> Pita AP -> Pilih 2,4 GHz)."));
+                Serial.println(F("      ESP32 TIDAK BISA mendeteksi pita 5.0 GHz / Wi-Fi 6."));
+                Serial.println(F("   3. Matikan opsi 'Hotspot Wi-Fi 6' dan aktifkan 'Maksimalkan Kompatibilitas'."));
+            } else if (reason == 202 || reason == 15) { // AUTH_FAIL / 4WAY_HANDSHAKE_TIMEOUT
+                Serial.println(F("👉 PENYEBAB: Password Salah atau Keamanan WPA3 Tidak Didukung!"));
+                Serial.println(F("   Ubah keamanan Hotspot HP dari 'WPA3' menjadi 'WPA2-Personal'."));
+            } else if (reason == 200) {
+                Serial.println(F("👉 PENYEBAB: Sinyal terlalu jauh atau terhalang. Dekatkan ESP32 ke HP."));
+            }
+        }
+    });
+
     // Koneksi ke WiFi Hotspot
     Serial.printf("[WIFI] Menghubungkan ke: %s ...\n", WIFI_SSID);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -167,13 +195,15 @@ void setup() {
 // 5. LOOP PEMBACAAN KARTU
 // ============================================================
 void loop() {
-    // 1. Cek Koneksi WiFi (Auto-Reconnect)
+    // 1. Cek Koneksi WiFi (Auto-Reconnect yang aman tanpa memicu bentrok driver)
     if (WiFi.status() != WL_CONNECTED) {
         static unsigned long lastReconnectAttempt = 0;
-        if (millis() - lastReconnectAttempt > 10000) {
+        if (millis() - lastReconnectAttempt > 12000) {
             lastReconnectAttempt = millis();
-            Serial.println(F("[WIFI] Terputus! Mencoba menyambung kembali..."));
-            WiFi.reconnect();
+            Serial.println(F("[WIFI] Sedang mencoba menyambung kembali ke Hotspot..."));
+            WiFi.disconnect();
+            delay(100);
+            WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
         }
     }
 
