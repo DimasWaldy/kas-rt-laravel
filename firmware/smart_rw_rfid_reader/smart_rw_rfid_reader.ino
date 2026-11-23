@@ -77,7 +77,7 @@ String lastUID = "";
 unsigned long lastScanTime = 0;
 unsigned long lastHeartbeatTime = 0;
 const unsigned long SCAN_COOLDOWN_MS = 2000; // Jeda 2 detik untuk kartu yang sama
-const unsigned long HEARTBEAT_INTERVAL_MS = 1200; // Heartbeat setiap 1.2 detik untuk deteksi status real-time tanpa false alarm
+const unsigned long HEARTBEAT_INTERVAL_MS = 2000; // Heartbeat setiap 2 detik untuk stabilitas koneksi HTTPS tanpa overload heap
 
 // Prototype Fungsi
 String readUID();
@@ -167,11 +167,28 @@ void setup() {
     if (WiFi.status() == WL_CONNECTED) {
         Serial.println(F("\n[WIFI] Berhasil terhubung!"));
         Serial.printf("[WIFI] IP Address ESP32: %s\n", WiFi.localIP().toString().c_str());
+        Serial.printf("[WIFI] Gateway: %s\n", WiFi.gatewayIP().toString().c_str());
+        Serial.printf("[WIFI] DNS Asli HP: %s\n", WiFi.dnsIP().toString().c_str());
         Serial.printf("[WIFI] Kualitas Sinyal: %d dBm\n", WiFi.RSSI());
+
+        // Atur DNS Publik Google (8.8.8.8) dan Cloudflare (1.1.1.1)
+        // untuk mengatasi DNS proxy Hotspot Android yang sering menolak query domain
+        IPAddress dnsGoogle(8, 8, 8, 8);
+        IPAddress dnsCloudflare(1, 1, 1, 1);
+        WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, dnsGoogle, dnsCloudflare);
+        Serial.printf("[WIFI] DNS Aktif: %s, %s\n", WiFi.dnsIP(0).toString().c_str(), WiFi.dnsIP(1).toString().c_str());
+
+        // Uji DNS resolve ke domain server
+        IPAddress serverIP;
+        if (WiFi.hostByName("smartos-rw.unique-monsters.my.id", serverIP)) {
+            Serial.printf("[DNS SUKSES] Domain server terdeteksi ke IP: %s\n", serverIP.toString().c_str());
+        } else {
+            Serial.println(F("❌ [DNS GAGAL] Tidak dapat mengubah domain server menjadi IP!"));
+            Serial.println(F("   Pastikan Hotspot HP benar-benar terhubung ke internet."));
+        }
+
         if (rc522Ready) beepSuccess();
-        // Kirim burst 2x heartbeat saat baru menyala agar web INSTAN hijau dalam 1 detik
-        sendHeartbeat();
-        delay(150);
+        // Kirim burst heartbeat pertama kali saat baru menyala
         sendHeartbeat();
     } else {
         Serial.println(F("\n⚠️  [WIFI GAGAL] Tidak dapat terhubung ke WiFi/Hotspot."));
@@ -358,6 +375,7 @@ void sendTapToServer(const String& uid) {
 
     WiFiClientSecure client;
     client.setInsecure(); // Memudahkan koneksi HTTPS tanpa manajemen sertifikat rumit
+    client.setTimeout(10);
 
     HTTPClient http;
     http.begin(client, API_URL);
@@ -427,12 +445,13 @@ void sendHeartbeat() {
 
     WiFiClientSecure client;
     client.setInsecure();
+    client.setTimeout(6); // 6 detik socket timeout
 
     HTTPClient http;
     http.begin(client, HEARTBEAT_URL);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-Device-Key", String(DEVICE_KEY));
-    http.setTimeout(2500);
+    http.setTimeout(6000); // 6 detik HTTP timeout
 
     String payload = "{\"device_id\":\"" + String(DEVICE_ID)
                    + "\",\"ip\":\"" + WiFi.localIP().toString() + "\"}";
@@ -442,10 +461,24 @@ void sendHeartbeat() {
     if (code == 200) {
         static unsigned long hbCount = 0;
         if (++hbCount % 5 == 0) {
-            Serial.print(F("."));  // Tanda heartbeat online setiap 5 detik
+            Serial.print(F("."));  // Tanda heartbeat online setiap 10 detik
         }
     } else {
-        Serial.printf("\n[HEARTBEAT] Gagal (HTTP %d)\n", code);
+        Serial.printf("\n[HEARTBEAT] Gagal (Kode: %d | Info: %s) | Heap: %d B\n", 
+            code, 
+            http.errorToString(code).c_str(), 
+            ESP.getFreeHeap()
+        );
+        if (code == -1) {
+            static unsigned long lastDiagTime = 0;
+            if (millis() - lastDiagTime > 15000) {
+                lastDiagTime = millis();
+                Serial.println(F("💡 [PANDUAN ERROR -1]:"));
+                Serial.println(F("   1. Pastikan Hotspot HP benar-benar bisa browsing internet (bukan hanya konek lokal)."));
+                Serial.println(F("   2. Pada HP Poco, periksa apakah 'DNS Pribadi (Private DNS)' aktif. Coba matikan sementara."));
+                Serial.println(F("   3. Cara paling stabil: Sambungkan ESP32 langsung ke WiFi rumah Anda (bukan lewat Hotspot HP)."));
+            }
+        }
     }
     http.end();
 }
