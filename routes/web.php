@@ -58,7 +58,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/users/{user}/foto', [ProfileController::class, 'foto'])->name('users.foto');
     Route::get('/kartu-rfid', [WargaKartuRfidController::class, 'show'])->name('warga.rfid.show');
+    Route::get('/kartu-rfid/device-status', [WargaKartuRfidController::class, 'deviceStatus'])->name('warga.rfid.device-status');
     Route::post('/kartu-rfid/buka-sesi', [WargaKartuRfidController::class, 'openSession'])->name('warga.rfid.open');
     Route::post('/kartu-rfid/batal-sesi', [WargaKartuRfidController::class, 'cancelSession'])->name('warga.rfid.cancel');
     Route::post('/kartu-rfid/cabut', [WargaKartuRfidController::class, 'unregister'])->name('warga.rfid.unregister');

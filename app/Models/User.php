@@ -15,7 +15,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'rt_id', 'rw_id', 'is_penanggung_jawab_rumah', 'phone', 'status_akun'])]
+#[Fillable(['name', 'email', 'password', 'role_id', 'rumah_id', 'rt_id', 'rw_id', 'is_penanggung_jawab_rumah', 'phone', 'status_akun', 'foto_profil'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -310,5 +310,14 @@ class User extends Authenticatable
     public function canViewFinance(): bool
     {
         return $this->hasPermission('view-finance') || $this->canManageFinance();
+    }
+
+    public function getFotoUrlAttribute(): ?string
+    {
+        if (! $this->foto_profil) {
+            return null;
+        }
+
+        return route('users.foto', $this);
     }
 }

@@ -234,7 +234,7 @@
                         <div class="flex-1">
                             <div class="flex items-center justify-between">
                                 <h4 class="font-extrabold text-sm text-rose-900 dark:text-rose-200">Kartu Sudah Terdaftar di Akun Warga Lain!</h4>
-                                <button type="button" @click="conflictNotice = null" class="text-rose-500 hover:text-rose-700 p-1" title="Tutup Notifikasi">
+                                <button type="button" @click="conflictNotice = null; lastScanMessage = null" class="text-rose-500 hover:text-rose-700 p-1" title="Tutup Notifikasi">
                                     <i class="fa-solid fa-xmark"></i>
                                 </button>
                             </div>
@@ -262,6 +262,31 @@
                         <div>
                             <p class="font-bold text-sm">Verifikasi Berhasil!</p>
                             <p class="mt-0.5 text-emerald-700 dark:text-emerald-300">e-KTP fisik Anda telah berhasil terdaftar dan aktif secara resmi di RT dan sistem!</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Live Scan Result dari ESP32 (sukses/error ditampilkan real-time) --}}
+                <div x-show="lastScanMessage && !conflictNotice && !justVerified" x-cloak class="mt-4 rounded-2xl p-4 text-xs font-semibold transition-all"
+                     :class="lastScanStatus === 'error'
+                        ? 'border-2 border-rose-400 bg-linear-to-r from-rose-50 via-red-50 to-amber-50 text-rose-900 shadow-md shadow-rose-100 dark:border-rose-700 dark:from-rose-950/80 dark:via-red-950/70 dark:to-amber-950/60 dark:text-rose-100'
+                        : 'border border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-100'"
+                >
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-xs"
+                             :class="lastScanStatus === 'error' ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'">
+                            <i class="text-base" :class="lastScanStatus === 'error' ? 'fa-solid fa-triangle-exclamation animate-bounce' : 'fa-solid fa-circle-check'"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-extrabold text-sm"
+                                    :class="lastScanStatus === 'error' ? 'text-rose-900 dark:text-rose-200' : 'text-emerald-900 dark:text-emerald-100'"
+                                    x-text="lastScanStatus === 'error' ? '⚠️ Hasil Scan ESP32: Ditolak' : '✅ Hasil Scan ESP32: Berhasil'"></h4>
+                                <button type="button" @click="lastScanMessage = null" class="p-1 hover:opacity-70" title="Tutup">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                            <p class="mt-1 text-[11.5px] leading-relaxed font-medium" x-text="lastScanMessage"></p>
                         </div>
                     </div>
                 </div>
@@ -468,30 +493,71 @@
                 </div>
             </div>
 
-            {{-- Status Alat Reader RT --}}
-            <div class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Status Reader RT</h3>
-                @if($activeSession)
-                    <div class="mt-3 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
-                        <span class="mt-0.5 flex h-3 w-3 shrink-0 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <div class="text-xs leading-relaxed">
-                            <p class="font-bold text-emerald-900 dark:text-emerald-100">Sesi Alat Reader RT Sedang Aktif</p>
-                            <p class="mt-0.5 text-emerald-700 dark:text-emerald-300">
-                                Petugas RT sedang membuka sesi tap (berlaku s/d {{ $activeSession->expires_at->timezone('Asia/Jakarta')->format('H:i') }} WIB). Anda bisa langsung mendatangi petugas untuk tap e-KTP fisik Anda sekarang.
-                            </p>
-                        </div>
+            {{-- Status Alat Reader RT (LIVE dari heartbeat ESP32) --}}
+            <div
+                x-data="readerStatus({
+                    deviceStatusUrl: '{{ route('warga.rfid.device-status') }}',
+                    statusUrl: '{{ route('warga.rfid.status') }}'
+                })"
+                x-init="startDevicePolling()"
+                class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900"
+            >
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Status Reader RT</h3>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        <span class="h-1.5 w-1.5 rounded-full" :class="deviceOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'"></span>
+                        <span x-text="deviceOnline ? 'Live: Terhubung' : 'Live: Standby'"></span>
+                    </span>
+                </div>
+
+                {{-- 🟢 ESP32 Online & Siap Scan --}}
+                <div x-show="deviceOnline" x-cloak x-transition.opacity.duration.300ms class="mt-3 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                    <span class="mt-0.5 flex h-3 w-3 shrink-0 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <div class="text-xs leading-relaxed">
+                        <p class="font-bold text-emerald-900 dark:text-emerald-100">Alat Reader ESP32 Online & Siap Scan</p>
+                        <p class="mt-0.5 text-emerald-700 dark:text-emerald-300">
+                            Perangkat RFID reader terhubung ke server. Anda bisa langsung buka sesi tap mandiri dan tempelkan e-KTP ke alat.
+                        </p>
                     </div>
-                @else
-                    <div class="mt-3 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        <span class="mt-1 flex h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400"></span>
-                        <div class="text-xs leading-relaxed">
-                            <p class="font-bold text-slate-900 dark:text-slate-100">Sesi Alat Belum Dibuka</p>
-                            <p class="mt-0.5 text-slate-500 dark:text-slate-400">
-                                Sesi reader diaktifkan oleh pengurus saat Anda hadir di pos/kantor RT untuk melakukan tap verifikasi e-KTP.
-                            </p>
-                        </div>
+                </div>
+
+                {{-- 🔴 ESP32 Offline --}}
+                <div x-show="!deviceOnline && !isCheckingDevice" x-cloak x-transition.opacity.duration.300ms class="mt-3 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    <span class="mt-1 flex h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400"></span>
+                    <div class="text-xs leading-relaxed">
+                        <p class="font-bold text-slate-900 dark:text-slate-100">Alat Reader ESP32 Tidak Terhubung</p>
+                        <p class="mt-0.5 text-slate-500 dark:text-slate-400">
+                            Perangkat RFID reader belum menyala atau belum tersambung ke server. Hubungi petugas RT untuk menyalakan alat.
+                        </p>
                     </div>
-                @endif
+                </div>
+
+                {{-- 🟡 Sedang Mengecek --}}
+                <div x-show="isCheckingDevice" class="mt-3 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                    <i class="fa-solid fa-circle-notch fa-spin mt-0.5 text-amber-500 shrink-0"></i>
+                    <div class="text-xs leading-relaxed">
+                        <p class="font-bold">Mengecek Status Alat Reader...</p>
+                    </div>
+                </div>
+
+                {{-- Live Scan Event Card (Muncul saat ada kartu di-tap ke ESP32, sukses maupun ditolak) --}}
+                <div x-show="lastScan" x-cloak x-transition.duration.300ms class="mt-3 overflow-hidden rounded-2xl border-2 p-3.5 text-xs shadow-xs"
+                     :class="lastScan?.status === 'error'
+                        ? 'border-rose-400 bg-rose-50/90 text-rose-950 dark:border-rose-700 dark:bg-rose-950/60 dark:text-rose-100'
+                        : 'border-emerald-400 bg-emerald-50/90 text-emerald-950 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-100'">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-center gap-2 font-black">
+                            <span class="flex h-2.5 w-2.5 rounded-full" :class="lastScan?.status === 'error' ? 'bg-rose-500 animate-ping' : 'bg-emerald-500 animate-ping'"></span>
+                            <span x-text="lastScan?.status === 'error' ? '⚠️ Kartu Terdeteksi (Ditolak):' : '✅ Kartu Terdeteksi (Berhasil):'"></span>
+                            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10" x-text="lastScan?.uid ? ('UID: ' + lastScan.uid) : ''"></span>
+                        </div>
+                        <button type="button" @click="lastScan = null" class="opacity-60 hover:opacity-100 p-0.5" title="Tutup">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <p class="mt-1.5 text-[11.5px] leading-relaxed font-semibold" x-text="lastScan?.message"></p>
+                    <p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400 font-mono" x-text="lastScan?.at ? ('Waktu tap: ' + new Date(lastScan.at).toLocaleTimeString('id-ID')) : ''"></p>
+                </div>
             </div>
         </div>
 
@@ -646,6 +712,74 @@
 </div>
 
 <script>
+function readerStatus(config) {
+    return {
+        deviceOnline: false,
+        isCheckingDevice: true,
+        devicePollTimer: null,
+        lastScan: null,
+        lastScanId: null,
+
+        startDevicePolling() {
+            this.checkDeviceStatus();
+            // Polling ultra-cepat setiap 800ms agar status langsung berubah live dalam 1-2 detik
+            this.devicePollTimer = setInterval(() => {
+                this.checkDeviceStatus();
+            }, 800);
+
+            // Cek seketika saat user kembali membuka tab browser
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    this.checkDeviceStatus();
+                }
+            });
+        },
+
+        async checkDeviceStatus() {
+            try {
+                // Anti-cache: cache-control no-store + timestamp query param
+                const endpoint = config.deviceStatusUrl || config.statusUrl;
+                const url = endpoint + (endpoint.includes('?') ? '&' : '?') + '_=' + Date.now();
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    },
+                    cache: 'no-store'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    this.deviceOnline = !!data.device_online;
+                    if (data.last_scan) {
+                        this.lastScan = data.last_scan;
+                        if (this.lastScanId !== data.last_scan.id) {
+                            this.lastScanId = data.last_scan.id;
+                            if (navigator.vibrate) {
+                                try { navigator.vibrate(data.last_scan.status === 'error' ? [200, 100, 200] : [150, 60, 150]); } catch (e) {}
+                            }
+                        }
+                    } else {
+                        this.lastScan = null;
+                    }
+                }
+            } catch (e) {
+                // network blip
+            } finally {
+                this.isCheckingDevice = false;
+            }
+        },
+
+        destroy() {
+            if (this.devicePollTimer) {
+                clearInterval(this.devicePollTimer);
+                this.devicePollTimer = null;
+            }
+        }
+    };
+}
+
 function wargaRfidTap(config) {
     return {
         isEnrolled: config.isEnrolled,
@@ -654,6 +788,9 @@ function wargaRfidTap(config) {
         isLoading: false,
         errorMessage: null,
         conflictNotice: null,
+        lastScanMessage: null,
+        lastScanStatus: null,
+        lastProcessedScanId: null,
         justVerified: false,
         pollTimer: null,
         countdownTimer: null,
@@ -681,6 +818,10 @@ function wargaRfidTap(config) {
                 this.activeTab = 'rfid';
                 this.startCountdown();
                 this.startPolling();
+            }
+            // Polling background: cek perubahan status kartu bahkan saat tidak enrolling
+            if (!this.isVerified && !this.isEnrolling) {
+                this.startBackgroundPolling();
             }
         },
 
@@ -788,6 +929,8 @@ function wargaRfidTap(config) {
             this.isLoading = true;
             this.errorMessage = null;
             this.conflictNotice = null;
+            this.lastScanMessage = null;
+            this.lastScanStatus = null;
 
             try {
                 const response = await fetch(config.openUrl, {
@@ -820,6 +963,8 @@ function wargaRfidTap(config) {
             this.isLoading = true;
             this.errorMessage = null;
             this.conflictNotice = null;
+            this.lastScanMessage = null;
+            this.lastScanStatus = null;
 
             try {
                 const response = await fetch(config.cancelUrl, {
@@ -857,8 +1002,14 @@ function wargaRfidTap(config) {
             if (this.pollTimer) clearInterval(this.pollTimer);
             this.pollTimer = setInterval(async () => {
                 try {
-                    const response = await fetch(config.statusUrl, {
-                        headers: { 'Accept': 'application/json' }
+                    const url = config.statusUrl + (config.statusUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache'
+                        },
+                        cache: 'no-store'
                     });
                     if (response.ok) {
                         const data = await response.json();
@@ -869,11 +1020,24 @@ function wargaRfidTap(config) {
                                 try { navigator.vibrate([200, 100, 200]); } catch (e) {}
                             }
                         }
+                        if (data.last_scan) {
+                            this.lastScanMessage = data.last_scan.message;
+                            this.lastScanStatus = data.last_scan.status;
+                            if (data.last_scan.status === 'error') {
+                                this.conflictNotice = data.last_scan.message;
+                                this.errorMessage = null;
+                            }
+                            if (navigator.vibrate && this.lastProcessedScanId !== data.last_scan.id) {
+                                this.lastProcessedScanId = data.last_scan.id;
+                                try { navigator.vibrate(data.last_scan.status === 'error' ? [200, 100, 200] : [150, 60, 150]); } catch (e) {}
+                            }
+                        }
                         if (data.is_verified) {
                             this.stopTimers();
                             this.isVerified = true;
                             this.isEnrolled = false;
                             this.conflictNotice = null;
+                            this.lastScanMessage = null;
                             this.justVerified = true;
                             setTimeout(() => {
                                 window.location.reload();
@@ -888,6 +1052,60 @@ function wargaRfidTap(config) {
                     // silent fail on network blip
                 }
             }, 1500);
+        },
+
+        // Background polling: cek perubahan status kartu setiap 3 detik
+        // bahkan saat user TIDAK sedang enrolling (agar deteksi scan dari ESP32)
+        startBackgroundPolling() {
+            if (this.pollTimer) clearInterval(this.pollTimer);
+            this.pollTimer = setInterval(async () => {
+                try {
+                    const url = config.statusUrl + (config.statusUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache'
+                        },
+                        cache: 'no-store'
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.notice) {
+                            this.conflictNotice = data.notice;
+                            this.errorMessage = null;
+                            if (navigator.vibrate) {
+                                try { navigator.vibrate([200, 100, 200]); } catch (e) {}
+                            }
+                        }
+                        if (data.last_scan) {
+                            this.lastScanMessage = data.last_scan.message;
+                            this.lastScanStatus = data.last_scan.status;
+                            if (data.last_scan.status === 'error') {
+                                this.conflictNotice = data.last_scan.message;
+                                this.errorMessage = null;
+                            }
+                            if (navigator.vibrate && this.lastProcessedScanId !== data.last_scan.id) {
+                                this.lastProcessedScanId = data.last_scan.id;
+                                try { navigator.vibrate(data.last_scan.status === 'error' ? [200, 100, 200] : [150, 60, 150]); } catch (e) {}
+                            }
+                        }
+                        if (data.is_verified) {
+                            this.stopTimers();
+                            this.isVerified = true;
+                            this.isEnrolled = false;
+                            this.conflictNotice = null;
+                            this.lastScanMessage = null;
+                            this.justVerified = true;
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        }
+                    }
+                } catch (e) {
+                    // silent fail
+                }
+            }, 3000);
         },
 
         stopTimers() {

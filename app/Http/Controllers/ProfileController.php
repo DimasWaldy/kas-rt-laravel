@@ -109,6 +109,18 @@ class ProfileController extends Controller
         $domicileSubmitted = false;
 
         DB::transaction(function () use ($request, $user, $validated, &$domicileSubmitted) {
+            if ($request->boolean('hapus_foto')) {
+                if ($user->foto_profil && Storage::disk('local')->exists($user->foto_profil)) {
+                    Storage::disk('local')->delete($user->foto_profil);
+                }
+                $user->foto_profil = null;
+            } elseif ($request->hasFile('foto_profil')) {
+                if ($user->foto_profil && Storage::disk('local')->exists($user->foto_profil)) {
+                    Storage::disk('local')->delete($user->foto_profil);
+                }
+                $user->foto_profil = $request->file('foto_profil')->store('foto_profil', 'local');
+            }
+
             $user->fill([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
@@ -374,6 +386,25 @@ class ProfileController extends Controller
             'domisili_diajukan_at' => now(),
             'domisili_diproses_oleh' => null,
             'domisili_diproses_at' => null,
+        ]);
+    }
+
+    /**
+     * Tampilkan foto profil pengguna secara aman.
+     */
+    public function foto(User $user)
+    {
+        abort_unless(Auth::check(), 403);
+
+        if (! $user->foto_profil) {
+            abort(404);
+        }
+
+        $disk = Storage::disk('local')->exists($user->foto_profil) ? 'local' : 'public';
+        abort_unless(Storage::disk($disk)->exists($user->foto_profil), 404);
+
+        return response()->file(Storage::disk($disk)->path($user->foto_profil), [
+            'Content-Disposition' => 'inline; filename="'.basename($user->foto_profil).'"',
         ]);
     }
 }
