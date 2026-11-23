@@ -10,14 +10,22 @@ Route::post('/rfid/tap', RfidTapController::class)->middleware('throttle:120,1')
 Route::post('/rfid/scan', RfidTapController::class)->middleware('throttle:120,1')->name('rfid.scan');
 Route::get('/rfid/device-status', function () {
     $lastSeen = (float) Cache::get('rfid_device_online_at', 0);
-    $interval = (float) Cache::get('rfid_device_hb_interval', 10.0);
-    $timeout = max(2.0, min(13.0, $interval * 1.3 + 0.8));
+    $interval = (float) Cache::get('rfid_device_hb_interval', 1.5);
+    $timeout = max(3.5, min(12.0, $interval * 2.2 + 0.8));
     $isOnline = $lastSeen > 0 && (microtime(true) - $lastSeen) <= $timeout;
+
+    $lastScan = Cache::get('rfid_last_scan_global');
+    if ($lastScan && isset($lastScan['timestamp'])) {
+        if ((microtime(true) - (float) $lastScan['timestamp']) > 30.0) {
+            $lastScan = null;
+        }
+    }
 
     return response()->json([
         'device_online' => $isOnline,
         'last_seen_sec' => $lastSeen > 0 ? round(microtime(true) - $lastSeen, 2) : null,
         'server_time' => now()->toIso8601String(),
+        'last_scan' => $lastScan,
     ])
         ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
         ->header('Pragma', 'no-cache');

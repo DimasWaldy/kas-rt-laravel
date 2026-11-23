@@ -539,6 +539,25 @@
                         <p class="font-bold">Mengecek Status Alat Reader...</p>
                     </div>
                 </div>
+
+                {{-- Live Scan Event Card (Muncul saat ada kartu di-tap ke ESP32, sukses maupun ditolak) --}}
+                <div x-show="lastScan" x-cloak x-transition.duration.300ms class="mt-3 overflow-hidden rounded-2xl border-2 p-3.5 text-xs shadow-xs"
+                     :class="lastScan?.status === 'error'
+                        ? 'border-rose-400 bg-rose-50/90 text-rose-950 dark:border-rose-700 dark:bg-rose-950/60 dark:text-rose-100'
+                        : 'border-emerald-400 bg-emerald-50/90 text-emerald-950 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-100'">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-center gap-2 font-black">
+                            <span class="flex h-2.5 w-2.5 rounded-full" :class="lastScan?.status === 'error' ? 'bg-rose-500 animate-ping' : 'bg-emerald-500 animate-ping'"></span>
+                            <span x-text="lastScan?.status === 'error' ? '⚠️ Kartu Terdeteksi (Ditolak):' : '✅ Kartu Terdeteksi (Berhasil):'"></span>
+                            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10" x-text="lastScan?.uid ? ('UID: ' + lastScan.uid) : ''"></span>
+                        </div>
+                        <button type="button" @click="lastScan = null" class="opacity-60 hover:opacity-100 p-0.5" title="Tutup">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <p class="mt-1.5 text-[11.5px] leading-relaxed font-semibold" x-text="lastScan?.message"></p>
+                    <p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400 font-mono" x-text="lastScan?.at ? ('Waktu tap: ' + new Date(lastScan.at).toLocaleTimeString('id-ID')) : ''"></p>
+                </div>
             </div>
         </div>
 
@@ -698,6 +717,8 @@ function readerStatus(config) {
         deviceOnline: false,
         isCheckingDevice: true,
         devicePollTimer: null,
+        lastScan: null,
+        lastScanId: null,
 
         startDevicePolling() {
             this.checkDeviceStatus();
@@ -731,6 +752,17 @@ function readerStatus(config) {
                 if (response.ok) {
                     const data = await response.json();
                     this.deviceOnline = !!data.device_online;
+                    if (data.last_scan) {
+                        this.lastScan = data.last_scan;
+                        if (this.lastScanId !== data.last_scan.id) {
+                            this.lastScanId = data.last_scan.id;
+                            if (navigator.vibrate) {
+                                try { navigator.vibrate(data.last_scan.status === 'error' ? [200, 100, 200] : [150, 60, 150]); } catch (e) {}
+                            }
+                        }
+                    } else {
+                        this.lastScan = null;
+                    }
                 }
             } catch (e) {
                 // network blip
@@ -758,6 +790,7 @@ function wargaRfidTap(config) {
         conflictNotice: null,
         lastScanMessage: null,
         lastScanStatus: null,
+        lastProcessedScanId: null,
         justVerified: false,
         pollTimer: null,
         countdownTimer: null,
@@ -991,12 +1024,11 @@ function wargaRfidTap(config) {
                             this.lastScanMessage = data.last_scan.message;
                             this.lastScanStatus = data.last_scan.status;
                             if (data.last_scan.status === 'error') {
-                                if (data.last_scan.message.includes('warga lain') || data.last_scan.message.includes('sudah terdaftar di akun')) {
-                                    this.conflictNotice = data.last_scan.message;
-                                    this.errorMessage = null;
-                                }
+                                this.conflictNotice = data.last_scan.message;
+                                this.errorMessage = null;
                             }
-                            if (navigator.vibrate) {
+                            if (navigator.vibrate && this.lastProcessedScanId !== data.last_scan.id) {
+                                this.lastProcessedScanId = data.last_scan.id;
                                 try { navigator.vibrate(data.last_scan.status === 'error' ? [200, 100, 200] : [150, 60, 150]); } catch (e) {}
                             }
                         }
@@ -1050,12 +1082,11 @@ function wargaRfidTap(config) {
                             this.lastScanMessage = data.last_scan.message;
                             this.lastScanStatus = data.last_scan.status;
                             if (data.last_scan.status === 'error') {
-                                if (data.last_scan.message.includes('warga lain') || data.last_scan.message.includes('sudah terdaftar di akun')) {
-                                    this.conflictNotice = data.last_scan.message;
-                                    this.errorMessage = null;
-                                }
+                                this.conflictNotice = data.last_scan.message;
+                                this.errorMessage = null;
                             }
-                            if (navigator.vibrate) {
+                            if (navigator.vibrate && this.lastProcessedScanId !== data.last_scan.id) {
+                                this.lastProcessedScanId = data.last_scan.id;
                                 try { navigator.vibrate(data.last_scan.status === 'error' ? [200, 100, 200] : [150, 60, 150]); } catch (e) {}
                             }
                         }

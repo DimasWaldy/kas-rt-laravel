@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\RfidCard;
 use App\Models\RfidSession;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -161,21 +160,23 @@ class WargaKartuRfidController extends Controller
 
         $isEnrolled = $session && (int) $session->enrollment_user_id === (int) $user->id && $session->enrollment_expires_at?->isFuture();
         $remainingSeconds = $isEnrolled ? max(0, (int) now()->diffInSeconds($session->enrollment_expires_at, false)) : 0;
-        $notice = Cache::pull("rfid_enrollment_notice:{$user->id}");
+        $notice = Cache::get("rfid_enrollment_notice:{$user->id}");
 
         // Cek status online adaptif (toleransi dinamis berdasarkan interval heartbeat)
         $lastSeen = (float) Cache::get('rfid_device_online_at', 0);
-        $interval = (float) Cache::get('rfid_device_hb_interval', 10.0);
-        $timeout = max(2.0, min(13.0, $interval * 1.3 + 0.8));
+        $interval = (float) Cache::get('rfid_device_hb_interval', 1.5);
+        $timeout = max(3.5, min(12.0, $interval * 2.2 + 0.8));
         $deviceOnline = $lastSeen > 0 && (microtime(true) - $lastSeen) <= $timeout;
 
-        // Cek hasil scan terakhir dari ESP32 (ditulis di luar transaksi oleh RfidTapController)
-        $scanResult = Cache::pull("rfid_scan_result:{$user->id}");
+        // Cek hasil scan terakhir dari ESP32 (fallback bertingkat: User -> RT -> Global)
+        $scanResult = Cache::get("rfid_scan_result:{$user->id}")
+            ?? ($user->rt_id ? Cache::get("rfid_last_scan_rt:{$user->rt_id}") : null)
+            ?? Cache::get('rfid_last_scan_global');
+
         $lastScan = null;
-        if ($scanResult && isset($scanResult['at'])) {
-            $scanTime = Carbon::parse($scanResult['at']);
-            // Hanya tampilkan jika scan terjadi dalam 60 detik terakhir
-            if (abs($scanTime->diffInSeconds(now(), false)) < 60) {
+        if ($scanResult && isset($scanResult['timestamp'])) {
+            // Tampilkan jika scan terjadi dalam 30 detik terakhir
+            if ((microtime(true) - (float) $scanResult['timestamp']) <= 30.0) {
                 $lastScan = $scanResult;
             }
         }
@@ -200,17 +201,31 @@ class WargaKartuRfidController extends Controller
             ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
     }
 
-    public function deviceStatus()
+    public function deviceStatus(Request $request)
     {
+        $user = $request->user();
         $lastSeen = (float) Cache::get('rfid_device_online_at', 0);
-        $interval = (float) Cache::get('rfid_device_hb_interval', 10.0);
-        $timeout = max(2.0, min(13.0, $interval * 1.3 + 0.8));
+        $interval = (float) Cache::get('rfid_device_hb_interval', 1.5);
+        $timeout = max(3.5, min(12.0, $interval * 2.2 + 0.8));
         $isOnline = $lastSeen > 0 && (microtime(true) - $lastSeen) <= $timeout;
+
+        // Berikan juga last_scan ke deviceStatus polling (800ms) agar update real-time instan
+        $scanResult = ($user ? Cache::get("rfid_scan_result:{$user->id}") : null)
+            ?? ($user?->rt_id ? Cache::get("rfid_last_scan_rt:{$user->rt_id}") : null)
+            ?? Cache::get('rfid_last_scan_global');
+
+        $lastScan = null;
+        if ($scanResult && isset($scanResult['timestamp'])) {
+            if ((microtime(true) - (float) $scanResult['timestamp']) <= 30.0) {
+                $lastScan = $scanResult;
+            }
+        }
 
         return response()->json([
             'device_online' => $isOnline,
             'last_seen_sec' => $lastSeen > 0 ? round(microtime(true) - $lastSeen, 2) : null,
             'server_time' => now()->toIso8601String(),
+            'last_scan' => $lastScan,
         ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache')

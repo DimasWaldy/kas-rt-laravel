@@ -12,6 +12,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -120,6 +121,37 @@ class RfidTapController extends Controller
         // Simpan enrollment_user_id SEBELUM masuk transaksi (untuk notifikasi di luar transaksi)
         $enrollmentUserId = $initial->enrollment_user_id;
 
+        $publishScanResult = function (string $status, string $msg, ?string $type = null) use ($data, $initial, $enrollmentUserId) {
+            $scanPayload = [
+                'id' => (string) Str::uuid(),
+                'uid' => $data['uid'] ?? 'UNKNOWN',
+                'status' => $status,
+                'type' => $type ?? $status,
+                'message' => $msg,
+                'at' => now()->toIso8601String(),
+                'timestamp' => microtime(true),
+            ];
+
+            // 1. Tulis ke cache global agar semua web realtime monitor langsung terupdate
+            Cache::put('rfid_last_scan_global', $scanPayload, now()->addMinutes(2));
+
+            // 2. Tulis ke cache RT spesifik
+            if ($initial?->rt_id) {
+                Cache::put("rfid_last_scan_rt:{$initial->rt_id}", $scanPayload, now()->addMinutes(2));
+            }
+
+            // 3. Tulis ke cache user yang sedang membuka sesi tap mandiri
+            if ($enrollmentUserId) {
+                Cache::put("rfid_scan_result:{$enrollmentUserId}", $scanPayload, now()->addMinutes(2));
+                Cache::put("rfid_enrollment_notice:{$enrollmentUserId}", $msg, now()->addMinutes(2));
+            }
+
+            // 4. Session notice
+            if ($initial?->id) {
+                Cache::put("rfid_session_notice:{$initial->id}", $msg, now()->addMinutes(2));
+            }
+        };
+
         try {
             if ($initial->scope_type === 'koperasi') {
                 $response = $this->handleKoperasiTap($initial, $hash, $data['uid'], $isDeviceKey);
@@ -129,63 +161,31 @@ class RfidTapController extends Controller
                 $response = $this->handleKegiatanTap($initial, $hash, $data['uid'], $isDeviceKey);
             }
 
-            // SUKSES: Tulis notifikasi ke cache DI LUAR DB::transaction
-            if ($enrollmentUserId) {
-                $responseData = $response->getData();
-                $msg = $responseData->message ?? 'Operasi berhasil.';
-                Cache::put("rfid_scan_result:{$enrollmentUserId}", [
-                    'status' => $responseData->status ?? 'success',
-                    'message' => $msg,
-                    'at' => now()->toIso8601String(),
-                ], now()->addMinutes(2));
-            }
+            // SUKSES: Publikasikan hasil scan secara komprehensif ke cache DI LUAR DB::transaction
+            $responseData = $response->getData();
+            $msg = $responseData->message ?? 'Operasi berhasil.';
+            $publishScanResult('success', $msg, $responseData->status ?? 'success');
 
             return $response;
         } catch (ValidationException $e) {
-            // ERROR: Tulis notifikasi ke cache DI LUAR DB::transaction
-            // (Cache::put di dalam transaction + database driver = ROLLBACK = hilang)
-            if ($enrollmentUserId) {
-                $msg = collect($e->errors())->flatten()->first() ?? $e->getMessage();
-                Cache::put("rfid_scan_result:{$enrollmentUserId}", [
-                    'status' => 'error',
-                    'message' => $msg,
-                    'at' => now()->toIso8601String(),
-                ], now()->addMinutes(2));
-                Cache::put("rfid_enrollment_notice:{$enrollmentUserId}", $msg, now()->addMinutes(2));
-                if ($initial?->id) {
-                    Cache::put("rfid_session_notice:{$initial->id}", $msg, now()->addMinutes(2));
-                }
-            }
+            // ERROR VALIDASI: Publikasikan ke cache DI LUAR DB::transaction
+            $msg = collect($e->errors())->flatten()->first() ?? $e->getMessage();
+            $publishScanResult('error', $msg, 'validation_error');
 
             throw $e;
         } catch (UniqueConstraintViolationException $e) {
             $msg = 'Kartu atau warga sudah terdaftar. Silakan periksa kembali.';
-            if ($enrollmentUserId) {
-                Cache::put("rfid_scan_result:{$enrollmentUserId}", [
-                    'status' => 'error',
-                    'message' => $msg,
-                    'at' => now()->toIso8601String(),
-                ], now()->addMinutes(2));
-                Cache::put("rfid_enrollment_notice:{$enrollmentUserId}", $msg, now()->addMinutes(2));
-                if ($initial?->id) {
-                    Cache::put("rfid_session_notice:{$initial->id}", $msg, now()->addMinutes(2));
-                }
-            }
+            $publishScanResult('error', $msg, 'conflict_error');
 
             throw ValidationException::withMessages(['uid' => $msg]);
         } catch (HttpExceptionInterface $e) {
-            if ($enrollmentUserId) {
-                $msg = $e->getMessage();
-                Cache::put("rfid_scan_result:{$enrollmentUserId}", [
-                    'status' => 'error',
-                    'message' => $msg,
-                    'at' => now()->toIso8601String(),
-                ], now()->addMinutes(2));
-                Cache::put("rfid_enrollment_notice:{$enrollmentUserId}", $msg, now()->addMinutes(2));
-                if ($initial?->id) {
-                    Cache::put("rfid_session_notice:{$initial->id}", $msg, now()->addMinutes(2));
-                }
-            }
+            $msg = $e->getMessage();
+            $publishScanResult('error', $msg, 'http_error');
+
+            throw $e;
+        } catch (\Throwable $e) {
+            $msg = $e->getMessage() ?: 'Terjadi kesalahan sistem saat memproses tap kartu.';
+            $publishScanResult('error', $msg, 'system_error');
 
             throw $e;
         }

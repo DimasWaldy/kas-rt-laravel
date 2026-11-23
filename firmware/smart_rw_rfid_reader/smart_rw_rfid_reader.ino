@@ -76,8 +76,8 @@ bool rc522Ready = false;
 String lastUID = "";
 unsigned long lastScanTime = 0;
 unsigned long lastHeartbeatTime = 0;
-const unsigned long SCAN_COOLDOWN_MS = 2500; // Jeda 2.5 detik untuk kartu yang sama
-const unsigned long HEARTBEAT_INTERVAL_MS = 1000; // Heartbeat setiap 1 detik untuk deteksi cabut/colok ultra real-time
+const unsigned long SCAN_COOLDOWN_MS = 2000; // Jeda 2 detik untuk kartu yang sama
+const unsigned long HEARTBEAT_INTERVAL_MS = 1200; // Heartbeat setiap 1.2 detik untuk deteksi status real-time tanpa false alarm
 
 // Prototype Fungsi
 String readUID();
@@ -141,7 +141,9 @@ void setup() {
         Serial.printf("[WIFI] IP Address ESP32: %s\n", WiFi.localIP().toString().c_str());
         Serial.printf("[WIFI] Kualitas Sinyal: %d dBm\n", WiFi.RSSI());
         if (rc522Ready) beepSuccess();
-        // Kirim heartbeat pertama kali saat baru menyala
+        // Kirim burst 2x heartbeat saat baru menyala agar web INSTAN hijau dalam 1 detik
+        sendHeartbeat();
+        delay(150);
         sendHeartbeat();
     } else {
         Serial.println(F("\n⚠️  [WIFI GAGAL] Tidak dapat terhubung ke WiFi/Hotspot."));
@@ -400,7 +402,7 @@ void sendHeartbeat() {
     http.begin(client, HEARTBEAT_URL);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-Device-Key", String(DEVICE_KEY));
-    http.setTimeout(1200);
+    http.setTimeout(2500);
 
     String payload = "{\"device_id\":\"" + String(DEVICE_ID)
                    + "\",\"ip\":\"" + WiFi.localIP().toString() + "\"}";
