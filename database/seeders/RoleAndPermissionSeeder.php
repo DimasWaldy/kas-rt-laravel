@@ -57,6 +57,11 @@ class RoleAndPermissionSeeder extends Seeder
             'view-voting' => 'Melihat daftar pemilihan dan bilik suara e-voting',
             'submit-vote' => 'Menggunakan hak suara pada pemilihan e-voting',
             'manage-voting' => 'Mengelola pemilihan, kandidat, dan periode e-voting',
+            'view-rukem' => 'Melihat data rukun kematian dan berita duka',
+            'submit-rukem' => 'Mendaftar anggota rukem, bayar iuran, dan lapor duka',
+            'manage-rukem' => 'Mengelola anggota dan memverifikasi laporan rukem',
+            'approve-rukem' => 'Menyetujui santunan duka dan menyalurkan bantuan',
+            'export-rukem' => 'Mengekspor laporan keuangan dan data rukem',
         ];
 
         $permissionModels = collect($permissions)->mapWithKeys(function (string $description, string $name) {
@@ -113,6 +118,10 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-voting',
                     'submit-vote',
                     'manage-voting',
+                    'view-rukem',
+                    'manage-rukem',
+                    'approve-rukem',
+                    'export-rukem',
                 ],
             ],
             'sekretaris_rw' => [
@@ -149,6 +158,9 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-voting',
                     'submit-vote',
                     'manage-voting',
+                    'view-rukem',
+                    'manage-rukem',
+                    'export-rukem',
                 ],
             ],
             'bendahara_rw' => [
@@ -174,6 +186,10 @@ class RoleAndPermissionSeeder extends Seeder
                     'export-koperasi',
                     'view-voting',
                     'submit-vote',
+                    'view-rukem',
+                    'manage-rukem',
+                    'approve-rukem',
+                    'export-rukem',
                 ],
             ],
             'petugas_bank_sampah' => [
@@ -234,6 +250,11 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-voting',
                     'submit-vote',
                     'manage-voting',
+                    'view-rukem',
+                    'submit-rukem',
+                    'manage-rukem',
+                    'approve-rukem',
+                    'export-rukem',
                 ],
             ],
             'bendahara_rt' => [
@@ -260,6 +281,10 @@ class RoleAndPermissionSeeder extends Seeder
                     'export-koperasi',
                     'view-voting',
                     'submit-vote',
+                    'view-rukem',
+                    'manage-rukem',
+                    'approve-rukem',
+                    'export-rukem',
                 ],
             ],
             'sekretaris_rt' => [
@@ -294,6 +319,10 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-voting',
                     'submit-vote',
                     'manage-voting',
+                    'view-rukem',
+                    'submit-rukem',
+                    'manage-rukem',
+                    'export-rukem',
                 ],
             ],
             'bendahara' => [
@@ -320,6 +349,10 @@ class RoleAndPermissionSeeder extends Seeder
                     'export-koperasi',
                     'view-voting',
                     'submit-vote',
+                    'view-rukem',
+                    'manage-rukem',
+                    'approve-rukem',
+                    'export-rukem',
                 ],
             ],
             'sekretaris' => [
@@ -354,6 +387,10 @@ class RoleAndPermissionSeeder extends Seeder
                     'view-voting',
                     'submit-vote',
                     'manage-voting',
+                    'view-rukem',
+                    'submit-rukem',
+                    'manage-rukem',
+                    'export-rukem',
                 ],
             ],
             'warga' => [
@@ -381,6 +418,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'submit-koperasi',
                     'view-voting',
                     'submit-vote',
+                    'view-rukem',
+                    'submit-rukem',
                 ],
             ],
         ];

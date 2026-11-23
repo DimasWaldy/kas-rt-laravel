@@ -293,6 +293,22 @@
                     'iconClass' => 'text-purple-600',
                     'visible' => $user->hasPermission('manage-voting'),
                 ],
+                [
+                    'label' => 'Rukun Kematian (Rukem)',
+                    'route' => 'rukem.index',
+                    'active' => ['rukem', 'rukem/*'],
+                    'icon' => 'fa-hand-holding-heart',
+                    'iconClass' => 'text-rose-600',
+                    'visible' => $user->hasPermission('view-rukem'),
+                ],
+                [
+                    'label' => 'Kelola Rukem',
+                    'route' => 'admin.rukem.index',
+                    'active' => 'admin/rukem*',
+                    'icon' => 'fa-hands-holding-child',
+                    'iconClass' => 'text-amber-600',
+                    'visible' => $user->hasPermission('manage-rukem'),
+                ],
             ],
         ],
         [
