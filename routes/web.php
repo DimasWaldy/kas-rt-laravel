@@ -654,6 +654,8 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/', [WelcomeController::class, 'index']);
+Route::get('/katalog-umkm/{umkm}/foto', [WelcomeController::class, 'fotoUmkm'])->name('public.umkm.foto');
+Route::get('/katalog-umkm/produk/{produk}/foto', [WelcomeController::class, 'fotoProduk'])->name('public.produk-umkm.foto');
 
 Route::get('/docs/{slug?}', function (?string $slug = null) {
     $allowedSlugs = [

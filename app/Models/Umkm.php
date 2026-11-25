@@ -9,6 +9,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Umkm extends Model
 {
+    public const CATEGORIES = [
+        'makanan_minuman' => 'Makanan & Minuman',
+        'jasa' => 'Jasa',
+        'kerajinan' => 'Kerajinan',
+        'sembako' => 'Sembako',
+        'fashion' => 'Fashion',
+        'pertanian' => 'Pertanian',
+        'lainnya' => 'Lainnya',
+    ];
+
     protected $fillable = [
         'rw_id',
         'rt_id',
@@ -64,16 +74,8 @@ class Umkm extends Model
 
     public function getKategoriLabelAttribute(): string
     {
-        return match ($this->kategori) {
-            'makanan_minuman' => 'Makanan & Minuman',
-            'jasa' => 'Jasa',
-            'kerajinan' => 'Kerajinan',
-            'sembako' => 'Sembako',
-            'fashion' => 'Fashion',
-            'pertanian' => 'Pertanian',
-            'lainnya' => 'Lainnya',
-            default => str($this->kategori)->headline()->toString(),
-        };
+        return self::CATEGORIES[$this->kategori]
+            ?? str($this->kategori)->headline()->toString();
     }
 
     public function getStatusLabelAttribute(): string
@@ -98,15 +100,27 @@ class Umkm extends Model
         };
     }
 
-    public function getWhatsappUrlAttribute(): string
+    public function getWhatsappPhoneAttribute(): string
     {
-        $nomorBersih = preg_replace('/\D+/', '', $this->nomor_whatsapp) ?? '';
+        $nomorBersih = preg_replace('/\D+/', '', $this->nomor_whatsapp ?? '') ?? '';
 
         if (str_starts_with($nomorBersih, '0')) {
             $nomorBersih = '62'.substr($nomorBersih, 1);
         }
 
-        return 'https://wa.me/'.$nomorBersih;
+        return $nomorBersih;
+    }
+
+    public function getWhatsappUrlAttribute(): string
+    {
+        return 'https://wa.me/'.$this->whatsapp_phone;
+    }
+
+    public function generateWhatsappChatUrl(?string $pesan = null): string
+    {
+        $teks = $pesan ?: "Halo {$this->nama_usaha}, saya melihat profil usaha Anda di Smart RW dan ingin bertanya atau memesan. 🙏";
+
+        return $this->whatsapp_url.'?text='.rawurlencode($teks);
     }
 
     public function isBukaSekarang(): bool
