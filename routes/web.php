@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\RumahController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WargaRfidController;
 use App\Http\Controllers\AsetController;
+use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\BankSampahController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DirektoriRwController;
@@ -656,6 +657,9 @@ Route::middleware('auth')->group(function () {
 Route::get('/', [WelcomeController::class, 'index']);
 Route::get('/katalog-umkm/{umkm}/foto', [WelcomeController::class, 'fotoUmkm'])->name('public.umkm.foto');
 Route::get('/katalog-umkm/produk/{produk}/foto', [WelcomeController::class, 'fotoProduk'])->name('public.produk-umkm.foto');
+Route::post('/asisten/chat', [AssistantController::class, 'chat'])
+    ->middleware('throttle:15,1')
+    ->name('assistant.chat');
 
 Route::get('/docs/{slug?}', function (?string $slug = null) {
     $allowedSlugs = [

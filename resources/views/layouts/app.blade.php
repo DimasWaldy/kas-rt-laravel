@@ -1029,5 +1029,7 @@
             </div>
         </div>
     </div>
+
+    @include('components.assistant-widget', ['bottomOffsetClass' => 'bottom-20 md:bottom-5'])
 </body>
 </html>

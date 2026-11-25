@@ -359,4 +359,184 @@ Alpine.data('publicUmkmCatalog', (config = {}) => ({
     },
 }));
 
+Alpine.data('assistantWidget', (config = {}) => ({
+    open: false,
+    loading: false,
+    input: '',
+    endpoint: config.endpoint || '/asisten/chat',
+    csrfToken: config.csrfToken || document.querySelector('meta[name="csrf-token"]')?.content || '',
+    storageKey: 'smart-rw-assistant-history-v1',
+    messages: [],
+    quickPrompts: [
+        'Cara bayar iuran bulanan?',
+        'Alur pengajuan surat pengantar?',
+        'Jadwal & cara setor Bank Sampah?',
+        'Cari produk UMKM warga',
+    ],
+
+    init() {
+        try {
+            const raw = sessionStorage.getItem(this.storageKey);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    this.messages = parsed.slice(-20);
+                }
+            }
+        } catch {
+            this.messages = [];
+        }
+
+        if (this.messages.length === 0) {
+            this.seedWelcomeMessage();
+        }
+    },
+
+    seedWelcomeMessage() {
+        this.messages = [
+            {
+                id: 'welcome',
+                role: 'model',
+                text: 'Halo! Saya **Asisten Smart RW**. Tanya saya seputar cara buat surat, cek/bayar iuran, Bank Sampah, agenda kegiatan, atau cari produk **UMKM warga** untuk langsung order ke WhatsApp.',
+                products: [],
+                stores: [],
+                links: [],
+            },
+        ];
+    },
+
+    toggle() {
+        this.open = !this.open;
+        if (this.open) {
+            this.$nextTick(() => {
+                this.scrollToBottom();
+                this.$refs.chatInput?.focus();
+            });
+        }
+    },
+
+    close() {
+        this.open = false;
+    },
+
+    resetChat() {
+        this.seedWelcomeMessage();
+        this.saveMessages();
+        this.$nextTick(() => this.scrollToBottom());
+    },
+
+    saveMessages() {
+        try {
+            sessionStorage.setItem(this.storageKey, JSON.stringify(this.messages.slice(-20)));
+        } catch {
+            // Abaikan error kuota sessionStorage pada mode privat browser.
+        }
+    },
+
+    scrollToBottom() {
+        const container = this.$refs.chatScroll;
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    },
+
+    formatReplyHtml(text) {
+        const escaped = String(text || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+        return escaped
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+    },
+
+    askQuickPrompt(promptText) {
+        this.input = promptText;
+        this.sendMessage();
+    },
+
+    async sendMessage() {
+        const text = this.input.trim();
+        if (!text || this.loading) {
+            return;
+        }
+
+        const history = this.messages
+            .filter((item) => item.id !== 'welcome')
+            .slice(-6)
+            .map((item) => ({
+                role: item.role === 'model' ? 'model' : 'user',
+                text: String(item.text || '').slice(0, 500),
+            }));
+
+        this.messages.push({
+            id: `user-${Date.now()}`,
+            role: 'user',
+            text,
+            products: [],
+            stores: [],
+            links: [],
+        });
+
+        this.input = '';
+        this.loading = true;
+        this.saveMessages();
+        this.$nextTick(() => this.scrollToBottom());
+
+        try {
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': this.csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    message: text,
+                    history,
+                }),
+            });
+
+            if (response.status === 429) {
+                throw new Error('Permintaan terlalu cepat. Tunggu beberapa detik lalu coba lagi ya.');
+            }
+
+            if (!response.ok) {
+                throw new Error('Maaf, asisten sedang sibuk. Silakan coba beberapa saat lagi.');
+            }
+
+            const data = await response.json();
+
+            this.messages.push({
+                id: `bot-${Date.now()}`,
+                role: 'model',
+                text: data.reply || 'Maaf, belum ada jawaban yang bisa ditampilkan.',
+                products: Array.isArray(data.products) ? data.products : [],
+                stores: Array.isArray(data.stores) ? data.stores : [],
+                links: Array.isArray(data.links) ? data.links : [],
+            });
+        } catch (error) {
+            this.messages.push({
+                id: `err-${Date.now()}`,
+                role: 'model',
+                text: error?.message || 'Koneksi terganggu. Silakan coba kirim pertanyaan kembali.',
+                products: [],
+                stores: [],
+                links: [],
+            });
+        } finally {
+            this.loading = false;
+            this.saveMessages();
+            this.$nextTick(() => {
+                this.scrollToBottom();
+                this.$refs.chatInput?.focus();
+            });
+        }
+    },
+}));
+
 Alpine.start();

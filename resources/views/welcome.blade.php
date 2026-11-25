@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Smart RW adalah platform digital terpadu untuk administrasi, keuangan, dan layanan warga RW.">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Smart RW | Sistem Informasi Warga RW Modern</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
@@ -986,5 +987,7 @@
             <a href="{{ route('login') }}" class="font-bold text-emerald-700 transition hover:text-emerald-900">Login</a>
         </div>
     </footer>
+
+    @include('components.assistant-widget', ['bottomOffsetClass' => 'bottom-5'])
 </body>
 </html>

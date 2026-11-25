@@ -40,4 +40,18 @@ return [
         'token' => env('WHATSAPP_API_TOKEN'),
         'from' => env('WHATSAPP_FROM_NUMBER'),
     ],
+
+    'gemini' => [
+        'keys' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('GEMINI_API_KEYS', (string) env('GEMINI_API_KEY', '')))
+        ))),
+        'models' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('GEMINI_MODELS', 'gemini-3.5-flash,gemini-3.1-flash-lite,gemini-3.8-flash'))
+        ))),
+        'base_url' => rtrim((string) env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'), '/'),
+        'timeout' => (int) env('GEMINI_TIMEOUT', 15),
+        'cooldown_seconds' => (int) env('GEMINI_KEY_COOLDOWN_SECONDS', 60),
+    ],
 ];
