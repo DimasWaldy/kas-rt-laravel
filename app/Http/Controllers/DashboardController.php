@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\KartuKeluarga;
 use App\Models\KasKeluar;
 use App\Models\KasMasuk;
+use App\Models\Pengumuman;
 use App\Models\Rumah;
 use App\Models\Tagihan;
 use App\Models\User;
@@ -257,6 +258,17 @@ class DashboardController extends Controller
             );
         });
 
-        return view('dashboard', $stats);
+        $dashboardPengumumans = $user->hasPermission('view-pengumuman')
+            ? Pengumuman::visibleTo($user)
+                ->activeWindow()
+                ->with('rt:id,name')
+                ->ordered()
+                ->limit(3)
+                ->get()
+            : collect();
+
+        return view('dashboard', array_merge($stats, [
+            'dashboardPengumumans' => $dashboardPengumumans,
+        ]));
     }
 }

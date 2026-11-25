@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Kegiatan;
+use App\Models\Pengumuman;
 use App\Models\ProdukUmkm;
 use App\Models\Tagihan;
 use App\Models\Umkm;
@@ -50,9 +51,10 @@ class SmartRwAssistantService
         $cleanMessage = trim($message);
         $umkmMatches = $this->findUmkmMatches($cleanMessage);
         $agendas = $this->getUpcomingAgendas();
+        $announcements = $this->getActiveAnnouncements($user);
         $links = $this->buildSuggestedLinks($cleanMessage, $user);
 
-        $systemPrompt = $this->buildSystemPrompt($umkmMatches['products'], $umkmMatches['stores'], $agendas, $user);
+        $systemPrompt = $this->buildSystemPrompt($umkmMatches['products'], $umkmMatches['stores'], $agendas, $announcements, $user);
         $geminiReply = $this->callGeminiWithFailover($systemPrompt, $history, $cleanMessage);
 
         if ($geminiReply !== null) {
@@ -71,6 +73,7 @@ class SmartRwAssistantService
                 $umkmMatches['products'],
                 $umkmMatches['stores'],
                 $agendas,
+                $announcements,
                 $user
             ),
             'products' => $umkmMatches['products'],
@@ -203,6 +206,29 @@ class SmartRwAssistantService
     }
 
     /**
+     * Ambil pengumuman aktif yang aman ditampilkan sesuai status login pengguna.
+     *
+     * @return Collection<int, Pengumuman>
+     */
+    private function getActiveAnnouncements(?User $user): Collection
+    {
+        if ($user && $user->hasPermission('view-pengumuman')) {
+            return Pengumuman::visibleTo($user)
+                ->activeWindow()
+                ->with(['rt:id,name'])
+                ->ordered()
+                ->limit(4)
+                ->get();
+        }
+
+        return Pengumuman::publicVisible()
+            ->with(['rt:id,name'])
+            ->ordered()
+            ->limit(4)
+            ->get();
+    }
+
+    /**
      * Bangun tombol aksi cepat sesuai topik pertanyaan dan status login pengguna.
      *
      * @return array<int, array{label: string, url: string, icon: string}>
@@ -259,6 +285,14 @@ class SmartRwAssistantService
             }
         }
 
+        if ($this->containsAny($lower, ['pengumuman', 'himbauan', 'imbauan', 'kabar', 'fogging', 'listrik', 'padam', 'darurat'])) {
+            if ($user && $user->hasPermission('view-pengumuman')) {
+                $links[] = ['label' => 'Papan Pengumuman', 'url' => route('pengumuman.index'), 'icon' => 'fa-bullhorn'];
+            } else {
+                $links[] = ['label' => 'Baca Pengumuman RW', 'url' => url('/#pengumuman'), 'icon' => 'fa-bullhorn'];
+            }
+        }
+
         return collect($links)->unique('url')->take(3)->values()->all();
     }
 
@@ -268,8 +302,9 @@ class SmartRwAssistantService
      * @param  array<int, array<string, mixed>>  $products
      * @param  array<int, array<string, mixed>>  $stores
      * @param  Collection<int, Kegiatan>  $agendas
+     * @param  Collection<int, Pengumuman>  $announcements
      */
-    private function buildSystemPrompt(array $products, array $stores, Collection $agendas, ?User $user): string
+    private function buildSystemPrompt(array $products, array $stores, Collection $agendas, Collection $announcements, ?User $user): string
     {
         $sections = [];
 
@@ -339,6 +374,16 @@ KNOWLEDGE;
             $sections[] = "AGENDA KEGIATAN RT/RW MENDATANG:\n{$agendaLines}";
         } else {
             $sections[] = 'AGENDA KEGIATAN RT/RW MENDATANG: Saat ini belum ada kegiatan mendatang yang terjadwal di sistem.';
+        }
+
+        if ($announcements->isNotEmpty()) {
+            $announcementLines = $announcements->map(function (Pengumuman $item): string {
+                $excerpt = str($item->isi)->squish()->limit(180);
+
+                return "- [{$item->prioritas_label} | {$item->scope_label}] {$item->judul}: {$excerpt}";
+            })->implode("\n");
+
+            $sections[] = "PENGUMUMAN AKTIF RT/RW:\n{$announcementLines}";
         }
 
         return implode("\n\n", $sections);
@@ -488,12 +533,14 @@ KNOWLEDGE;
      * @param  array<int, array<string, mixed>>  $products
      * @param  array<int, array<string, mixed>>  $stores
      * @param  Collection<int, Kegiatan>  $agendas
+     * @param  Collection<int, Pengumuman>  $announcements
      */
     private function buildLocalFallbackReply(
         string $message,
         array $products,
         array $stores,
         Collection $agendas,
+        Collection $announcements,
         ?User $user
     ): string {
         $lower = mb_strtolower($message);
@@ -543,6 +590,17 @@ KNOWLEDGE;
                 ."1. Klik **Daftar Sekarang** di halaman depan lalu isi nama, email, dan kata sandi.\n"
                 ."2. Setelah masuk dashboard, lengkapi domisili rumah dan data Kartu Keluarga.\n"
                 .'3. Tunggu pengurus RT memverifikasi data Anda (bisa tatap muka atau lewat unggah foto KTP/KK).';
+        }
+
+        if ($this->containsAny($lower, ['pengumuman', 'himbauan', 'imbauan', 'kabar', 'fogging', 'listrik', 'padam', 'darurat'])) {
+            if ($announcements->isNotEmpty()) {
+                $latest = $announcements->first();
+                $ringkas = str($latest->isi)->squish()->limit(180);
+
+                return "Pengumuman terbaru (**{$latest->prioritas_label} · {$latest->scope_label}**): **{$latest->judul}**\n\n{$ringkas}";
+            }
+
+            return 'Saat ini belum ada pengumuman aktif di papan informasi RT/RW.';
         }
 
         if ($this->containsAny($lower, ['agenda', 'kegiatan', 'kerja bakti', 'rapat', 'acara'])) {

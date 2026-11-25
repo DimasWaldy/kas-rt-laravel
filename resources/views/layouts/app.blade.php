@@ -278,6 +278,14 @@
                     'visible' => true,
                 ],
                 [
+                    'label' => 'Papan Pengumuman',
+                    'route' => 'pengumuman.index',
+                    'active' => 'pengumuman*',
+                    'icon' => 'fa-bullhorn',
+                    'iconClass' => 'text-amber-600',
+                    'visible' => $user->hasPermission('view-pengumuman'),
+                ],
+                [
                     'label' => 'Agenda Kegiatan',
                     'route' => 'kegiatan.index',
                     'active' => 'kegiatan*',
