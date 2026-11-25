@@ -2,8 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Balita;
+use App\Models\KasKeluar;
+use App\Models\KasMasuk;
+use App\Models\Kegiatan;
 use App\Models\ProdukUmkm;
+use App\Models\Rt;
+use App\Models\SetoranSampah;
 use App\Models\Umkm;
+use App\Models\Warga;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -11,7 +18,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class WelcomeController extends Controller
 {
     /**
-     * Tampilkan halaman landing publik beserta katalog UMKM yang sudah disetujui.
+     * Tampilkan halaman landing publik beserta katalog UMKM, agenda kegiatan, dan statistik agregat RW.
      */
     public function index(): View
     {
@@ -38,7 +45,70 @@ class WelcomeController extends Controller
 
         $umkmCategories = Umkm::CATEGORIES;
 
-        return view('welcome', compact('publicUmkms', 'publicProduks', 'umkmCategories'));
+        $upcomingKegiatanQuery = Kegiatan::query()
+            ->whereHas('rw', fn ($q) => $q->where('is_active', true))
+            ->whereNotIn('status', ['dibatalkan', 'selesai'])
+            ->where(function ($q) {
+                $q->where('tanggal_mulai', '>=', now()->startOfDay())
+                    ->orWhere('tanggal_selesai', '>', now());
+            });
+
+        $agendaKegiatans = (clone $upcomingKegiatanQuery)
+            ->with(['rt:id,name', 'rw:id,name'])
+            ->withCount('hadirs')
+            ->orderBy('tanggal_mulai')
+            ->limit(6)
+            ->get();
+
+        $activeRtIds = Rt::query()
+            ->where('is_active', true)
+            ->whereHas('rw', fn ($q) => $q->where('is_active', true))
+            ->pluck('id');
+
+        $kasMasukScope = KasMasuk::query()
+            ->where(function ($q) use ($activeRtIds) {
+                $q->whereIn('rt_id', $activeRtIds)->orWhereNull('rt_id');
+            });
+
+        $kasKeluarScope = KasKeluar::query()
+            ->where(function ($q) use ($activeRtIds) {
+                $q->whereIn('rt_id', $activeRtIds)->orWhereNull('rt_id');
+            });
+
+        $monthStart = now()->startOfMonth()->toDateString();
+        $monthEnd = now()->endOfMonth()->toDateString();
+
+        $totalKasMasuk = (int) (clone $kasMasukScope)->sum('jumlah');
+        $totalKasKeluar = (int) (clone $kasKeluarScope)->sum('jumlah');
+        $kasMasukBulanIni = (int) (clone $kasMasukScope)->whereBetween('tanggal', [$monthStart, $monthEnd])->sum('jumlah');
+        $kasKeluarBulanIni = (int) (clone $kasKeluarScope)->whereBetween('tanggal', [$monthStart, $monthEnd])->sum('jumlah');
+
+        $bankSampahQuery = SetoranSampah::query()
+            ->where('status', 'diverifikasi')
+            ->whereHas('rw', fn ($q) => $q->where('is_active', true));
+
+        $rwStats = [
+            'rt_aktif' => $activeRtIds->count(),
+            'warga_terverifikasi' => Warga::query()
+                ->where('status_verifikasi', 'terverifikasi')
+                ->whereHas('user', fn ($q) => $q->whereIn('rt_id', $activeRtIds))
+                ->count(),
+            'umkm_aktif' => $publicUmkms->count(),
+            'produk_aktif' => $publicProduks->count(),
+            'agenda_mendatang' => (clone $upcomingKegiatanQuery)->count(),
+            'saldo_kas' => $totalKasMasuk - $totalKasKeluar,
+            'kas_masuk_bulan_ini' => $kasMasukBulanIni,
+            'kas_keluar_bulan_ini' => $kasKeluarBulanIni,
+            'periode_kas' => now()->translatedFormat('F Y'),
+            'bank_sampah_kg' => round((float) (clone $bankSampahQuery)->sum('berat_aktual'), 1),
+            'bank_sampah_setoran' => (clone $bankSampahQuery)->count(),
+            'balita_posyandu' => Balita::query()
+                ->where('is_active', true)
+                ->whereHas('rw', fn ($q) => $q->where('is_active', true))
+                ->count(),
+        ];
+
+        return view('welcome', compact('publicUmkms', 'publicProduks', 'umkmCategories', 'agendaKegiatans', 'rwStats'));
     }
 
     /**
