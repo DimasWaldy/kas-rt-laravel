@@ -27,6 +27,10 @@
                     <span class="hidden sm:inline">UMKM Warga</span>
                     <span class="sm:hidden">UMKM</span>
                 </a>
+                <a href="#agenda" class="hidden items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2.5 text-sm font-bold text-emerald-700 transition hover:border-emerald-600 hover:bg-emerald-50 md:inline-flex">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>Agenda &amp; Kas</span>
+                </a>
                 <a href="{{ route('docs.index') }}" class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2.5 text-sm font-bold text-emerald-700 transition hover:border-emerald-600 hover:bg-emerald-50 sm:px-4">
                     <i class="fa-solid fa-book-open"></i>
                     <span class="hidden sm:inline">Panduan</span>
@@ -78,17 +82,17 @@
 
                     <dl class="mt-10 grid grid-cols-3 divide-x divide-emerald-100 border-t border-emerald-100 pt-6">
                         <div class="pr-3">
-                            <dt class="text-xl font-black text-emerald-700 sm:text-2xl">9+</dt>
-                            <dd class="mt-1 text-xs font-semibold leading-5 text-slate-500 sm:text-sm">Fitur Aktif</dd>
+                            <dt class="text-xl font-black text-emerald-700 sm:text-2xl">{{ $rwStats['rt_aktif'] }} RT</dt>
+                            <dd class="mt-1 text-xs font-semibold leading-5 text-slate-500 sm:text-sm">{{ $rwStats['warga_terverifikasi'] }} Warga Terverifikasi</dd>
                         </div>
-                        <div class="px-3 sm:px-5">
-                            <dt class="text-xl font-black text-emerald-700 sm:text-2xl">Multi RT</dt>
-                            <dd class="mt-1 text-xs font-semibold leading-5 text-slate-500 sm:text-sm">Satu Wilayah RW</dd>
-                        </div>
-                        <div class="pl-3 sm:pl-5">
-                            <dt class="text-base font-black leading-7 text-emerald-700 sm:text-xl">Posyandu &amp; Bank Sampah</dt>
-                            <dd class="mt-1 text-xs font-semibold leading-5 text-slate-500 sm:text-sm">Layanan Terpadu</dd>
-                        </div>
+                        <a href="#umkm" class="group px-3 transition hover:opacity-80 sm:px-5">
+                            <dt class="text-xl font-black text-emerald-700 sm:text-2xl">{{ $rwStats['umkm_aktif'] }} UMKM</dt>
+                            <dd class="mt-1 text-xs font-semibold leading-5 text-slate-500 sm:text-sm">{{ $rwStats['produk_aktif'] }} Produk Siap Order</dd>
+                        </a>
+                        <a href="#agenda" class="group pl-3 transition hover:opacity-80 sm:pl-5">
+                            <dt class="text-xl font-black text-emerald-700 sm:text-2xl">{{ $rwStats['agenda_mendatang'] }} Agenda</dt>
+                            <dd class="mt-1 text-xs font-semibold leading-5 text-slate-500 sm:text-sm">Kegiatan RT &amp; RW Mendatang</dd>
+                        </a>
                     </dl>
                 </div>
 
@@ -165,6 +169,10 @@
                         <span class="mt-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600"><i class="fa-solid fa-calendar-days"></i></span>
                         <h3 class="mt-4 text-xl font-black text-slate-900">Kegiatan RT &amp; RW</h3>
                         <p class="mt-3 text-sm leading-7 text-slate-600">Pantau kegiatan lingkungan, konfirmasi kehadiran, dan dokumentasi kegiatan RT maupun RW dalam satu tempat.</p>
+                        <a href="#agenda" class="mt-4 inline-flex items-center gap-1.5 text-sm font-black text-emerald-700 transition hover:text-emerald-900">
+                            <span>Lihat Agenda Mendatang</span>
+                            <i class="fa-solid fa-arrow-down text-xs"></i>
+                        </a>
                     </article>
                 </div>
             </div>
@@ -711,7 +719,151 @@
             </div>
         </section>
 
-        <section class="bg-slate-50/70 py-20 sm:py-24">
+        <section id="agenda" class="scroll-mt-20 bg-slate-50/70 py-20 sm:py-24">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div data-reveal class="mx-auto max-w-3xl text-center">
+                    <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-1.5 text-xs font-black uppercase tracking-wider text-emerald-700">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Data Nyata &amp; Transparansi Publik</span>
+                    </span>
+                    <h2 class="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Agenda Kegiatan &amp; Ringkasan RW</h2>
+                    <p class="mt-4 text-base leading-7 text-slate-600 sm:text-lg">
+                        Pantau agenda kerja bakti, posyandu, dan transparansi ringkas kas serta program lingkungan RW dalam data agregat yang aman bagi privasi warga.
+                    </p>
+                </div>
+
+                {{-- 4 Kartu Transparansi Kas & Program Lingkungan --}}
+                <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                    <article data-reveal="scale" style="--reveal-delay:0ms" class="reveal reveal-scale rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+                                <i class="fa-solid fa-wallet text-lg"></i>
+                            </span>
+                            <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">Agregat Kas</span>
+                        </div>
+                        <p class="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">Saldo Kas Lingkungan</p>
+                        <p class="mt-1 text-2xl font-black tracking-tight text-slate-950">Rp {{ number_format($rwStats['saldo_kas'], 0, ',', '.') }}</p>
+                        <p class="mt-2 text-xs text-slate-500">Akumulasi kas RT &amp; RW aktif</p>
+                    </article>
+
+                    <article data-reveal="scale" style="--reveal-delay:80ms" class="reveal reveal-scale rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-100 text-teal-600">
+                                <i class="fa-solid fa-arrow-trend-up text-lg"></i>
+                            </span>
+                            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">{{ $rwStats['periode_kas'] }}</span>
+                        </div>
+                        <p class="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">Pemasukan Bulan Ini</p>
+                        <p class="mt-1 text-2xl font-black tracking-tight text-emerald-700">+Rp {{ number_format($rwStats['kas_masuk_bulan_ini'], 0, ',', '.') }}</p>
+                        <p class="mt-2 text-xs text-slate-500">Pengeluaran: Rp {{ number_format($rwStats['kas_keluar_bulan_ini'], 0, ',', '.') }}</p>
+                    </article>
+
+                    <article data-reveal="scale" style="--reveal-delay:160ms" class="reveal reveal-scale rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-lime-100 text-lime-700">
+                                <i class="fa-solid fa-recycle text-lg"></i>
+                            </span>
+                            <span class="rounded-full bg-lime-50 px-2.5 py-1 text-[11px] font-bold text-lime-700">Bank Sampah</span>
+                        </div>
+                        <p class="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">Sampah Terkelola</p>
+                        <p class="mt-1 text-2xl font-black tracking-tight text-slate-950">{{ number_format($rwStats['bank_sampah_kg'], 1, ',', '.') }} kg</p>
+                        <p class="mt-2 text-xs text-slate-500">{{ $rwStats['bank_sampah_setoran'] }} setoran terverifikasi</p>
+                    </article>
+
+                    <article data-reveal="scale" style="--reveal-delay:240ms" class="reveal reveal-scale rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+                                <i class="fa-solid fa-heart-pulse text-lg"></i>
+                            </span>
+                            <span class="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700">Posyandu &amp; Warga</span>
+                        </div>
+                        <p class="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">Balita Terpantau</p>
+                        <p class="mt-1 text-2xl font-black tracking-tight text-slate-950">{{ $rwStats['balita_posyandu'] }} Balita</p>
+                        <p class="mt-2 text-xs text-slate-500">{{ $rwStats['warga_terverifikasi'] }} warga terverifikasi di {{ $rwStats['rt_aktif'] }} RT</p>
+                    </article>
+                </div>
+
+                {{-- Daftar Agenda Kegiatan RT/RW Mendatang --}}
+                <div class="mt-12 rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs sm:p-8">
+                    <div class="flex flex-col gap-3 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-xl font-black text-slate-950 sm:text-2xl">Agenda Kegiatan Mendatang</h3>
+                                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">{{ $rwStats['agenda_mendatang'] }} Terjadwal</span>
+                            </div>
+                            <p class="mt-1 text-sm text-slate-500">Jadwal kegiatan tingkat RT dan RW yang terbuka untuk partisipasi warga.</p>
+                        </div>
+
+                        @auth
+                            <a href="{{ route('kegiatan.index') }}" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white shadow-sm shadow-emerald-200 transition hover:bg-emerald-700">
+                                <i class="fa-solid fa-calendar-check"></i>
+                                <span>Buka Menu Kegiatan</span>
+                            </a>
+                        @else
+                            <a href="{{ route('login') }}" class="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-black text-emerald-700 transition hover:bg-emerald-100">
+                                <i class="fa-solid fa-right-to-bracket"></i>
+                                <span>Masuk untuk Konfirmasi Hadir</span>
+                            </a>
+                        @endauth
+                    </div>
+
+                    @if($agendaKegiatans->isEmpty())
+                        <div class="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-12 text-center">
+                            <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl text-emerald-500 shadow-2xs">
+                                <i class="fa-regular fa-calendar-xmark"></i>
+                            </span>
+                            <p class="mt-4 text-base font-black text-slate-800">Belum Ada Agenda Kegiatan Mendatang</p>
+                            <p class="mt-1 text-sm text-slate-500">Agenda kerja bakti, rapat warga, atau posyandu terbaru akan tampil di sini setelah dijadwalkan pengurus.</p>
+                        </div>
+                    @else
+                        <div class="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                            @foreach($agendaKegiatans as $kegiatan)
+                                <article class="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-slate-50/50 p-5 transition hover:-translate-y-1 hover:border-emerald-200 hover:bg-white hover:shadow-md">
+                                    <div>
+                                        <div class="flex items-start justify-between gap-2">
+                                            <span class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-black text-white">
+                                                <i class="fa-regular fa-calendar"></i>
+                                                <span>{{ $kegiatan->tanggal_mulai->translatedFormat('d M Y') }}</span>
+                                            </span>
+                                            <span class="rounded-full border px-2.5 py-1 text-[11px] font-bold {{ $kegiatan->status_color }}">
+                                                {{ $kegiatan->status_label }}
+                                            </span>
+                                        </div>
+
+                                        <div class="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold">
+                                            <span class="rounded-lg bg-white px-2.5 py-1 text-slate-700 ring-1 ring-slate-200">
+                                                {{ $kegiatan->rt ? $kegiatan->rt->name : 'Lingkup RW' }}
+                                            </span>
+                                            <span class="text-slate-500">
+                                                <i class="fa-regular fa-clock mr-1 text-emerald-600"></i>{{ $kegiatan->tanggal_mulai->format('H:i') }} WIB
+                                            </span>
+                                        </div>
+
+                                        <h4 class="mt-3 text-lg font-black text-slate-900">{{ $kegiatan->nama }}</h4>
+                                        <p class="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-600">
+                                            {{ $kegiatan->deskripsi ?: 'Kegiatan lingkungan bersama warga RT/RW.' }}
+                                        </p>
+                                    </div>
+
+                                    <div class="mt-4 space-y-1.5 border-t border-slate-200/70 pt-3 text-xs text-slate-600">
+                                        <p class="truncate font-semibold">
+                                            <i class="fa-solid fa-location-dot mr-1.5 text-emerald-600"></i>
+                                            {{ $kegiatan->lokasi ?: 'Lokasi menyusul' }}
+                                        </p>
+                                        <p class="font-bold text-emerald-700">
+                                            <i class="fa-solid fa-users mr-1.5"></i>
+                                            {{ $kegiatan->hadirs_count }} warga konfirmasi hadir
+                                        </p>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white py-20 sm:py-24">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="text-center">
                     <p class="text-sm font-black uppercase tracking-[0.22em] text-emerald-600">Mudah &amp; Aman</p>
@@ -751,7 +903,7 @@
             </div>
         </section>
 
-        <section id="keamanan" class="scroll-mt-20 bg-white py-20 sm:py-24">
+        <section id="keamanan" class="scroll-mt-20 bg-slate-50/70 py-20 sm:py-24">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div data-reveal class="mx-auto max-w-2xl text-center">
                     <p class="text-sm font-black uppercase tracking-[0.22em] text-emerald-600">Keamanan Terjamin</p>
