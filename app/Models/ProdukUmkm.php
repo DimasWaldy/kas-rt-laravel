@@ -52,11 +52,7 @@ class ProdukUmkm extends Model
 
     public function generateWhatsappOrderUrl(int $qty = 1, ?string $catatan = null): string
     {
-        $nomorBersih = preg_replace('/\D+/', '', $this->umkm->nomor_whatsapp ?? '') ?? '';
-
-        if (str_starts_with($nomorBersih, '0')) {
-            $nomorBersih = '62'.substr($nomorBersih, 1);
-        }
+        $nomorBersih = $this->umkm?->whatsapp_phone ?? '';
 
         $user = auth()->user();
         $namaPembeli = $user?->name ?? 'Warga';

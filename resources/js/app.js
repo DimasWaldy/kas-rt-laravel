@@ -229,4 +229,134 @@ Alpine.data('appShell', () => ({
     },
 }));
 
+Alpine.data('publicUmkmCatalog', (config = {}) => ({
+    activeTab: config.defaultTab || 'produk',
+    search: '',
+    selectedCategory: '',
+    showAllProduk: false,
+    showAllUsaha: false,
+    produkMeta: config.produkMeta || [],
+    usahaMeta: config.usahaMeta || [],
+    umkmDetails: config.umkmDetails || {},
+    modalOpen: false,
+    selectedUmkm: null,
+    quantities: {},
+    orderNote: '',
+
+    matchesItem(kategori, searchText) {
+        if (this.selectedCategory && kategori !== this.selectedCategory) {
+            return false;
+        }
+
+        const q = this.search.trim().toLowerCase();
+        if (! q) {
+            return true;
+        }
+
+        return (searchText || '').toLowerCase().includes(q);
+    },
+
+    shouldShowProduk(index, kategori, searchText) {
+        if (! this.matchesItem(kategori, searchText)) {
+            return false;
+        }
+
+        if (this.showAllProduk || this.search.trim() !== '' || this.selectedCategory !== '') {
+            return true;
+        }
+
+        return index < 6;
+    },
+
+    shouldShowUsaha(index, kategori, searchText) {
+        if (! this.matchesItem(kategori, searchText)) {
+            return false;
+        }
+
+        if (this.showAllUsaha || this.search.trim() !== '' || this.selectedCategory !== '') {
+            return true;
+        }
+
+        return index < 6;
+    },
+
+    get filteredProdukCount() {
+        return this.produkMeta.filter((item) => this.matchesItem(item.kategori, item.search)).length;
+    },
+
+    get filteredUsahaCount() {
+        return this.usahaMeta.filter((item) => this.matchesItem(item.kategori, item.search)).length;
+    },
+
+    resetFilters() {
+        this.search = '';
+        this.selectedCategory = '';
+    },
+
+    openUmkm(umkmId) {
+        const detail = this.umkmDetails[String(umkmId)] || this.umkmDetails[umkmId];
+        if (! detail) {
+            return;
+        }
+
+        this.selectedUmkm = detail;
+        this.orderNote = '';
+        const nextQuantities = {};
+        for (const produk of detail.produk || []) {
+            nextQuantities[produk.id] = 1;
+        }
+        this.quantities = nextQuantities;
+        this.modalOpen = true;
+    },
+
+    closeModal() {
+        this.modalOpen = false;
+    },
+
+    getQty(produkId) {
+        return Math.max(1, Number(this.quantities[produkId] || 1));
+    },
+
+    incrementQty(produkId) {
+        this.quantities[produkId] = Math.min(99, this.getQty(produkId) + 1);
+    },
+
+    decrementQty(produkId) {
+        this.quantities[produkId] = Math.max(1, this.getQty(produkId) - 1);
+    },
+
+    formatRupiah(nominal) {
+        return 'Rp ' + new Intl.NumberFormat('id-ID').format(nominal);
+    },
+
+    buildProductWhatsappUrl(produk) {
+        if (! this.selectedUmkm || ! this.selectedUmkm.whatsapp_phone) {
+            return '#';
+        }
+
+        const qty = this.getQty(produk.id);
+        const satuan = produk.satuan_harga ? ' ' + produk.satuan_harga : ' item';
+        let totalTeks = '';
+
+        if (produk.harga !== null && produk.harga !== undefined && qty > 1) {
+            totalTeks = ` (Estimasi: ${this.formatRupiah(produk.harga * qty)})`;
+        }
+
+        let pesan = `Halo ${this.selectedUmkm.nama_usaha}, perkenalkan saya Warga (Pengunjung Smart RW).\n\n`;
+        pesan += `Saya melihat etalase UMKM di halaman utama Smart RW dan tertarik untuk memesan:\n`;
+        pesan += `• Produk: *${produk.nama_produk}*\n`;
+        pesan += `• Harga: ${produk.harga_formatted}\n`;
+        pesan += `• Jumlah: ${qty}${satuan}${totalTeks}\n`;
+
+        const note = this.orderNote.trim();
+        if (note) {
+            pesan += `• Catatan: ${note}\n`;
+        }
+
+        pesan += `\nApakah produk ini masih tersedia untuk dipesan? Terima kasih! 🙏`;
+
+        return `https://wa.me/${this.selectedUmkm.whatsapp_phone}?text=${encodeURIComponent(pesan)}`;
+    },
+}));
+
 Alpine.start();
