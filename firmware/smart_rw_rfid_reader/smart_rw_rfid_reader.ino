@@ -5,7 +5,7 @@
  * Fitur Universal:
  *   - 1 Firmware untuk 4 Mahasiswa / Projek Berbeda:
  *       1. Dimas  : https://smartos-rw.unique-monsters.my.id/
- *       2. Julis  : https://guyub.unique-monsters.my.id/
+ *       2. Julius : https://guyub.unique-monsters.my.id/
  *       3. Ilham  : https://kawan.unique-monsters.my.id/
  *       4. Fabian : https://e-warga.unique-monsters.my.id/
  *       5. Custom / Bebas (isi URL & Token sendiri)
@@ -438,7 +438,7 @@ void handlePortalRoot() {
         "<label>PILIH SHORTCUT PROJEK:</label>"
         "<div class='btn-grid'>"
         "<button type='button' class='p-btn' onclick='pick(\"dimas\")'>🟢 Dimas (Smart RW)</button>"
-        "<button type='button' class='p-btn' onclick='pick(\"julis\")'>🔵 Julis (Guyub)</button>"
+        "<button type='button' class='p-btn' onclick='pick(\"julius\")'>🔵 Julius (Guyub)</button>"
         "<button type='button' class='p-btn' onclick='pick(\"ilham\")'>🟠 Ilham (Kawan)</button>"
         "<button type='button' class='p-btn' onclick='pick(\"fabian\")'>🟣 Fabian (E-Warga)</button>"
         "</div>"
@@ -481,7 +481,7 @@ void handlePortalRoot() {
         "<script>"
         "const p={"
         "dimas:{n:'Dimas (Smart RW)',t:'https://smartos-rw.unique-monsters.my.id/api/rfid/tap',h:'https://smartos-rw.unique-monsters.my.id/api/rfid/heartbeat',k:'smartrw-rfid-device',i:'esp32-scanner-01'},"
-        "julis:{n:'Julis (Guyub)',t:'https://guyub.unique-monsters.my.id/api/rfid/tap',h:'https://guyub.unique-monsters.my.id/api/rfid/heartbeat',k:'smartrw-rfid-device',i:'esp32-scanner-01'},"
+        "julius:{n:'Julius (Guyub)',t:'https://guyub.unique-monsters.my.id/api/rfid/tap',h:'https://guyub.unique-monsters.my.id/api/rfid/heartbeat',k:'smartrw-rfid-device',i:'esp32-scanner-01'},"
         "ilham:{n:'Ilham (Kawan)',t:'https://kawan.unique-monsters.my.id/api/rfid/tap',h:'https://kawan.unique-monsters.my.id/api/rfid/heartbeat',k:'smartrw-rfid-device',i:'esp32-scanner-01'},"
         "fabian:{n:'Fabian (E-Warga)',t:'https://e-warga.unique-monsters.my.id/api/rfid/tap',h:'https://e-warga.unique-monsters.my.id/api/rfid/heartbeat',k:'smartrw-rfid-device',i:'esp32-scanner-01'}"
         "};"
