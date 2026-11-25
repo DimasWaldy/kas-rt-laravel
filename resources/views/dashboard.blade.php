@@ -26,6 +26,83 @@
 <div class="space-y-6">
 
 {{-- =============================================
+     PAPAN PENGUMUMAN DIGITAL RT/RW
+     ============================================= --}}
+@if(auth()->user()->hasPermission('view-pengumuman') && (($dashboardPengumumans ?? collect())->isNotEmpty() || auth()->user()->hasPermission('manage-pengumuman')))
+    <section class="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+        <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                    <i class="fa-solid fa-bullhorn"></i>
+                </span>
+                <div>
+                    <h2 class="text-sm font-black text-slate-900 dark:text-slate-100">Papan Pengumuman RT &amp; RW</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Informasi penting, himbauan darurat, dan kabar lingkungan Anda</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                @if(auth()->user()->hasPermission('manage-pengumuman'))
+                    <a href="{{ route('pengumuman.create') }}" class="btn-tactile inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-800">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Buat Pengumuman</span>
+                    </a>
+                @endif
+                <a href="{{ route('pengumuman.index') }}" class="btn-tactile inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                    <span>Lihat Semua</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
+            </div>
+        </div>
+
+        @if(($dashboardPengumumans ?? collect())->isEmpty())
+            <div class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-6 text-center dark:border-slate-800 dark:bg-slate-950/40">
+                <p class="text-xs font-bold text-slate-600 dark:text-slate-300">Belum ada pengumuman aktif di wilayah Anda.</p>
+                <p class="mt-0.5 text-[11px] text-slate-400">Gunakan tombol "Buat Pengumuman" untuk menyampaikan info penting kepada warga.</p>
+            </div>
+        @else
+            <div class="mt-4 grid gap-3 lg:grid-cols-3">
+                @foreach($dashboardPengumumans as $item)
+                    @php
+                        $cardTone = match ($item->prioritas) {
+                            'darurat' => 'border-red-200 bg-red-50/60 dark:border-red-900/60 dark:bg-red-950/20',
+                            'penting' => 'border-amber-200 bg-amber-50/60 dark:border-amber-900/60 dark:bg-amber-950/20',
+                            default => 'border-slate-200/80 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-800/40',
+                        };
+                    @endphp
+                    <article x-data="{ expanded: false }" class="flex flex-col justify-between rounded-2xl border {{ $cardTone }} p-4">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span class="rounded-full border px-2.5 py-0.5 text-[10px] font-black {{ $item->prioritas_badge_class }}">
+                                    {{ $item->prioritas_label }}
+                                </span>
+                                <span class="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-bold text-slate-600 ring-1 ring-slate-200/80 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700">
+                                    {{ $item->scope_label }}
+                                </span>
+                                @if($item->is_pinned)
+                                    <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300" title="Disematkan">
+                                        <i class="fa-solid fa-thumbtack"></i>
+                                    </span>
+                                @endif
+                            </div>
+
+                            <h3 class="mt-2.5 text-sm font-black text-slate-900 dark:text-slate-100">{{ $item->judul }}</h3>
+                            <p :class="expanded ? '' : 'line-clamp-3'" class="mt-1.5 whitespace-pre-line text-xs leading-relaxed text-slate-600 dark:text-slate-300">{{ $item->isi }}</p>
+                        </div>
+
+                        <div class="mt-3 flex items-center justify-between border-t border-slate-200/60 pt-2.5 text-[11px] dark:border-slate-700/60">
+                            <span class="text-slate-400">{{ $item->created_at->diffForHumans() }}</span>
+                            @if(mb_strlen($item->isi) > 120)
+                                <button type="button" @click="expanded = !expanded" class="font-bold text-emerald-700 hover:underline dark:text-emerald-400" x-text="expanded ? 'Ringkas' : 'Baca penuh'"></button>
+                            @endif
+                        </div>
+                    </article>
+                @endforeach
+            </div>
+        @endif
+    </section>
+@endif
+
+{{-- =============================================
      WARGA STATUS & IDENTITAS CIVIC
      ============================================= --}}
 @if(auth()->user()->role_name === 'warga')

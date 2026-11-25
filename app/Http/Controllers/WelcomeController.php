@@ -6,6 +6,7 @@ use App\Models\Balita;
 use App\Models\KasKeluar;
 use App\Models\KasMasuk;
 use App\Models\Kegiatan;
+use App\Models\Pengumuman;
 use App\Models\ProdukUmkm;
 use App\Models\Rt;
 use App\Models\SetoranSampah;
@@ -44,6 +45,16 @@ class WelcomeController extends Controller
             ->get();
 
         $umkmCategories = Umkm::CATEGORIES;
+
+        $publicPengumumans = Pengumuman::publicVisible()
+            ->with(['rt:id,name', 'creator:id,name'])
+            ->ordered()
+            ->limit(4)
+            ->get();
+
+        $highlightPengumuman = $publicPengumumans->first(
+            fn (Pengumuman $item) => in_array($item->prioritas, ['darurat', 'penting'], true) || $item->is_pinned
+        );
 
         $upcomingKegiatanQuery = Kegiatan::query()
             ->whereHas('rw', fn ($q) => $q->where('is_active', true))
@@ -108,7 +119,15 @@ class WelcomeController extends Controller
                 ->count(),
         ];
 
-        return view('welcome', compact('publicUmkms', 'publicProduks', 'umkmCategories', 'agendaKegiatans', 'rwStats'));
+        return view('welcome', compact(
+            'publicUmkms',
+            'publicProduks',
+            'umkmCategories',
+            'publicPengumumans',
+            'highlightPengumuman',
+            'agendaKegiatans',
+            'rwStats'
+        ));
     }
 
     /**

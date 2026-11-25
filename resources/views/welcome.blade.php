@@ -51,6 +51,32 @@
         </div>
     </nav>
 
+    @if(isset($highlightPengumuman) && $highlightPengumuman)
+        @php
+            $stripTone = match ($highlightPengumuman->prioritas) {
+                'darurat' => 'border-red-200 bg-red-600 text-white',
+                'penting' => 'border-amber-200 bg-amber-500 text-slate-950',
+                default => 'border-emerald-200 bg-emerald-700 text-white',
+            };
+        @endphp
+        <div class="border-b {{ $stripTone }}">
+            <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-black/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider">
+                        <i class="fa-solid fa-bullhorn"></i>
+                        <span>{{ $highlightPengumuman->prioritas_label }}</span>
+                    </span>
+                    <span class="shrink-0 font-bold opacity-90">{{ $highlightPengumuman->scope_label }}:</span>
+                    <p class="truncate font-extrabold">{{ $highlightPengumuman->judul }}</p>
+                </div>
+                <a href="#pengumuman" class="inline-flex shrink-0 items-center gap-1.5 font-black underline underline-offset-4 hover:opacity-80">
+                    <span>Baca Pengumuman</span>
+                    <i class="fa-solid fa-arrow-down text-[10px]"></i>
+                </a>
+            </div>
+        </div>
+    @endif
+
     <main>
         <section class="relative overflow-hidden bg-linear-to-b/srgb from-emerald-50/80 via-white to-white">
             <div class="pointer-events-none absolute -left-40 top-20 h-80 w-80 rounded-full bg-emerald-200/30 blur-3xl"></div>
@@ -784,8 +810,84 @@
                     </article>
                 </div>
 
+                {{-- Papan Pengumuman Publik RT/RW --}}
+                <div id="pengumuman" class="mt-12 scroll-mt-24 rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs sm:p-8">
+                    <div class="flex flex-col gap-3 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-xl font-black text-slate-950 sm:text-2xl">Papan Pengumuman Warga</h3>
+                                @if(($publicPengumumans ?? collect())->isNotEmpty())
+                                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800">{{ $publicPengumumans->count() }} Terbaru</span>
+                                @endif
+                            </div>
+                            <p class="mt-1 text-sm text-slate-500">Pengumuman resmi, himbauan darurat, jadwal fogging, dan kabar lingkungan dari pengurus RT/RW.</p>
+                        </div>
+
+                        @auth
+                            <a href="{{ route('pengumuman.index') }}" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white shadow-sm shadow-emerald-200 transition hover:bg-emerald-700">
+                                <i class="fa-solid fa-bullhorn"></i>
+                                <span>Semua Pengumuman</span>
+                            </a>
+                        @endauth
+                    </div>
+
+                    @if(($publicPengumumans ?? collect())->isEmpty())
+                        <div class="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-10 text-center">
+                            <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl text-amber-500 shadow-2xs">
+                                <i class="fa-solid fa-bullhorn"></i>
+                            </span>
+                            <p class="mt-3 text-sm font-black text-slate-800">Belum Ada Pengumuman Publik</p>
+                            <p class="mt-1 text-xs text-slate-500">Pengumuman terbaru dari pengurus RT dan RW akan langsung tampil di sini.</p>
+                        </div>
+                    @else
+                        <div class="mt-6 grid gap-5 md:grid-cols-2">
+                            @foreach($publicPengumumans as $item)
+                                @php
+                                    $itemCardTone = match ($item->prioritas) {
+                                        'darurat' => 'border-red-200 bg-red-50/50',
+                                        'penting' => 'border-amber-200 bg-amber-50/50',
+                                        default => 'border-slate-200/90 bg-slate-50/50',
+                                    };
+                                @endphp
+                                <article x-data="{ expanded: false }" class="flex flex-col justify-between rounded-2xl border {{ $itemCardTone }} p-5 transition hover:bg-white hover:shadow-md">
+                                    <div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="rounded-full border px-2.5 py-0.5 text-[11px] font-black {{ $item->prioritas_badge_class }}">
+                                                {{ $item->prioritas_label }}
+                                            </span>
+                                            <span class="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-bold text-slate-700 ring-1 ring-slate-200">
+                                                {{ $item->kategori_label }}
+                                            </span>
+                                            <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                                                {{ $item->scope_label }}
+                                            </span>
+                                            @if($item->is_pinned)
+                                                <span class="rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-black text-indigo-700">
+                                                    <i class="fa-solid fa-thumbtack mr-1"></i>Disematkan
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        <h4 class="mt-3 text-lg font-black text-slate-900">{{ $item->judul }}</h4>
+                                        <p :class="expanded ? '' : 'line-clamp-3'" class="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-600">{{ $item->isi }}</p>
+                                    </div>
+
+                                    <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/70 pt-3 text-xs text-slate-500">
+                                        <span>
+                                            <i class="fa-regular fa-clock mr-1 text-emerald-600"></i>{{ $item->created_at->translatedFormat('d M Y, H:i') }} WIB
+                                        </span>
+                                        @if(mb_strlen($item->isi) > 150)
+                                            <button type="button" @click="expanded = !expanded" class="font-black text-emerald-700 hover:underline" x-text="expanded ? 'Ringkas' : 'Baca Selengkapnya'"></button>
+                                        @endif
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
                 {{-- Daftar Agenda Kegiatan RT/RW Mendatang --}}
-                <div class="mt-12 rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs sm:p-8">
+                <div class="mt-8 rounded-3xl border border-emerald-100 bg-white p-6 shadow-xs sm:p-8">
                     <div class="flex flex-col gap-3 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <div class="flex items-center gap-2">

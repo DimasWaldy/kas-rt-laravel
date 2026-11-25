@@ -32,6 +32,7 @@ use App\Http\Controllers\PeminjamanAsetController;
 use App\Http\Controllers\PenarikanSampahController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\PengaduanFasilitasController;
+use App\Http\Controllers\PengumumanController;
 use App\Http\Controllers\PenjualanSampahController;
 use App\Http\Controllers\PosyanduController;
 use App\Http\Controllers\ProdukUmkmController;
@@ -283,6 +284,20 @@ Route::middleware('auth')->group(function () {
         Route::get('/kegiatan/{kegiatan}/foto', [KegiatanController::class, 'foto'])->name('kegiatan.foto');
         Route::get('/kegiatan/{kegiatan}/dokumentasi', [KegiatanController::class, 'dokumentasi'])->name('kegiatan.dokumentasi');
         Route::post('/kegiatan/{kegiatan}/hadir', [KegiatanController::class, 'konfirmasiHadir'])->name('kegiatan.hadir');
+    });
+
+    Route::middleware('permission:view-pengumuman')->group(function () {
+        Route::get('/pengumuman', [PengumumanController::class, 'index'])->name('pengumuman.index');
+    });
+
+    Route::middleware('permission:manage-pengumuman')->group(function () {
+        Route::get('/pengumuman/create', [PengumumanController::class, 'create'])->name('pengumuman.create');
+        Route::post('/pengumuman', [PengumumanController::class, 'store'])->name('pengumuman.store');
+        Route::get('/pengumuman/{pengumuman}/edit', [PengumumanController::class, 'edit'])->name('pengumuman.edit');
+        Route::put('/pengumuman/{pengumuman}', [PengumumanController::class, 'update'])->name('pengumuman.update');
+        Route::patch('/pengumuman/{pengumuman}/pin', [PengumumanController::class, 'togglePin'])->name('pengumuman.toggle-pin');
+        Route::patch('/pengumuman/{pengumuman}/publish', [PengumumanController::class, 'togglePublish'])->name('pengumuman.toggle-publish');
+        Route::delete('/pengumuman/{pengumuman}', [PengumumanController::class, 'destroy'])->name('pengumuman.destroy');
     });
 
     Route::middleware('permission:view-bank-sampah')->group(function () {
