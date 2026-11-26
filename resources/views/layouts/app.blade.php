@@ -618,37 +618,38 @@
         class="min-h-screen transition-[padding] duration-300 ease-in-out"
         :class="{ 'lg:pl-72': !desktopSidebarCollapsed, 'lg:pl-0': desktopSidebarCollapsed }"
     >
-        <header class="sticky top-0 z-30 border-b bg-white/95 px-4 py-3 shadow-xs backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/95 lg:hidden">
-            <div class="flex items-center justify-between gap-3">
-                <button type="button" class="btn-tactile flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/30 transition hover:bg-emerald-700 active:scale-95" x-on:click="toggleMobileMenu()" aria-label="Buka menu navigasi">
-                    <div class="lottie-sidebar-icon h-6 w-6 pointer-events-none text-white" x-data="sidebarLottie(() => mobileMenuOpen)"></div>
+        <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 px-3.5 py-2.5 shadow-2xs backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/95 lg:hidden">
+            <div class="flex items-center justify-between gap-2.5">
+                <button type="button" class="btn-tactile flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 active:scale-95" x-on:click="toggleMobileMenu()" aria-label="Buka menu navigasi">
+                    <div class="lottie-sidebar-icon h-5 w-5 pointer-events-none text-white" x-data="sidebarLottie(() => mobileMenuOpen)"></div>
                 </button>
 
                 <div class="min-w-0 flex-1">
-                    <p class="truncate text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Smart RW</p>
-                    <h1 class="truncate text-base font-bold text-slate-800">@yield('title', 'Dashboard')</h1>
-                    <p class="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
-                        <span x-text="formattedDate"></span> · <span x-text="formattedTime"></span> WIB
-                    </p>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] font-extrabold uppercase tracking-[0.16em] text-emerald-600 dark:text-emerald-400">Smart RW</span>
+                        <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">{{ $roleLabel }}</span>
+                    </div>
+                    <h1 class="truncate text-sm font-extrabold text-slate-900 dark:text-slate-100">@yield('title', 'Dashboard')</h1>
                 </div>
 
-                <button type="button" @click="$dispatch('open-command-palette')" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" aria-label="Buka Pencarian Menu (Ctrl + K)">
-                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
-                </button>
-
-                <button type="button" x-on:click="toggleTheme()" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-amber-300 dark:hover:bg-slate-700" aria-label="Ganti mode terang gelap">
-                    <i class="fa-solid" :class="theme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
-                </button>
-
-                <div class="relative" x-data="{ open: false }">
-                    <button type="button" x-on:click="open = !open" class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700" aria-label="Notifikasi">
-                        <i class="fa-solid fa-bell"></i>
-                        @if($visibleUnreadCount)
-                            <span class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-bold text-white">
-                                {{ $visibleUnreadCount }}
-                            </span>
-                        @endif
+                <div class="flex shrink-0 items-center gap-1.5">
+                    <button type="button" @click="$dispatch('open-command-palette')" class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" aria-label="Buka Pencarian Menu (Ctrl + K)">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
                     </button>
+
+                    <button type="button" x-on:click="toggleTheme()" class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-amber-300 dark:hover:bg-slate-700" aria-label="Ganti mode terang gelap">
+                        <i class="fa-solid text-xs" :class="theme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
+                    </button>
+
+                    <div class="relative" x-data="{ open: false }">
+                        <button type="button" x-on:click="open = !open" class="relative flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" aria-label="Notifikasi">
+                            <i class="fa-solid fa-bell text-xs"></i>
+                            @if($visibleUnreadCount)
+                                <span class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border border-white bg-red-500 px-1 text-[9px] font-bold text-white dark:border-slate-900">
+                                    {{ $visibleUnreadCount }}
+                                </span>
+                            @endif
+                        </button>
 
                     <div
                         x-cloak
@@ -703,6 +704,7 @@
                             @endforelse
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
         </header>
@@ -883,30 +885,46 @@
         </main>
     </div>
 
-    {{-- Mobile Bottom Navigation Bar (Khusus Layanan Mobile / Android) --}}
+    {{-- Mobile Bottom Navigation Bar (Gaya GoPay/JMO untuk Layanan Mobile) --}}
     @auth
-    <nav aria-label="Menu Utama Mobile" class="fixed bottom-0 left-0 right-0 z-40 block border-t border-slate-200/90 bg-white/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 md:hidden">
+    <nav aria-label="Menu Utama Mobile" class="fixed bottom-0 left-0 right-0 z-40 block border-t border-slate-200/90 bg-white/95 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 md:hidden">
         <div class="mx-auto flex h-16 max-w-md items-center justify-around px-2">
             <a href="{{ route('dashboard') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('dashboard') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
                 <i class="fa-solid fa-house text-base"></i>
                 <span class="text-[10px] tracking-tight">Beranda</span>
             </a>
+
             @if(Route::has('tagihan.index') && ! auth()->user()->isRwOfficial())
             <a href="{{ route('tagihan.index') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('tagihan*') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
                 <i class="fa-solid fa-wallet text-base"></i>
                 <span class="text-[10px] tracking-tight">Iuran</span>
             </a>
+            @elseif(Route::has('laporan-kas.index') && auth()->user()->canViewFinance())
+            <a href="{{ route('laporan-kas.index') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('laporan-kas*') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
+                <i class="fa-solid fa-chart-pie text-base"></i>
+                <span class="text-[10px] tracking-tight">Kas RW</span>
+            </a>
             @endif
+
+            <a href="{{ \App\Support\RfidAccess::canManageWargaKtp(auth()->user()) ? route('admin.warga.rfid.show') : route('warga.rfid.show') }}" class="flex flex-1 flex-col items-center justify-center pb-1 text-center transition active:scale-95 {{ request()->routeIs('*rfid*') || request()->is('kartu-rfid*') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
+                <span class="-mt-5 mb-0.5 flex h-11 w-11 items-center justify-center rounded-full bg-linear-to-br from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/30 ring-4 ring-white dark:ring-slate-900">
+                    <i class="fa-solid fa-id-card text-base"></i>
+                </span>
+                <span class="text-[10px] font-bold tracking-tight">KTP RFID</span>
+            </a>
+
             @if(Route::has('surat.index') && auth()->user()->canViewSurat())
             <a href="{{ route('surat.index') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('surat*') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
                 <i class="fa-solid fa-envelope-open-text text-base"></i>
                 <span class="text-[10px] tracking-tight">Surat</span>
             </a>
-            @endif
-            <a href="{{ \App\Support\RfidAccess::canManageWargaKtp(auth()->user()) ? route('admin.warga.rfid.show') : route('warga.rfid.show') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('*rfid*') || request()->is('kartu-rfid*') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
-                <i class="fa-solid fa-id-card text-base"></i>
-                <span class="text-[10px] tracking-tight">KTP RFID</span>
+            @elseif(Route::has('pengaduan.index'))
+            <a href="{{ route('pengaduan.index') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('pengaduan*') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
+                <i class="fa-solid fa-bullhorn text-base"></i>
+                <span class="text-[10px] tracking-tight">Aduan</span>
             </a>
+            @endif
+
             <a href="{{ route('profile.edit') }}" class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition active:scale-95 {{ request()->routeIs('profile*') ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200' }}">
                 <i class="fa-solid fa-circle-user text-base"></i>
                 <span class="text-[10px] tracking-tight">Profil</span>
