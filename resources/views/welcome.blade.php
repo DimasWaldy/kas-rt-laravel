@@ -11,6 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <link rel="preload" as="image" type="image/webp" imagesrcset="{{ asset('images/landing/hero-sm.webp') }} 560w, {{ asset('images/landing/hero.webp') }} 960w" imagesizes="(max-width: 640px) 90vw, 448px" fetchpriority="high">
     <style>[x-cloak] { display: none !important; }</style>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -18,7 +19,7 @@
     <nav class="sticky top-0 z-50 border-b border-emerald-100/80 bg-white/90 backdrop-blur-xl">
         <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-20 sm:px-6 lg:px-8">
             <a href="{{ url('/') }}" class="flex items-center gap-3" aria-label="Smart RW - Beranda">
-                <img src="{{ asset('images/logo.svg') }}" alt="Logo Smart RW" class="h-10 w-10 shrink-0 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <img src="{{ asset('images/logo.svg') }}" alt="Logo Smart RW" width="40" height="40" decoding="async" class="h-10 w-10 shrink-0 rounded-2xl shadow-lg shadow-emerald-500/20">
                 <span class="text-lg font-black tracking-tight text-slate-900 sm:text-xl">Smart <span class="text-emerald-600">RW</span></span>
             </a>
 
@@ -79,8 +80,8 @@
 
     <main>
         <section class="relative overflow-hidden bg-linear-to-b/srgb from-emerald-50/80 via-white to-white">
-            <div class="pointer-events-none absolute -left-40 top-20 h-80 w-80 rounded-full bg-emerald-200/30 blur-3xl"></div>
-            <div class="pointer-events-none absolute -right-40 bottom-0 h-96 w-96 rounded-full bg-teal-100/50 blur-3xl"></div>
+            <div class="pointer-events-none absolute -left-40 top-20 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(167,243,208,0.45)_0%,transparent_70%)]"></div>
+            <div class="pointer-events-none absolute -right-40 bottom-0 h-96 w-96 rounded-full bg-[radial-gradient(circle,rgba(204,251,241,0.7)_0%,transparent_70%)]"></div>
 
             <div class="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:py-28">
                 <div data-reveal>
@@ -124,9 +125,16 @@
                 </div>
 
                 <div data-reveal style="--reveal-delay:120ms" class="relative mx-auto w-full max-w-lg lg:max-w-none">
-                    <div class="absolute inset-8 rounded-full bg-emerald-200/50 blur-3xl"></div>
+                    <div class="pointer-events-none absolute inset-4 rounded-full bg-[radial-gradient(circle,rgba(167,243,208,0.55)_0%,transparent_70%)]"></div>
                     <div class="relative overflow-hidden rounded-3xl border border-emerald-100 bg-emerald-50 p-4 shadow-2xl shadow-emerald-100/80 sm:p-6">
-                        <img src="{{ asset('images/landing/hero.png') }}" alt="Ilustrasi layanan digital Smart RW" class="mx-auto w-full max-w-md object-contain" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                        <picture>
+                            <source
+                                type="image/webp"
+                                srcset="{{ asset('images/landing/hero-sm.webp') }} 560w, {{ asset('images/landing/hero.webp') }} 960w"
+                                sizes="(max-width: 640px) 90vw, 448px"
+                            >
+                            <img src="{{ asset('images/landing/hero.png') }}" alt="Ilustrasi layanan digital Smart RW" width="960" height="536" fetchpriority="high" decoding="async" class="mx-auto w-full max-w-md object-contain" onerror="this.parentElement.hidden=true; this.parentElement.nextElementSibling.hidden=false;">
+                        </picture>
                         <div hidden class="flex aspect-square w-full items-center justify-center rounded-3xl bg-emerald-100 text-7xl text-emerald-500" role="img" aria-label="Placeholder ilustrasi Smart RW">
                             <i class="fa-solid fa-city"></i>
                         </div>
@@ -146,7 +154,10 @@
                 <div class="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-6">
                     <article data-reveal="left" style="--reveal-delay:0ms" class="reveal reveal-left group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 lg:col-span-2">
                         <div class="overflow-hidden rounded-2xl bg-emerald-50">
-                            <img src="{{ asset('images/landing/surat.png') }}" alt="Ilustrasi surat menyurat digital" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                            <picture>
+                                <source type="image/webp" srcset="{{ asset('images/landing/surat.webp') }}">
+                                <img src="{{ asset('images/landing/surat.png') }}" alt="Ilustrasi surat menyurat digital" width="720" height="720" loading="lazy" decoding="async" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.parentElement.hidden=true; this.parentElement.nextElementSibling.hidden=false;">
+                            </picture>
                             <div hidden class="flex h-40 items-center justify-center text-4xl text-emerald-300"><i class="fa-solid fa-image"></i></div>
                         </div>
                         <span class="mt-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600"><i class="fa-solid fa-envelope-open-text"></i></span>
@@ -156,7 +167,10 @@
 
                     <article data-reveal="scale" style="--reveal-delay:80ms" class="reveal reveal-scale group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 lg:col-span-2">
                         <div class="overflow-hidden rounded-2xl bg-emerald-50">
-                            <img src="{{ asset('images/landing/iuran.png') }}" alt="Ilustrasi iuran dan tagihan warga" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                            <picture>
+                                <source type="image/webp" srcset="{{ asset('images/landing/iuran.webp') }}">
+                                <img src="{{ asset('images/landing/iuran.png') }}" alt="Ilustrasi iuran dan tagihan warga" width="720" height="720" loading="lazy" decoding="async" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.parentElement.hidden=true; this.parentElement.nextElementSibling.hidden=false;">
+                            </picture>
                             <div hidden class="flex h-40 items-center justify-center text-4xl text-emerald-300"><i class="fa-solid fa-image"></i></div>
                         </div>
                         <span class="mt-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600"><i class="fa-solid fa-file-invoice-dollar"></i></span>
@@ -166,7 +180,10 @@
 
                     <article data-reveal="right" style="--reveal-delay:160ms" class="reveal reveal-right group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 lg:col-span-2">
                         <div class="overflow-hidden rounded-2xl bg-emerald-50">
-                            <img src="{{ asset('images/landing/bank-sampah.png') }}" alt="Ilustrasi layanan bank sampah digital" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                            <picture>
+                                <source type="image/webp" srcset="{{ asset('images/landing/bank-sampah.webp') }}">
+                                <img src="{{ asset('images/landing/bank-sampah.png') }}" alt="Ilustrasi layanan bank sampah digital" width="720" height="720" loading="lazy" decoding="async" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.parentElement.hidden=true; this.parentElement.nextElementSibling.hidden=false;">
+                            </picture>
                             <div hidden class="flex h-40 items-center justify-center text-4xl text-emerald-300"><i class="fa-solid fa-image"></i></div>
                         </div>
                         <span class="mt-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600"><i class="fa-solid fa-recycle"></i></span>
@@ -176,7 +193,10 @@
 
                     <article data-reveal="left" style="--reveal-delay:200ms" class="reveal reveal-left group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 md:col-span-1 lg:col-span-2 lg:col-start-2">
                         <div class="overflow-hidden rounded-2xl bg-emerald-50">
-                            <img src="{{ asset('images/landing/umkm.png') }}" alt="Ilustrasi direktori UMKM warga" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                            <picture>
+                                <source type="image/webp" srcset="{{ asset('images/landing/umkm.webp') }}">
+                                <img src="{{ asset('images/landing/umkm.png') }}" alt="Ilustrasi direktori UMKM warga" width="720" height="720" loading="lazy" decoding="async" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.parentElement.hidden=true; this.parentElement.nextElementSibling.hidden=false;">
+                            </picture>
                             <div hidden class="flex h-40 items-center justify-center text-4xl text-emerald-300"><i class="fa-solid fa-image"></i></div>
                         </div>
                         <span class="mt-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600"><i class="fa-solid fa-store"></i></span>
@@ -190,7 +210,10 @@
 
                     <article data-reveal="right" style="--reveal-delay:280ms" class="reveal reveal-right group rounded-3xl border border-emerald-100 bg-white p-5 shadow-xs transition duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-100/70 md:col-span-1 lg:col-span-2">
                         <div class="overflow-hidden rounded-2xl bg-emerald-50">
-                            <img src="{{ asset('images/landing/kegiatan.png') }}" alt="Ilustrasi kegiatan RT dan RW" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                            <picture>
+                                <source type="image/webp" srcset="{{ asset('images/landing/kegiatan.webp') }}">
+                                <img src="{{ asset('images/landing/kegiatan.png') }}" alt="Ilustrasi kegiatan RT dan RW" width="720" height="720" loading="lazy" decoding="async" class="h-40 w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.parentElement.hidden=true; this.parentElement.nextElementSibling.hidden=false;">
+                            </picture>
                             <div hidden class="flex h-40 items-center justify-center text-4xl text-emerald-300"><i class="fa-solid fa-image"></i></div>
                         </div>
                         <span class="mt-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600"><i class="fa-solid fa-calendar-days"></i></span>
@@ -230,7 +253,7 @@
                     'harga' => $produk->harga,
                     'satuan_harga' => $produk->satuan_harga,
                     'harga_formatted' => $produk->harga_formatted,
-                    'foto_url' => $produk->foto ? route('public.produk-umkm.foto', $produk) : null,
+                    'foto_url' => $produk->foto ? route('public.produk-umkm.foto', ['produk' => $produk, 'v' => $produk->updated_at?->timestamp]) : null,
                     'whatsapp_order_url' => $produk->whatsapp_order_url,
                 ])->values()->all();
 
@@ -245,7 +268,7 @@
                         'rt_name' => $umkm->rt?->name ?? 'Lingkungan RW',
                         'is_buka' => $umkm->isBukaSekarang(),
                         'jam_ringkas' => $umkm->jam_operasional_ringkas,
-                        'foto_url' => $umkm->foto_usaha ? route('public.umkm.foto', $umkm) : null,
+                        'foto_url' => $umkm->foto_usaha ? route('public.umkm.foto', ['umkm' => $umkm, 'v' => $umkm->updated_at?->timestamp]) : null,
                         'whatsapp_phone' => $umkm->whatsapp_phone,
                         'whatsapp_chat_url' => $umkm->generateWhatsappChatUrl(),
                         'jadwal' => $jadwal,
@@ -412,9 +435,9 @@
                                         <div>
                                             <div class="relative h-48 w-full overflow-hidden bg-slate-100">
                                                 @if($produk->foto)
-                                                    <img src="{{ route('public.produk-umkm.foto', $produk) }}" alt="{{ $produk->nama_produk }}" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
+                                                    <img src="{{ route('public.produk-umkm.foto', ['produk' => $produk, 'v' => $produk->updated_at?->timestamp]) }}" alt="{{ $produk->nama_produk }}" loading="lazy" decoding="async" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
                                                 @elseif($umkm->foto_usaha)
-                                                    <img src="{{ route('public.umkm.foto', $umkm) }}" alt="{{ $umkm->nama_usaha }}" class="h-full w-full object-cover opacity-90 transition duration-500 group-hover:scale-105">
+                                                    <img src="{{ route('public.umkm.foto', ['umkm' => $umkm, 'v' => $umkm->updated_at?->timestamp]) }}" alt="{{ $umkm->nama_usaha }}" loading="lazy" decoding="async" class="h-full w-full object-cover opacity-90 transition duration-500 group-hover:scale-105">
                                                 @else
                                                     <div class="flex h-full w-full items-center justify-center bg-emerald-50 text-emerald-300">
                                                         <i class="fa-solid fa-bag-shopping text-5xl"></i>
@@ -514,7 +537,7 @@
                                     <div>
                                         <div class="relative h-48 w-full overflow-hidden bg-slate-100">
                                             @if($umkm->foto_usaha)
-                                                <img src="{{ route('public.umkm.foto', $umkm) }}" alt="Foto {{ $umkm->nama_usaha }}" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
+                                                <img src="{{ route('public.umkm.foto', ['umkm' => $umkm, 'v' => $umkm->updated_at?->timestamp]) }}" alt="Foto {{ $umkm->nama_usaha }}" loading="lazy" decoding="async" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
                                             @else
                                                 <div class="flex h-full w-full items-center justify-center bg-emerald-50 text-emerald-300">
                                                     <i class="fa-solid fa-store text-5xl"></i>
@@ -611,7 +634,7 @@
                         <div>
                             <div class="relative h-52 w-full bg-slate-100 sm:h-64">
                                 <template x-if="selectedUmkm.foto_url">
-                                    <img :src="selectedUmkm.foto_url" :alt="selectedUmkm.nama_usaha" class="h-full w-full object-cover">
+                                    <img :src="selectedUmkm.foto_url" :alt="selectedUmkm.nama_usaha" loading="lazy" decoding="async" class="h-full w-full object-cover">
                                 </template>
                                 <template x-if="!selectedUmkm.foto_url">
                                     <div class="flex h-full w-full items-center justify-center bg-emerald-50 text-emerald-300">
@@ -684,7 +707,7 @@
                                                         <div>
                                                             <div class="flex items-start gap-3">
                                                                 <template x-if="produk.foto_url">
-                                                                    <img :src="produk.foto_url" :alt="produk.nama_produk" class="h-14 w-14 shrink-0 rounded-xl object-cover">
+                                                                    <img :src="produk.foto_url" :alt="produk.nama_produk" width="56" height="56" loading="lazy" decoding="async" class="h-14 w-14 shrink-0 rounded-xl object-cover">
                                                                 </template>
                                                                 <div class="min-w-0 flex-1">
                                                                     <h5 class="truncate text-sm font-black text-slate-900" x-text="produk.nama_produk"></h5>

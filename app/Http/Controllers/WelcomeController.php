@@ -145,7 +145,9 @@ class WelcomeController extends Controller
             404
         );
 
-        return Storage::disk('local')->response($umkm->foto_usaha);
+        return Storage::disk('local')->response($umkm->foto_usaha, null, [
+            'Cache-Control' => 'public, max-age=86400, stale-while-revalidate=604800',
+        ]);
     }
 
     /**
@@ -165,6 +167,8 @@ class WelcomeController extends Controller
             404
         );
 
-        return Storage::disk('local')->response($produk->foto);
+        return Storage::disk('local')->response($produk->foto, null, [
+            'Cache-Control' => 'public, max-age=86400, stale-while-revalidate=604800',
+        ]);
     }
 }

@@ -191,15 +191,28 @@ test('foto umkm dan produk approved dapat diakses publik sedangkan status lain d
 
     $this->get(route('public.umkm.foto', $approvedUmkm))
         ->assertOk()
-        ->assertHeader('content-type', 'image/jpeg');
+        ->assertHeader('content-type', 'image/jpeg')
+        ->assertHeader('cache-control');
 
     $this->get(route('public.produk-umkm.foto', $produkTersedia))
         ->assertOk()
-        ->assertHeader('content-type', 'image/jpeg');
+        ->assertHeader('content-type', 'image/jpeg')
+        ->assertHeader('cache-control');
 
     $this->get(route('public.umkm.foto', $pendingUmkm))->assertNotFound();
     $this->get(route('public.produk-umkm.foto', $produkHabis))->assertNotFound();
     $this->get(route('public.produk-umkm.foto', $produkPendingUmkm))->assertNotFound();
+});
+
+test('landing page memuat ilustrasi webp ringan dan lazy loading gambar di bawah lipatan', function () {
+    $response = $this->get('/');
+
+    $response->assertOk()
+        ->assertSee('images/landing/hero.webp')
+        ->assertSee('images/landing/hero-sm.webp')
+        ->assertSee('images/landing/surat.webp')
+        ->assertSee('fetchpriority="high"', false)
+        ->assertSee('loading="lazy"', false);
 });
 
 test('landing page tetap tampil rapi saat belum ada umkm terpublikasi', function () {

@@ -79,7 +79,7 @@
                                 <div class="rounded-2xl border border-emerald-100 bg-white p-3 shadow-xs dark:border-slate-800 dark:bg-slate-900">
                                     <div class="flex items-start gap-2.5">
                                         <template x-if="produk.foto_url">
-                                            <img :src="produk.foto_url" :alt="produk.nama_produk" class="h-12 w-12 shrink-0 rounded-xl object-cover">
+                                            <img :src="produk.foto_url" :alt="produk.nama_produk" width="48" height="48" loading="lazy" decoding="async" class="h-12 w-12 shrink-0 rounded-xl object-cover">
                                         </template>
                                         <template x-if="!produk.foto_url">
                                             <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">

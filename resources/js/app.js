@@ -1,9 +1,7 @@
 import './bootstrap';
 
 import Alpine from 'alpinejs';
-import lottie from 'lottie-web/build/player/lottie_light';
 import { rfidMonitor } from './rfid-monitor';
-import sidebarAnimationData from './sidebar-animation.json';
 
 window.Alpine = Alpine;
 Alpine.data('rfidMonitor', rfidMonitor);
@@ -29,10 +27,19 @@ if (revealTargets.length > 0) {
     revealTargets.forEach((target) => io.observe(target));
 }
 
-// Lottie Sidebar Toggle Component
+// Lottie Sidebar Toggle Component (lazy-loaded hanya di layout aplikasi yang memakainya)
 Alpine.data('sidebarLottie', (stateGetter = null) => ({
     anim: null,
-    init() {
+    async init() {
+        const [{ default: lottie }, { default: sidebarAnimationData }] = await Promise.all([
+            import('lottie-web/build/player/lottie_light'),
+            import('./sidebar-animation.json'),
+        ]);
+
+        if (! this.$el?.isConnected) {
+            return;
+        }
+
         this.anim = lottie.loadAnimation({
             container: this.$el,
             renderer: 'svg',
