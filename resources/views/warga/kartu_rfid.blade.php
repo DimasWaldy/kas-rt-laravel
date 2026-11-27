@@ -549,7 +549,7 @@
                         <div class="flex items-center gap-2 font-black">
                             <span class="flex h-2.5 w-2.5 rounded-full" :class="lastScan?.status === 'error' ? 'bg-rose-500 animate-ping' : 'bg-emerald-500 animate-ping'"></span>
                             <span x-text="lastScan?.status === 'error' ? '⚠️ Kartu Terdeteksi (Ditolak):' : '✅ Kartu Terdeteksi (Berhasil):'"></span>
-                            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10" x-text="lastScan?.uid ? ('UID: ' + lastScan.uid) : ''"></span>
+                            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10" x-text="(lastScan?.uid_masked ?? lastScan?.uid) ? ('UID: ' + (lastScan?.uid_masked ?? lastScan?.uid)) : ''"></span>
                         </div>
                         <button type="button" @click="lastScan = null" class="opacity-60 hover:opacity-100 p-0.5" title="Tutup">
                             <i class="fa-solid fa-xmark"></i>

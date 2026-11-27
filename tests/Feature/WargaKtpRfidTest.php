@@ -547,3 +547,139 @@ test('rfid endpoint mendukung route scan, heartbeat, dan header X-Device-Key', f
 
     expect(RfidCard::where('user_id', $this->wargaUser->id)->exists())->toBeFalse();
 });
+
+test('endpoint status admin, kegiatan, dan koperasi menampilkan status live esp32 dan notif tap terisolasi wilayah dengan uid tersamarkan', function () {
+    $this->postJson(
+        route('rfid.heartbeat'),
+        ['device_id' => 'esp32-scanner-01', 'ip' => '192.168.1.77'],
+        ['X-Device-Key' => 'smartrw-rfid-device']
+    )
+        ->assertOk()
+        ->assertJson([
+            'status' => 'online',
+            'authenticated' => true,
+            'device_id' => 'esp32-scanner-01',
+        ]);
+
+    $this->getJson(route('rfid.device-status'))
+        ->assertOk()
+        ->assertJsonPath('device_online', true)
+        ->assertJsonPath('last_device.device_id', 'esp32-scanner-01');
+
+    // Halaman HTML admin, kegiatan, dan koperasi merender komponen panel live ESP32.
+    $kegiatan = Kegiatan::create([
+        'rw_id' => $this->rw->id,
+        'rt_id' => $this->rt->id,
+        'created_by' => $this->ketuaRt->id,
+        'nama' => 'Ronda Malam Live',
+        'tanggal_mulai' => now()->subHour(),
+        'tanggal_selesai' => now()->addHours(2),
+        'status' => 'akan_datang',
+    ]);
+
+    $this->actingAs($this->ketuaRt)
+        ->get(route('admin.warga.rfid.show'))
+        ->assertOk()
+        ->assertSee('Alat Reader ESP32')
+        ->assertSee('liveScan');
+
+    $this->actingAs($this->ketuaRt)
+        ->get(route('kegiatan.rfid.show', $kegiatan))
+        ->assertOk()
+        ->assertSee('Alat Reader ESP32')
+        ->assertSee('liveScan');
+
+    $bendahara = User::factory()->create([
+        'role_id' => Role::where('name', 'bendahara')->value('id'),
+        'rt_id' => $this->rt->id,
+        'status_akun' => 'aktif',
+    ]);
+    $this->actingAs($bendahara)
+        ->get(route('admin.koperasi.rfid.show'))
+        ->assertOk()
+        ->assertSee('Alat Reader ESP32')
+        ->assertSee('liveScan');
+
+    // Daftarkan kartu wargaUser terlebih dahulu, lalu buka sesi kegiatan (status DB masih akan_datang namun jadwal berlangsung).
+    RfidCard::create([
+        'user_id' => $this->wargaUser->id,
+        'uid_hash' => RfidCard::hashUid('A1B2C3D4'),
+        'ktp_verified_at' => now(),
+    ]);
+
+    $this->actingAs($this->ketuaRt)
+        ->post(route('kegiatan.rfid.open', $kegiatan))
+        ->assertRedirect();
+
+    // Tap menggunakan X-Device-Key otomatis mengenali kegiatan yang jadwalnya sedang berlangsung.
+    $tap = $this->postJson(
+        route('rfid.tap'),
+        ['uid' => 'a1b2c3d4', 'device_id' => 'esp32-scanner-01'],
+        ['X-Device-Key' => 'smartrw-rfid-device']
+    );
+
+    $tap->assertOk()
+        ->assertJson([
+            'success' => true,
+            'status' => 'present',
+            'feedback' => 'ok',
+            'uid' => 'A1B2C3D4',
+            'user_name' => $this->wargaUser->name,
+        ]);
+
+    // Tap kedua memberi sinyal duplicate agar hardware & UI bisa membedakan nada/notif.
+    $this->postJson(
+        route('rfid.tap'),
+        ['uid' => 'A1B2C3D4', 'device_id' => 'esp32-scanner-01'],
+        ['X-Device-Key' => 'smartrw-rfid-device']
+    )
+        ->assertOk()
+        ->assertJson([
+            'success' => true,
+            'status' => 'already_present',
+            'feedback' => 'duplicate',
+        ]);
+
+    $kegiatanStatus = $this->actingAs($this->ketuaRt)
+        ->getJson(route('kegiatan.rfid.status', $kegiatan))
+        ->assertOk()
+        ->assertJsonPath('device_online', true)
+        ->assertJsonPath('last_device.device_id', 'esp32-scanner-01')
+        ->assertJsonPath('last_scan.status', 'success')
+        ->assertJsonPath('last_scan.feedback', 'duplicate')
+        ->assertJsonPath('last_scan.uid_masked', 'A1••••D4')
+        ->assertJsonPath('last_scan.user_name', $this->wargaUser->name)
+        ->assertDontSee('A1B2C3D4');
+
+    // Ketua RT lain tidak boleh melihat notif tap milik RT 01, sedangkan koperasi & warga melihat sesuai cakupannya.
+    $this->actingAs($this->otherKetuaRt)
+        ->getJson(route('admin.warga.rfid.status'))
+        ->assertOk()
+        ->assertJsonPath('last_scan', null);
+
+    expect($kegiatanStatus->json('last_scan.id'))->not->toBeNull();
+
+    // Tutup sesi kegiatan lalu buka sesi warga dan tap kartu tidak dikenal -> notif error cepat muncul di status warga RT 01.
+    $this->actingAs($this->ketuaRt)
+        ->post(route('kegiatan.rfid.close', $kegiatan))
+        ->assertRedirect();
+
+    ($this->openWargaRfid)();
+    $this->postJson(
+        route('rfid.tap'),
+        ['uid' => 'DEADBEEF', 'device_id' => 'esp32-scanner-01'],
+        ['X-Device-Key' => 'smartrw-rfid-device']
+    )->assertUnprocessable();
+
+    $this->actingAs($this->ketuaRt)
+        ->getJson(route('admin.warga.rfid.status'))
+        ->assertOk()
+        ->assertJsonPath('last_scan.status', 'error')
+        ->assertJsonPath('last_scan.uid_masked', 'DE••••EF')
+        ->assertDontSee('DEADBEEF');
+
+    $this->actingAs($this->otherKetuaRt)
+        ->getJson(route('admin.warga.rfid.status'))
+        ->assertOk()
+        ->assertJsonPath('last_scan', null);
+});

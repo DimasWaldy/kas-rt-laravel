@@ -54,4 +54,12 @@ return [
         'timeout' => (int) env('GEMINI_TIMEOUT', 15),
         'cooldown_seconds' => (int) env('GEMINI_KEY_COOLDOWN_SECONDS', 60),
     ],
+
+    'rfid' => [
+        'device_key' => env('RFID_DEVICE_KEY', 'smartrw-rfid-device'),
+        'fallback_keys' => [
+            'smartrw-rfid-device',
+            'GuyubRfid2026_SecretKey_ChangeMe',
+        ],
+    ],
 ];

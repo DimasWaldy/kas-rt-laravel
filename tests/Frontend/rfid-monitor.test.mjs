@@ -44,3 +44,29 @@ test('RFID monitor retains last snapshot on network failure and retries', async 
     assert.ok(monitor.timer);
     monitor.destroy();
 });
+
+test('RFID monitor exposes new live scan alert, tracks enrollment reload, and allows dismissal', async (t) => {
+    let call = 0;
+    const snapshots = [
+        { count: 0, device_online: true, last_scan: { id: 'scan-1', status: 'error', type: 'http_error', uid_masked: 'DE••••EF', message: 'Kartu belum terdaftar.' } },
+        { count: 1, device_online: true, last_scan: { id: 'scan-2', status: 'success', type: 'ktp_registered', uid_masked: 'A1••••D4', message: 'Berhasil.' } },
+    ];
+    t.mock.method(globalThis, 'fetch', async () => ({
+        ok: true,
+        json: async () => snapshots[call++],
+    }));
+    const monitor = rfidMonitor();
+    monitor.$el = { dataset: { statusUrl: '/admin/warga/rfid/status' } };
+
+    await monitor.refresh();
+    assert.equal(monitor.liveScan.id, 'scan-1');
+    assert.equal(monitor.needsReload, false);
+
+    monitor.dismissScan();
+    assert.equal(monitor.liveScan, null);
+
+    await monitor.refresh();
+    assert.equal(monitor.liveScan.id, 'scan-2');
+    assert.equal(monitor.needsReload, true);
+    monitor.destroy();
+});

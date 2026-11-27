@@ -99,10 +99,21 @@ class WargaRfidController extends Controller
             ->whereIn('user_id', $scopedUserIds)
             ->whereNotNull('ktp_verified_at');
 
+        $snapshot = RfidAccess::deviceStatusSnapshot(
+            rtId: $scope['rt_id'],
+            sessionId: $session?->id,
+            allowGlobalFallback: $actor->isGlobalOperator(),
+            includeDeviceMeta: true,
+        );
+
         return response()->json([
             'open' => $session && $session->expires_at->isFuture(),
             'expires_at' => $session?->expires_at?->format('d/m/Y H:i:s'),
             'last_seen_at' => $session?->last_seen_at?->format('d/m/Y H:i:s'),
+            'device_online' => $snapshot['device_online'],
+            'last_seen_sec' => $snapshot['last_seen_sec'],
+            'last_device' => $snapshot['last_device'],
+            'last_scan' => $snapshot['last_scan'],
             'notice' => $notice,
             'enrollment' => $session?->enrollment_user_id ? [
                 'name' => RfidAccess::wargaKtpParticipantsForActor($actor)->whereKey($session->enrollment_user_id)->value('name') ?? 'Warga tidak tersedia',

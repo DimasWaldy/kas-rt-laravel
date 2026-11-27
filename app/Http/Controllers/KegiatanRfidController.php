@@ -86,12 +86,20 @@ class KegiatanRfidController extends Controller
         abort_unless(RfidAccess::canManage($request->user(), $kegiatan), 403);
         $session = RfidSession::where('kegiatan_id', $kegiatan->id)->first();
         $present = $kegiatan->hadirs()->whereNotNull('rfid_hadir_at');
+        $snapshot = RfidAccess::deviceStatusSnapshot(
+            sessionId: $session?->id,
+            includeDeviceMeta: true,
+        );
 
         return response()->json([
             'open' => $session && $session->expires_at->isFuture()
                 && ! in_array($kegiatan->effective_status, ['selesai', 'dibatalkan'], true),
             'expires_at' => $session?->expires_at?->format('d/m/Y H:i:s'),
             'last_seen_at' => $session?->last_seen_at?->format('d/m/Y H:i:s'),
+            'device_online' => $snapshot['device_online'],
+            'last_seen_sec' => $snapshot['last_seen_sec'],
+            'last_device' => $snapshot['last_device'],
+            'last_scan' => $snapshot['last_scan'],
             'enrollment' => $session?->enrollment_user_id ? [
                 'name' => RfidAccess::participants($kegiatan)->whereKey($session->enrollment_user_id)->value('name') ?? 'Warga tidak tersedia',
                 'expired' => ! $session->enrollment_expires_at?->isFuture(),

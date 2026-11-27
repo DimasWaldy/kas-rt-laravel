@@ -30,6 +30,7 @@
     @endif
 
     <div x-data="rfidMonitor" data-status-url="{{ route('admin.koperasi.rfid.status') }}" class="space-y-6">
+        <x-rfid-live-panel accent="indigo" />
         <section class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -61,7 +62,7 @@
                 <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Warga sudah tap kartu (siap daftar koperasi)</h2>
                 <span class="rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-800" x-text="(state?.count ?? 0) + ' terverifikasi'"></span>
             </div>
-            <p class="mt-1 text-xs text-slate-500">Diperbarui otomatis setiap 5 detik. Menampilkan 100 warga terbaru yang sudah tap kartu koperasi.</p>
+            <p class="mt-1 text-xs text-slate-500">Diperbarui otomatis setiap 1,5 detik. Menampilkan 100 warga terbaru yang sudah tap kartu koperasi.</p>
             <p role="alert" class="mt-3 text-sm text-red-600" x-text="error"></p>
             <p x-show="state && state.count === 0" class="py-6 text-sm text-slate-500">Belum ada warga yang tap kartu untuk pendaftaran koperasi.</p>
             <div class="mt-4 divide-y divide-slate-100 dark:divide-slate-700" aria-live="polite">

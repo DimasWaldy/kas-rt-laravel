@@ -9,6 +9,7 @@ use App\Models\RfidSession;
 use App\Models\User;
 use App\Support\RfidAccess;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -20,33 +21,16 @@ class RfidTapController extends Controller
 {
     public function __invoke(Request $request)
     {
-        $token = $request->bearerToken()
-            ?? $request->header('X-Device-Key')
-            ?? $request->header('X-RFID-Token')
-            ?? $request->input('device_key')
-            ?? $request->input('token');
-
-        $acceptedKeys = [
-            config('services.rfid.device_key', env('RFID_DEVICE_KEY', 'smartrw-rfid-device')),
-            'smartrw-rfid-device',
-            'GuyubRfid2026_SecretKey_ChangeMe',
-        ];
-
-        $isDeviceKey = false;
-        if (is_string($token)) {
-            foreach ($acceptedKeys as $key) {
-                if (hash_equals($key, $token)) {
-                    $isDeviceKey = true;
-                    break;
-                }
-            }
-        }
+        $token = RfidAccess::extractDeviceToken($request);
+        $isDeviceKey = RfidAccess::isValidDeviceKey($token);
 
         // Setiap interaksi sah dari ESP32 langsung memperbarui status reader online
         if ($isDeviceKey) {
-            $nowFloat = microtime(true);
-            Cache::put('rfid_device_online_at', $nowFloat, now()->addMinutes(2));
-            Cache::put('rfid_device_online', now()->toIso8601String(), now()->addMinutes(2));
+            $deviceId = $request->input('device_id');
+            RfidAccess::touchDeviceHeartbeat(
+                is_string($deviceId) ? $deviceId : null,
+                $request->ip(),
+            );
         }
 
         // Endpoint reset kartu darurat/testing untuk device key
@@ -81,7 +65,10 @@ class RfidTapController extends Controller
             if (! $initial) {
                 $initial = RfidSession::where('scope_type', 'kegiatan')
                     ->where('expires_at', '>', now())
-                    ->whereHas('kegiatan', fn ($q) => $q->where('status', 'berlangsung'))
+                    ->whereHas('kegiatan', fn ($q) => $q
+                        ->whereNotIn('status', ['selesai', 'dibatalkan'])
+                        ->where('tanggal_mulai', '<=', now())
+                        ->where(fn ($sq) => $sq->whereNull('tanggal_selesai')->orWhere('tanggal_selesai', '>', now())))
                     ->latest('updated_at')
                     ->first();
             }
@@ -116,84 +103,116 @@ class RfidTapController extends Controller
             $hash = $initial->token_hash;
         }
 
-        $data = $request->validate(['uid' => ['required', 'string', 'regex:/\A(?:[a-fA-F0-9]{8}|[a-fA-F0-9]{14}|[a-fA-F0-9]{20})\z/']]);
-
         // Simpan enrollment_user_id SEBELUM masuk transaksi (untuk notifikasi di luar transaksi)
         $enrollmentUserId = $initial->enrollment_user_id;
+        $resolvedRtId = $initial->rt_id;
+        $rawUid = is_string($request->input('uid')) ? strtoupper($request->input('uid')) : '';
 
-        $publishScanResult = function (string $status, string $msg, ?string $type = null) use ($data, $initial, $enrollmentUserId) {
+        $publishScanResult = function (
+            string $status,
+            string $msg,
+            ?string $type = null,
+            ?string $userName = null,
+            ?string $feedback = null,
+        ) use (&$rawUid, &$resolvedRtId, $initial, $enrollmentUserId) {
             $scanPayload = [
                 'id' => (string) Str::uuid(),
-                'uid' => $data['uid'] ?? 'UNKNOWN',
+                'uid' => $rawUid !== '' ? $rawUid : 'UNKNOWN',
+                'uid_masked' => RfidAccess::maskUid($rawUid),
                 'status' => $status,
                 'type' => $type ?? $status,
+                'feedback' => $feedback ?? ($status === 'success' ? 'ok' : 'error'),
+                'user_name' => $userName,
+                'scope_type' => $initial?->scope_type,
                 'message' => $msg,
                 'at' => now()->toIso8601String(),
                 'timestamp' => microtime(true),
             ];
 
-            // 1. Tulis ke cache global agar semua web realtime monitor langsung terupdate
+            // 1. Tulis ke cache global agar status umum / superadmin langsung terupdate
             Cache::put('rfid_last_scan_global', $scanPayload, now()->addMinutes(2));
 
-            // 2. Tulis ke cache RT spesifik
-            if ($initial?->rt_id) {
-                Cache::put("rfid_last_scan_rt:{$initial->rt_id}", $scanPayload, now()->addMinutes(2));
+            // 2. Tulis ke cache sesi spesifik untuk operator kegiatan / koperasi / KTP RT
+            if ($initial?->id) {
+                Cache::put("rfid_last_scan_session:{$initial->id}", $scanPayload, now()->addMinutes(2));
+                Cache::put("rfid_session_notice:{$initial->id}", $msg, now()->addMinutes(2));
             }
 
-            // 3. Tulis ke cache user yang sedang membuka sesi tap mandiri
+            // 3. Tulis ke cache RT spesifik (hanya untuk konteks KTP warga agar tidak tercampur modul kegiatan)
+            if ($resolvedRtId && $initial?->scope_type === 'warga') {
+                Cache::put("rfid_last_scan_rt:{$resolvedRtId}", $scanPayload, now()->addMinutes(2));
+            }
+
+            // 4. Tulis ke cache user yang sedang membuka sesi tap mandiri
             if ($enrollmentUserId) {
                 Cache::put("rfid_scan_result:{$enrollmentUserId}", $scanPayload, now()->addMinutes(2));
                 Cache::put("rfid_enrollment_notice:{$enrollmentUserId}", $msg, now()->addMinutes(2));
             }
-
-            // 4. Session notice
-            if ($initial?->id) {
-                Cache::put("rfid_session_notice:{$initial->id}", $msg, now()->addMinutes(2));
-            }
         };
 
         try {
+            $data = $request->validate(['uid' => ['required', 'string', 'regex:/\A(?:[a-fA-F0-9]{8}|[a-fA-F0-9]{14}|[a-fA-F0-9]{20})\z/']]);
+            $rawUid = strtoupper($data['uid']);
+
             if ($initial->scope_type === 'koperasi') {
-                $response = $this->handleKoperasiTap($initial, $hash, $data['uid'], $isDeviceKey);
+                $response = $this->handleKoperasiTap($initial, $hash, $rawUid, $isDeviceKey, $resolvedRtId);
             } elseif ($initial->scope_type === 'warga') {
-                $response = $this->handleWargaKtpTap($initial, $hash, $data['uid'], $isDeviceKey);
+                $response = $this->handleWargaKtpTap($initial, $hash, $rawUid, $isDeviceKey, $resolvedRtId);
             } else {
-                $response = $this->handleKegiatanTap($initial, $hash, $data['uid'], $isDeviceKey);
+                $response = $this->handleKegiatanTap($initial, $hash, $rawUid, $isDeviceKey, $resolvedRtId);
             }
 
             // SUKSES: Publikasikan hasil scan secara komprehensif ke cache DI LUAR DB::transaction
             $responseData = $response->getData();
             $msg = $responseData->message ?? 'Operasi berhasil.';
-            $publishScanResult('success', $msg, $responseData->status ?? 'success');
+            $publishScanResult(
+                'success',
+                $msg,
+                $responseData->status ?? 'success',
+                $responseData->user_name ?? null,
+                $responseData->feedback ?? 'ok',
+            );
 
             return $response;
         } catch (ValidationException $e) {
             // ERROR VALIDASI: Publikasikan ke cache DI LUAR DB::transaction
             $msg = collect($e->errors())->flatten()->first() ?? $e->getMessage();
-            $publishScanResult('error', $msg, 'validation_error');
+            $publishScanResult('error', $msg, 'validation_error', null, 'error');
 
             throw $e;
         } catch (UniqueConstraintViolationException $e) {
             $msg = 'Kartu atau warga sudah terdaftar. Silakan periksa kembali.';
-            $publishScanResult('error', $msg, 'conflict_error');
+            $publishScanResult('error', $msg, 'conflict_error', null, 'error');
 
             throw ValidationException::withMessages(['uid' => $msg]);
         } catch (HttpExceptionInterface $e) {
             $msg = $e->getMessage();
-            $publishScanResult('error', $msg, 'http_error');
+            $publishScanResult('error', $msg, 'http_error', null, 'error');
 
             throw $e;
         } catch (\Throwable $e) {
             $msg = $e->getMessage() ?: 'Terjadi kesalahan sistem saat memproses tap kartu.';
-            $publishScanResult('error', $msg, 'system_error');
+            $publishScanResult('error', $msg, 'system_error', null, 'error');
 
             throw $e;
         }
     }
 
-    private function handleKegiatanTap(RfidSession $initial, string $hash, string $uid, bool $isDeviceKey = false)
+    private function tapSuccessResponse(string $status, string $message, string $uid, string $feedback, string $userName): JsonResponse
     {
-        return DB::transaction(function () use ($initial, $hash, $uid, $isDeviceKey) {
+        return response()->json([
+            'success' => true,
+            'status' => $status,
+            'feedback' => $feedback,
+            'uid' => strtoupper($uid),
+            'user_name' => $userName,
+            'message' => $message,
+        ]);
+    }
+
+    private function handleKegiatanTap(RfidSession $initial, string $hash, string $uid, bool $isDeviceKey = false, ?int &$resolvedRtId = null)
+    {
+        return DB::transaction(function () use ($initial, $hash, $uid, $isDeviceKey, &$resolvedRtId) {
             // Same lock order as open/close/enrollment; recheck token after acquiring locks.
             $kegiatan = Kegiatan::whereKey($initial->kegiatan_id)->lockForUpdate()->firstOrFail();
             $session = RfidSession::whereKey($initial->id)->lockForUpdate()->firstOrFail();
@@ -222,8 +241,9 @@ class RfidTapController extends Controller
                 }
                 RfidCard::create(['user_id' => $user->id, 'uid_hash' => $uidHash]);
                 $session->update(['enrollment_user_id' => null, 'enrollment_expires_at' => null, 'last_seen_at' => now()]);
+                $resolvedRtId = $resolvedRtId ?? ($user->rt_id ? (int) $user->rt_id : null);
 
-                return response()->json(['status' => 'registered', 'message' => 'Kartu terdaftar. Tap lagi untuk absensi.']);
+                return $this->tapSuccessResponse('registered', 'Kartu terdaftar. Tap lagi untuk absensi.', $uid, 'ok', $user->name);
             }
 
             // Registration may happen before an event; physical attendance may not.
@@ -239,14 +259,21 @@ class RfidTapController extends Controller
                 $hadir->update(['rfid_hadir_at' => now()]);
             }
             $session->update(['last_seen_at' => now()]);
+            $resolvedRtId = $resolvedRtId ?? ($user->rt_id ? (int) $user->rt_id : null);
 
-            return response()->json(['status' => $duplicate ? 'already_present' : 'present', 'message' => $duplicate ? 'Sudah tercatat hadir.' : 'Kehadiran berhasil dicatat.']);
+            return $this->tapSuccessResponse(
+                $duplicate ? 'already_present' : 'present',
+                $duplicate ? 'Sudah tercatat hadir.' : 'Kehadiran berhasil dicatat.',
+                $uid,
+                $duplicate ? 'duplicate' : 'ok',
+                $user->name,
+            );
         }, 3);
     }
 
-    private function handleKoperasiTap(RfidSession $initial, string $hash, string $uid, bool $isDeviceKey = false)
+    private function handleKoperasiTap(RfidSession $initial, string $hash, string $uid, bool $isDeviceKey = false, ?int &$resolvedRtId = null)
     {
-        return DB::transaction(function () use ($initial, $hash, $uid, $isDeviceKey) {
+        return DB::transaction(function () use ($initial, $hash, $uid, $isDeviceKey, &$resolvedRtId) {
             $session = RfidSession::whereKey($initial->id)->lockForUpdate()->firstOrFail();
             abort_unless($session->scope_type === 'koperasi' && ($isDeviceKey || hash_equals($session->token_hash, $hash)) && $session->expires_at->isFuture(), 401);
             $actor = User::find($session->created_by);
@@ -276,11 +303,15 @@ class RfidTapController extends Controller
                     'koperasi_verified_at' => now(),
                 ]);
                 $session->update(['enrollment_user_id' => null, 'enrollment_expires_at' => null, 'last_seen_at' => now()]);
+                $resolvedRtId = $resolvedRtId ?? ($user->rt_id ? (int) $user->rt_id : null);
 
-                return response()->json([
-                    'status' => 'koperasi_registered',
-                    'message' => 'Kartu terdaftar & terverifikasi untuk pendaftaran koperasi.',
-                ]);
+                return $this->tapSuccessResponse(
+                    'koperasi_registered',
+                    'Kartu terdaftar & terverifikasi untuk pendaftaran koperasi.',
+                    $uid,
+                    'ok',
+                    $user->name,
+                );
             }
 
             $card = RfidCard::where('uid_hash', $uidHash)->first();
@@ -294,19 +325,23 @@ class RfidTapController extends Controller
                 $lockedCard->update(['koperasi_verified_at' => now()]);
             }
             $session->update(['last_seen_at' => now()]);
+            $resolvedRtId = $resolvedRtId ?? ($user->rt_id ? (int) $user->rt_id : null);
 
-            return response()->json([
-                'status' => $alreadyVerified ? 'koperasi_already_verified' : 'koperasi_verified',
-                'message' => $alreadyVerified
+            return $this->tapSuccessResponse(
+                $alreadyVerified ? 'koperasi_already_verified' : 'koperasi_verified',
+                $alreadyVerified
                     ? 'Kartu sudah terverifikasi untuk daftar koperasi.'
                     : 'Tap kartu berhasil. Warga dapat melanjutkan pendaftaran koperasi.',
-            ]);
+                $uid,
+                $alreadyVerified ? 'duplicate' : 'ok',
+                $user->name,
+            );
         }, 3);
     }
 
-    private function handleWargaKtpTap(RfidSession $initial, string $hash, string $uid, bool $isDeviceKey = false)
+    private function handleWargaKtpTap(RfidSession $initial, string $hash, string $uid, bool $isDeviceKey = false, ?int &$resolvedRtId = null)
     {
-        return DB::transaction(function () use ($initial, $hash, $uid, $isDeviceKey) {
+        return DB::transaction(function () use ($initial, $hash, $uid, $isDeviceKey, &$resolvedRtId) {
             $session = RfidSession::whereKey($initial->id)->lockForUpdate()->firstOrFail();
             abort_unless($session->scope_type === 'warga' && ($isDeviceKey || hash_equals($session->token_hash, $hash)) && $session->expires_at->isFuture(), 401);
             $actor = User::find($session->created_by);
@@ -354,11 +389,15 @@ class RfidTapController extends Controller
                     'koperasi_verified_at' => now(),
                 ]);
                 $session->update(['enrollment_user_id' => null, 'enrollment_expires_at' => null, 'last_seen_at' => now()]);
+                $resolvedRtId = $resolvedRtId ?? ($user->rt_id ? (int) $user->rt_id : null);
 
-                return response()->json([
-                    'status' => 'ktp_registered',
-                    'message' => 'KTP warga berhasil didaftarkan dan tercatat di RT serta sistem.',
-                ]);
+                return $this->tapSuccessResponse(
+                    'ktp_registered',
+                    'KTP warga berhasil didaftarkan dan tercatat di RT serta sistem.',
+                    $uid,
+                    'ok',
+                    $user->name,
+                );
             }
 
             $card = RfidCard::where('uid_hash', $uidHash)->first();
@@ -379,13 +418,17 @@ class RfidTapController extends Controller
                 ]);
             }
             $session->update(['last_seen_at' => now()]);
+            $resolvedRtId = $resolvedRtId ?? ($user->rt_id ? (int) $user->rt_id : null);
 
-            return response()->json([
-                'status' => $alreadyVerified ? 'ktp_already_verified' : 'ktp_verified',
-                'message' => $alreadyVerified
+            return $this->tapSuccessResponse(
+                $alreadyVerified ? 'ktp_already_verified' : 'ktp_verified',
+                $alreadyVerified
                     ? 'KTP warga sudah terdaftar di RT dan sistem.'
                     : 'Verifikasi KTP berhasil. KTP warga kini terdaftar di RT dan sistem.',
-            ]);
+                $uid,
+                $alreadyVerified ? 'duplicate' : 'ok',
+                $user->name,
+            );
         }, 3);
     }
 }
