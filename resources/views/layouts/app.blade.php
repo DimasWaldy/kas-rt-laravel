@@ -264,8 +264,16 @@
                 [
                     'label' => 'Keamanan & Ronda',
                     'route' => 'keamanan.index',
-                    'active' => 'keamanan*',
+                    'active' => ['keamanan', 'keamanan/shift*'],
                     'icon' => 'fa-shield-halved',
+                    'iconClass' => 'text-emerald-600',
+                    'visible' => $user->hasPermission('manage-fasilitas'),
+                ],
+                [
+                    'label' => 'Gerbang RFID',
+                    'route' => 'keamanan.gerbang.show',
+                    'active' => 'keamanan/gerbang*',
+                    'icon' => 'fa-door-open',
                     'iconClass' => 'text-emerald-600',
                     'visible' => $user->hasPermission('manage-fasilitas'),
                 ],

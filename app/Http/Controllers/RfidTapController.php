@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GerbangLog;
 use App\Models\Kegiatan;
 use App\Models\KegiatanHadir;
 use App\Models\RfidCard;
@@ -48,6 +49,13 @@ class RfidTapController extends Controller
             }
         }
 
+        $requestedMode = strtolower((string) ($request->route('mode') ?? $request->input('mode') ?? ''));
+        $forceGateMode = in_array($requestedMode, ['gate', 'gerbang'], true);
+        $rawDeviceId = $request->input('device_id');
+        $deviceId = is_string($rawDeviceId) && trim($rawDeviceId) !== ''
+            ? substr(trim($rawDeviceId), 0, 64)
+            : null;
+
         if (! $isDeviceKey) {
             abort_unless(is_string($token) && preg_match('/\A[a-f0-9]{64}\z/', $token), 401);
             $hash = hash('sha256', $token);
@@ -61,8 +69,19 @@ class RfidTapController extends Controller
                 ->latest('updated_at')
                 ->first();
 
+            // 1b. Jika endpoint/payload meminta mode gerbang, pakai sesi gerbang aktif atau master gerbang
+            if (! $initial && $forceGateMode) {
+                $initial = RfidSession::where('scope_type', 'gerbang')
+                    ->where('expires_at', '>', now())
+                    ->latest('updated_at')
+                    ->first()
+                    ?? $this->resolveOrCreateMasterSession('gerbang:master:device', 'gerbang', (string) $token, [
+                        'gate_mode' => 'auto',
+                    ]);
+            }
+
             // 2. Jika tidak ada enrollment, cari sesi kegiatan yang sedang berlangsung
-            if (! $initial) {
+            if (! $initial && ! $forceGateMode) {
                 $initial = RfidSession::where('scope_type', 'kegiatan')
                     ->where('expires_at', '>', now())
                     ->whereHas('kegiatan', fn ($q) => $q
@@ -80,24 +99,11 @@ class RfidTapController extends Controller
                     ->first();
             }
 
-            // 4. Fallback: buat/ambil sesi master warga agar alat selalu siap pakai
+            // 4. Fallback: sesi master gerbang aktif 24/7 agar e-KTP terverifikasi langsung bisa buka gerbang
             if (! $initial) {
-                $admin = User::whereHas('role', fn ($q) => $q->whereIn('name', ['super_admin', 'superadmin', 'admin', 'ketua_rt']))->first()
-                    ?? User::first();
-
-                $initial = RfidSession::firstOrCreate(
-                    ['scope_key' => 'warga:master:device'],
-                    [
-                        'scope_type' => 'warga',
-                        'created_by' => $admin?->id ?? 1,
-                        'token_hash' => hash('sha256', (string) $token),
-                        'expires_at' => now()->addYears(10),
-                    ]
-                );
-
-                if ($initial->expires_at->isPast()) {
-                    $initial->update(['expires_at' => now()->addYears(10)]);
-                }
+                $initial = $this->resolveOrCreateMasterSession('gerbang:master:device', 'gerbang', (string) $token, [
+                    'gate_mode' => 'auto',
+                ]);
             }
 
             $hash = $initial->token_hash;
@@ -107,6 +113,12 @@ class RfidTapController extends Controller
         $enrollmentUserId = $initial->enrollment_user_id;
         $resolvedRtId = $initial->rt_id;
         $rawUid = is_string($request->input('uid')) ? strtoupper($request->input('uid')) : '';
+        $deniedMeta = [
+            'rw_id' => $initial->rw_id ? (int) $initial->rw_id : null,
+            'rt_id' => $initial->rt_id ? (int) $initial->rt_id : null,
+            'user_id' => null,
+            'rfid_card_id' => null,
+        ];
 
         $publishScanResult = function (
             string $status,
@@ -114,6 +126,8 @@ class RfidTapController extends Controller
             ?string $type = null,
             ?string $userName = null,
             ?string $feedback = null,
+            ?string $direction = null,
+            bool $openGate = false,
         ) use (&$rawUid, &$resolvedRtId, $initial, $enrollmentUserId) {
             $scanPayload = [
                 'id' => (string) Str::uuid(),
@@ -124,6 +138,8 @@ class RfidTapController extends Controller
                 'feedback' => $feedback ?? ($status === 'success' ? 'ok' : 'error'),
                 'user_name' => $userName,
                 'scope_type' => $initial?->scope_type,
+                'direction' => $direction,
+                'open_gate' => $openGate,
                 'message' => $msg,
                 'at' => now()->toIso8601String(),
                 'timestamp' => microtime(true),
@@ -132,7 +148,7 @@ class RfidTapController extends Controller
             // 1. Tulis ke cache global agar status umum / superadmin langsung terupdate
             Cache::put('rfid_last_scan_global', $scanPayload, now()->addMinutes(2));
 
-            // 2. Tulis ke cache sesi spesifik untuk operator kegiatan / koperasi / KTP RT
+            // 2. Tulis ke cache sesi spesifik untuk operator kegiatan / koperasi / KTP RT / gerbang
             if ($initial?->id) {
                 Cache::put("rfid_last_scan_session:{$initial->id}", $scanPayload, now()->addMinutes(2));
                 Cache::put("rfid_session_notice:{$initial->id}", $msg, now()->addMinutes(2));
@@ -150,11 +166,38 @@ class RfidTapController extends Controller
             }
         };
 
+        $recordDeniedGateAttempt = function (string $msg) use ($initial, &$rawUid, $deviceId, &$deniedMeta, &$resolvedRtId) {
+            if ($initial?->scope_type !== 'gerbang') {
+                return;
+            }
+
+            $resolvedRtId ??= $deniedMeta['rt_id'];
+
+            try {
+                GerbangLog::create([
+                    'rw_id' => $deniedMeta['rw_id'],
+                    'rt_id' => $deniedMeta['rt_id'],
+                    'user_id' => $deniedMeta['user_id'],
+                    'rfid_card_id' => $deniedMeta['rfid_card_id'],
+                    'uid_masked' => RfidAccess::maskUid($rawUid),
+                    'arah' => 'ditolak',
+                    'status' => 'ditolak',
+                    'device_id' => $deviceId ?: 'esp32-default',
+                    'keterangan' => Str::limit($msg, 255),
+                    'tapped_at' => now(),
+                ]);
+            } catch (\Throwable) {
+                // Keep validation/HTTP response intact if logging fails.
+            }
+        };
+
         try {
             $data = $request->validate(['uid' => ['required', 'string', 'regex:/\A(?:[a-fA-F0-9]{8}|[a-fA-F0-9]{14}|[a-fA-F0-9]{20})\z/']]);
             $rawUid = strtoupper($data['uid']);
 
-            if ($initial->scope_type === 'koperasi') {
+            if ($initial->scope_type === 'gerbang') {
+                $response = $this->handleGerbangTap($initial, $hash, $rawUid, $isDeviceKey, $resolvedRtId, $deviceId, $deniedMeta);
+            } elseif ($initial->scope_type === 'koperasi') {
                 $response = $this->handleKoperasiTap($initial, $hash, $rawUid, $isDeviceKey, $resolvedRtId);
             } elseif ($initial->scope_type === 'warga') {
                 $response = $this->handleWargaKtpTap($initial, $hash, $rawUid, $isDeviceKey, $resolvedRtId);
@@ -171,34 +214,70 @@ class RfidTapController extends Controller
                 $responseData->status ?? 'success',
                 $responseData->user_name ?? null,
                 $responseData->feedback ?? 'ok',
+                $responseData->direction ?? null,
+                (bool) ($responseData->open_gate ?? false),
             );
 
             return $response;
         } catch (ValidationException $e) {
             // ERROR VALIDASI: Publikasikan ke cache DI LUAR DB::transaction
             $msg = collect($e->errors())->flatten()->first() ?? $e->getMessage();
+            $recordDeniedGateAttempt($msg);
             $publishScanResult('error', $msg, 'validation_error', null, 'error');
 
             throw $e;
         } catch (UniqueConstraintViolationException $e) {
             $msg = 'Kartu atau warga sudah terdaftar. Silakan periksa kembali.';
+            $recordDeniedGateAttempt($msg);
             $publishScanResult('error', $msg, 'conflict_error', null, 'error');
 
             throw ValidationException::withMessages(['uid' => $msg]);
         } catch (HttpExceptionInterface $e) {
             $msg = $e->getMessage();
+            $recordDeniedGateAttempt($msg);
             $publishScanResult('error', $msg, 'http_error', null, 'error');
 
             throw $e;
         } catch (\Throwable $e) {
             $msg = $e->getMessage() ?: 'Terjadi kesalahan sistem saat memproses tap kartu.';
+            $recordDeniedGateAttempt($msg);
             $publishScanResult('error', $msg, 'system_error', null, 'error');
 
             throw $e;
         }
     }
 
-    private function tapSuccessResponse(string $status, string $message, string $uid, string $feedback, string $userName): JsonResponse
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function resolveOrCreateMasterSession(string $scopeKey, string $scopeType, string $rawToken, array $attributes = []): RfidSession
+    {
+        $adminId = User::whereHas('role', fn ($q) => $q->whereIn('name', ['super_admin', 'superadmin', 'admin', 'ketua_rt']))->value('id')
+            ?? User::value('id')
+            ?? 1;
+
+        $session = RfidSession::firstOrCreate(
+            ['scope_key' => $scopeKey],
+            [
+                ...$attributes,
+                'scope_type' => $scopeType,
+                'created_by' => $adminId,
+                'token_hash' => hash('sha256', $rawToken),
+                'expires_at' => now()->addYears(10),
+            ]
+        );
+
+        if ($session->expires_at->isPast()) {
+            $session->update(['expires_at' => now()->addYears(10)]);
+        }
+
+        return $session;
+    }
+
+    /**
+     * @param  array<string, mixed>  $extra
+     */
+    private function tapSuccessResponse(string $status, string $message, string $uid, string $feedback, string $userName, array $extra = []): JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -207,7 +286,97 @@ class RfidTapController extends Controller
             'uid' => strtoupper($uid),
             'user_name' => $userName,
             'message' => $message,
+            'open_gate' => false,
+            'servo' => false,
+            ...$extra,
         ]);
+    }
+
+    /**
+     * @param  array{rw_id: int|null, rt_id: int|null, user_id: int|null, rfid_card_id: int|null}  $deniedMeta
+     */
+    private function handleGerbangTap(
+        RfidSession $initial,
+        string $hash,
+        string $uid,
+        bool $isDeviceKey = false,
+        ?int &$resolvedRtId = null,
+        ?string $deviceId = null,
+        array &$deniedMeta = [],
+    ): JsonResponse {
+        return DB::transaction(function () use ($initial, $hash, $uid, $isDeviceKey, &$resolvedRtId, $deviceId, &$deniedMeta) {
+            $session = RfidSession::whereKey($initial->id)->lockForUpdate()->firstOrFail();
+            abort_unless($session->scope_type === 'gerbang' && ($isDeviceKey || hash_equals($session->token_hash, $hash)) && $session->expires_at->isFuture(), 401, 'Sesi gerbang tidak aktif atau sudah kedaluwarsa.');
+            $actor = User::find($session->created_by);
+            abort_unless(($actor && RfidAccess::canManageGerbang($actor)) || $isDeviceKey, 403);
+
+            $uidHash = RfidCard::hashUid($uid);
+            $card = RfidCard::where('uid_hash', $uidHash)->lockForUpdate()->first();
+            abort_unless($card, 422, 'Kartu tidak terdaftar. Daftarkan e-KTP warga terlebih dahulu.');
+
+            $deniedMeta['rfid_card_id'] = $card->id;
+            $user = User::lockForUpdate()->find($card->user_id);
+            abort_unless($user && $user->isAktif(), 422, 'Akun pemilik kartu tidak aktif atau tidak ditemukan.');
+
+            $deniedMeta['user_id'] = $user->id;
+            $deniedMeta['rt_id'] ??= $user->rt_id ? (int) $user->rt_id : null;
+            $deniedMeta['rw_id'] ??= $user->assignedRwId();
+
+            abort_unless($card->ktp_verified_at !== null, 422, 'Kartu e-KTP warga belum terverifikasi di RT/sistem.');
+
+            if ($session->rt_id || $session->rw_id) {
+                $inScope = RfidAccess::gerbangParticipants($session)->whereKey($user->id)->exists();
+                abort_unless($inScope, 403, 'Kartu e-KTP warga berada di luar wilayah RT/RW gerbang ini.');
+            }
+
+            $mode = in_array($session->gate_mode, ['masuk', 'keluar'], true) ? $session->gate_mode : 'auto';
+            if ($mode === 'auto') {
+                $lastAllowed = GerbangLog::where('user_id', $user->id)
+                    ->where('status', 'diizinkan')
+                    ->latest('tapped_at')
+                    ->latest('id')
+                    ->first();
+                $arah = ($lastAllowed && $lastAllowed->arah === 'masuk') ? 'keluar' : 'masuk';
+            } else {
+                $arah = $mode;
+            }
+
+            $logRtId = $user->rt_id ? (int) $user->rt_id : ($session->rt_id ? (int) $session->rt_id : null);
+            $logRwId = $user->assignedRwId() ? (int) $user->assignedRwId() : ($session->rw_id ? (int) $session->rw_id : null);
+            $msg = $arah === 'masuk'
+                ? "Gerbang MASUK dibuka untuk {$user->name}."
+                : "Gerbang KELUAR dibuka untuk {$user->name}.";
+
+            GerbangLog::create([
+                'rw_id' => $logRwId,
+                'rt_id' => $logRtId,
+                'user_id' => $user->id,
+                'rfid_card_id' => $card->id,
+                'uid_masked' => RfidAccess::maskUid($uid),
+                'arah' => $arah,
+                'status' => 'diizinkan',
+                'device_id' => $deviceId ?: 'esp32-default',
+                'keterangan' => $msg,
+                'tapped_at' => now(),
+            ]);
+
+            $session->update(['last_seen_at' => now()]);
+            $resolvedRtId = $resolvedRtId ?? $logRtId;
+
+            return $this->tapSuccessResponse(
+                'gate_opened',
+                $msg,
+                $uid,
+                'ok',
+                $user->name,
+                [
+                    'open_gate' => true,
+                    'servo' => true,
+                    'direction' => $arah,
+                    'buzzer' => $arah === 'masuk' ? 'gate_in' : 'gate_out',
+                ],
+            );
+        }, 3);
     }
 
     private function handleKegiatanTap(RfidSession $initial, string $hash, string $uid, bool $isDeviceKey = false, ?int &$resolvedRtId = null)

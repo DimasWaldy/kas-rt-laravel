@@ -129,6 +129,7 @@
             ['label' => 'Peminjaman Aset', 'route' => 'peminjaman-aset.index', 'icon' => 'fa-hand-holding', 'visible' => $u->hasPermission('pinjam-aset')],
             ['label' => 'Fasilitas', 'route' => 'fasilitas.index', 'icon' => 'fa-building-shield', 'visible' => $u->hasPermission('view-fasilitas')],
             ['label' => 'Keamanan', 'route' => 'keamanan.index', 'icon' => 'fa-shield-halved', 'visible' => $u->hasPermission('manage-fasilitas')],
+            ['label' => 'Gerbang RFID', 'route' => 'keamanan.gerbang.show', 'icon' => 'fa-door-open', 'visible' => $u->hasPermission('manage-fasilitas')],
             ['label' => 'E-Voting', 'route' => 'evoting.index', 'icon' => 'fa-check-to-slot', 'visible' => $u->hasPermission('view-voting')],
             ['label' => 'Direktori RW', 'route' => 'direktori-rw.index', 'icon' => 'fa-address-book', 'visible' => $u->hasPermission('view-direktori-rw')],
         ];
@@ -142,7 +143,7 @@
             'fa-wallet', 'fa-money-bill-trend-up', 'fa-coins' => 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-300',
             'fa-chart-pie', 'fa-boxes-stacked', 'fa-recycle' => 'text-teal-700 bg-teal-50 dark:bg-teal-950/50 dark:text-teal-300',
             'fa-user-check', 'fa-users', 'fa-address-book' => 'text-indigo-700 bg-indigo-50 dark:bg-indigo-950/50 dark:text-indigo-300',
-            'fa-id-card', 'fa-envelope-open-text', 'fa-store' => 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-300',
+            'fa-id-card', 'fa-envelope-open-text', 'fa-store', 'fa-door-open' => 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-300',
             'fa-money-bill-transfer' => 'text-rose-700 bg-rose-50 dark:bg-rose-950/50 dark:text-rose-300',
             'fa-list-check', 'fa-clipboard-list' => 'text-blue-700 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-300',
             'fa-hand-holding-heart', 'fa-hand-holding' => 'text-amber-700 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-300',

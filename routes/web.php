@@ -16,6 +16,7 @@ use App\Http\Controllers\DirektoriRwController;
 use App\Http\Controllers\DomisiliController;
 use App\Http\Controllers\EvotingWargaController;
 use App\Http\Controllers\FasilitasController;
+use App\Http\Controllers\GerbangRfidController;
 use App\Http\Controllers\HadiahSampahController;
 use App\Http\Controllers\IuranBulananController;
 use App\Http\Controllers\IuranKhususController;
@@ -373,6 +374,14 @@ Route::middleware('auth')->group(function () {
             ->name('keamanan.shift.show');
         Route::post('/keamanan/shift/{shift}/patroli', [KeamananController::class, 'storePatroli'])
             ->name('keamanan.patroli.store');
+
+        Route::prefix('/keamanan/gerbang')->name('keamanan.gerbang.')->controller(GerbangRfidController::class)->group(function () {
+            Route::get('/', 'show')->name('show');
+            Route::get('/status', 'status')->name('status');
+            Route::post('/open', 'open')->middleware('throttle:10,1')->name('open');
+            Route::post('/mode', 'setMode')->name('mode');
+            Route::post('/close', 'close')->name('close');
+        });
     });
 
     Route::middleware('permission:view-fasilitas')->group(function () {

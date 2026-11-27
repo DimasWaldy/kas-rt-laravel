@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RfidSession extends Model
 {
     protected $fillable = [
-        'scope_type', 'scope_key', 'kegiatan_id', 'rw_id', 'rt_id', 'created_by',
+        'scope_type', 'gate_mode', 'scope_key', 'kegiatan_id', 'rw_id', 'rt_id', 'created_by',
         'token_hash', 'expires_at', 'enrollment_user_id', 'enrollment_expires_at', 'last_seen_at',
     ];
 

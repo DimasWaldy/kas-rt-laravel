@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 // Stateless device endpoints: bearer or device-key authentication in controller
 Route::post('/rfid/tap', RfidTapController::class)->middleware('throttle:120,1')->name('rfid.tap');
 Route::post('/rfid/scan', RfidTapController::class)->middleware('throttle:120,1')->name('rfid.scan');
+Route::post('/rfid/gate/tap', RfidTapController::class)->defaults('mode', 'gerbang')->middleware('throttle:120,1')->name('rfid.gate.tap');
 Route::get('/rfid/device-status', function () {
     $snapshot = RfidAccess::deviceStatusSnapshot(allowGlobalFallback: true, includeDeviceMeta: true);
 

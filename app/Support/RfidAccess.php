@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\GerbangLog;
 use App\Models\Kegiatan;
 use App\Models\RfidCard;
 use App\Models\RfidSession;
@@ -50,6 +51,11 @@ class RfidAccess
         return self::canManageScopedPermission($actor, 'manage-warga');
     }
 
+    public static function canManageGerbang(User $actor): bool
+    {
+        return self::canManageScopedPermission($actor, 'manage-fasilitas');
+    }
+
     /**
      * Resolve the unique Koperasi RFID session scope and territorial constraints for an operator.
      *
@@ -68,6 +74,30 @@ class RfidAccess
     public static function resolveWargaKtpScope(User $actor): array
     {
         return self::resolveScope($actor, 'warga');
+    }
+
+    /**
+     * Resolve the unique Gerbang RFID session scope and territorial constraints for an operator.
+     *
+     * @return array{scope_key: string, rw_id: int|null, rt_id: int|null}
+     */
+    public static function resolveGerbangScope(User $actor): array
+    {
+        return self::resolveScope($actor, 'gerbang');
+    }
+
+    public static function gerbangParticipants(RfidSession $session): Builder
+    {
+        return self::scopedUsersByAttributes($session->rt_id, $session->rw_id);
+    }
+
+    public static function gerbangLogsForActor(User $actor): Builder
+    {
+        $scope = self::resolveGerbangScope($actor);
+
+        return GerbangLog::query()
+            ->when($scope['rt_id'], fn (Builder $q) => $q->where('rt_id', $scope['rt_id']))
+            ->when(! $scope['rt_id'] && $scope['rw_id'], fn (Builder $q) => $q->where('rw_id', $scope['rw_id']));
     }
 
     public static function matchesKoperasiScope(User $actor, RfidSession $session): bool
@@ -149,7 +179,7 @@ class RfidAccess
         ];
     }
 
-    private static function scopedUsersByAttributes(?int $rtId, ?int $rwId): Builder
+    public static function scopedUsersByAttributes(?int $rtId, ?int $rwId): Builder
     {
         return User::query()->where('status_akun', 'aktif')
             ->when($rtId, fn (Builder $q) => $q->where('rt_id', $rtId))
@@ -168,8 +198,13 @@ class RfidAccess
      *
      * @param  array<string, mixed>  $attributes
      */
-    public static function openSession(string $scopeType, string $scopeKey, User $actor, array $attributes = []): string
-    {
+    public static function openSession(
+        string $scopeType,
+        string $scopeKey,
+        User $actor,
+        array $attributes = [],
+        ?\DateTimeInterface $expiresAt = null,
+    ): string {
         $token = bin2hex(random_bytes(32));
 
         RfidSession::updateOrCreate(['scope_key' => $scopeKey], [
@@ -177,7 +212,7 @@ class RfidAccess
             'scope_type' => $scopeType,
             'created_by' => $actor->id,
             'token_hash' => hash('sha256', $token),
-            'expires_at' => now()->addHours(6),
+            'expires_at' => $expiresAt ?? now()->addHours(6),
             'enrollment_user_id' => null,
             'enrollment_expires_at' => null,
             'last_seen_at' => null,
@@ -320,6 +355,8 @@ class RfidAccess
      *         feedback: string,
      *         user_name: string|null,
      *         scope_type: string|null,
+     *         direction: string|null,
+     *         open_gate: bool,
      *         message: string|null,
      *         at: string|null,
      *         timestamp: float|null
@@ -364,6 +401,8 @@ class RfidAccess
                 'feedback' => (string) ($scanResult['feedback'] ?? ($status === 'success' ? 'ok' : 'error')),
                 'user_name' => $scanResult['user_name'] ?? null,
                 'scope_type' => $scanResult['scope_type'] ?? null,
+                'direction' => $scanResult['direction'] ?? null,
+                'open_gate' => (bool) ($scanResult['open_gate'] ?? false),
                 'message' => $scanResult['message'] ?? null,
                 'at' => $scanResult['at'] ?? null,
                 'timestamp' => (float) $scanResult['timestamp'],

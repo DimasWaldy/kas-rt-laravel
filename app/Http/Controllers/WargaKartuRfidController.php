@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GerbangLog;
 use App\Models\RfidCard;
 use App\Models\RfidSession;
 use App\Models\User;
@@ -30,8 +31,13 @@ class WargaKartuRfidController extends Controller
 
         $isEnrolled = $activeSession && (int) $activeSession->enrollment_user_id === (int) $user->id && $activeSession->enrollment_expires_at?->isFuture();
         $remainingSeconds = $isEnrolled ? max(0, (int) now()->diffInSeconds($activeSession->enrollment_expires_at, false)) : 0;
+        $gerbangLogs = GerbangLog::where('user_id', $user->id)
+            ->orderByDesc('tapped_at')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get();
 
-        return view('warga.kartu_rfid', compact('user', 'card', 'activeSession', 'isEnrolled', 'remainingSeconds'));
+        return view('warga.kartu_rfid', compact('user', 'card', 'activeSession', 'isEnrolled', 'remainingSeconds', 'gerbangLogs'));
     }
 
     public function openSession(Request $request)

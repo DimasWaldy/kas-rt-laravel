@@ -10,9 +10,14 @@
             <h1 class="text-2xl font-black text-slate-900">Keamanan RW</h1>
             <p class="mt-1 text-sm text-slate-500">Pantau shift satpam, log patroli, dan catatan kejadian lingkungan.</p>
         </div>
-        <a href="{{ route('keamanan.shift.create') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800">
-            <i class="fa-solid fa-plus"></i> Tambah Shift
-        </a>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('keamanan.gerbang.show') }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-700 bg-white px-5 py-3 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50">
+                <i class="fa-solid fa-door-open"></i> Gerbang RFID
+            </a>
+            <a href="{{ route('keamanan.shift.create') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800">
+                <i class="fa-solid fa-plus"></i> Tambah Shift
+            </a>
+        </div>
     </div>
 
     <form method="GET" action="{{ route('keamanan.index') }}" class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs md:grid-cols-[1fr_1fr_auto]">

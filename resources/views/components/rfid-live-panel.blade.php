@@ -74,8 +74,26 @@
                             class="text-sm font-extrabold"
                             x-text="liveScan?.status === 'error'
                                 ? 'Tap Kartu Ditolak'
-                                : (liveScan?.feedback === 'duplicate' ? 'Kartu Sudah Tercatat' : 'Tap Kartu Berhasil')"
+                                : (liveScan?.direction === 'masuk'
+                                    ? 'Gerbang MASUK Dibuka'
+                                    : (liveScan?.direction === 'keluar'
+                                        ? 'Gerbang KELUAR Dibuka'
+                                        : (liveScan?.feedback === 'duplicate' ? 'Kartu Sudah Tercatat' : 'Tap Kartu Berhasil')))"
                         ></span>
+                        <template x-if="liveScan?.direction">
+                            <span
+                                class="rounded-full px-2 py-0.5 text-[11px] font-black uppercase"
+                                :class="liveScan.direction === 'masuk'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-sky-600 text-white'"
+                                x-text="liveScan.direction === 'masuk' ? 'MASUK' : 'KELUAR'"
+                            ></span>
+                        </template>
+                        <template x-if="liveScan?.open_gate">
+                            <span class="rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-900 dark:text-amber-200">
+                                Servo 90° Aktif
+                            </span>
+                        </template>
                         <template x-if="liveScan?.user_name">
                             <span class="rounded-full bg-black/10 px-2 py-0.5 text-xs font-bold dark:bg-white/10" x-text="liveScan.user_name"></span>
                         </template>

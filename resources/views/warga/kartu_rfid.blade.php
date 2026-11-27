@@ -304,8 +304,23 @@
                             </span>
                         </div>
                         <p class="mt-2 text-[11px] leading-relaxed text-emerald-800/80 dark:text-emerald-300/80">
-                            Kartu e-KTP Anda dapat digunakan untuk absensi kehadiran rapat RT dan syarat verifikasi program Koperasi.
+                            Kartu e-KTP Anda aktif untuk akses gerbang masuk/keluar RFID, absensi kehadiran rapat RT, dan syarat verifikasi program Koperasi.
                         </p>
+                        @if(isset($gerbangLogs) && $gerbangLogs->isNotEmpty())
+                            <div class="mt-3 space-y-1.5 border-t border-emerald-200/60 pt-2.5 dark:border-emerald-800/60">
+                                <p class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Riwayat Akses Gerbang Terbaru</p>
+                                @foreach($gerbangLogs as $log)
+                                    <div class="flex items-center justify-between gap-2 rounded-lg bg-white/70 px-2.5 py-1.5 text-[11px] dark:bg-slate-900/60">
+                                        <span class="font-bold {{ $log->arah === 'masuk' ? 'text-emerald-700 dark:text-emerald-300' : ($log->arah === 'keluar' ? 'text-sky-700 dark:text-sky-300' : 'text-rose-700 dark:text-rose-300') }}">
+                                            {{ strtoupper($log->arah) }}
+                                        </span>
+                                        <span class="text-slate-600 dark:text-slate-300">
+                                            {{ $log->tapped_at?->timezone('Asia/Jakarta')->format('d/m H:i') }} WIB
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
                         <form method="POST" action="{{ route('warga.rfid.unregister') }}" class="mt-3 border-t border-emerald-200/60 pt-2.5 dark:border-emerald-800/60" onsubmit="return confirm('Apakah Anda yakin ingin mencabut kartu fisik e-KTP ini dan mendaftarkan ulang kartu baru?');">
                             @csrf
                             <button type="submit" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-rose-600 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300">

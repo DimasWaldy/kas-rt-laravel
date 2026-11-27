@@ -8,6 +8,10 @@
         <a href="{{ route('verifikasi-warga.index') }}" class="text-emerald-700">&larr; Verifikasi Warga</a>
         <span class="text-slate-300">|</span>
         <a href="{{ route('admin.warga.index') }}" class="text-slate-600 hover:text-emerald-700">Data Warga</a>
+        @if(auth()->user()?->hasPermission('manage-fasilitas'))
+            <span class="text-slate-300">|</span>
+            <a href="{{ route('keamanan.gerbang.show') }}" class="text-emerald-700 hover:text-emerald-800">Gerbang RFID &rarr;</a>
+        @endif
     </div>
 
     <header class="rounded-3xl bg-emerald-800 p-6 text-white sm:p-8">

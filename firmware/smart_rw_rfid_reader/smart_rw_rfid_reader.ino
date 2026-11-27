@@ -106,6 +106,8 @@ String cfg_api_url;
 String cfg_hb_url;
 String cfg_dev_key;
 String cfg_dev_id;
+String cfg_op_mode;
+bool cfg_buzzer_passive = false;
 
 bool rc522Ready = false;
 byte rc522Version = 0x00;
@@ -123,7 +125,8 @@ bool ledState = false;
 // Prototype Fungsi
 void loadConfig();
 void saveConfig(const String& proj, const String& ssid, const String& pass,
-                const String& tapUrl, const String& hbUrl, const String& key, const String& id);
+                const String& tapUrl, const String& hbUrl, const String& key, const String& id,
+                const String& opMode, bool buzzerPassive);
 void connectWiFi();
 void startConfigPortal();
 void handlePortalRoot();
@@ -141,11 +144,15 @@ void blinkLed(uint8_t times, uint16_t onMs, uint16_t offMs);
 void lcdShow(const String& line1, const String& line2 = "");
 void showStandbyScreen();
 void openGateServo();
+void buzzerToneMs(uint16_t freqHz, uint16_t durMs);
+void beepGateIn();
+void beepGateOut();
 void beepSuccess();
 void beepDuplicate();
 void beepError();
 void beepPortal();
 String extractJsonString(const String& json, const String& key);
+int extractJsonBoolState(const String& json, const String& key);
 String htmlEscape(const String& input);
 
 // ============================================================
@@ -186,11 +193,12 @@ void setup() {
     Serial.println(F("=================================================="));
     Serial.println(F("   ESP32 UNIVERSAL RFID GATE (4-IN-1 KELOMPOK 1)  "));
     Serial.printf ("   Board          : %s\n", BOARD_NAME);
-    Serial.printf ("   Projek Aktif   : %s\n", cfg_proj_name.c_str());
+    Serial.printf ("   Projek Aktif   : %s (%s)\n", cfg_proj_name.c_str(), cfg_op_mode.c_str());
     Serial.printf ("   Target Tap URL : %s\n", cfg_api_url.c_str());
     Serial.printf ("   RC522 RST Pin  : GPIO %u (%s)\n", activeRstPin, rc522Ready ? "OK" : "ERROR");
     Serial.printf ("   LCD I2C        : %s\n", lcdAddress ? "Terdeteksi" : "Tidak terpasang (Mode Serial)");
-    Serial.printf ("   Servo Pin      : GPIO %u | LED: GPIO %u | Buzzer: GPIO %u\n", PIN_SERVO, PIN_LED, PIN_BUZZER);
+    Serial.printf ("   Servo Pin      : GPIO %u | LED: GPIO %u | Buzzer: GPIO %u (%s)\n",
+                   PIN_SERVO, PIN_LED, PIN_BUZZER, cfg_buzzer_passive ? "Pasif PWM" : "Aktif DC");
     Serial.println(F("--------------------------------------------------"));
     Serial.println(F("TIPS PORTAL CONFIG: Tahan tombol BOOT 3 detik atau"));
     Serial.println(F("connect ke Hotspot: ESP32_1_JDIF (192.168.4.1)"));
@@ -353,28 +361,37 @@ void loop() {
 void loadConfig() {
     prefs.begin("rfid_cfg", true);
 
-    cfg_proj_name = prefs.getString("proj", "Dimas (Smart RW)");
-    cfg_wifi_ssid = prefs.getString("ssid", "Poco F6505");
-    cfg_wifi_pass = prefs.getString("pass", "dimas12345");
-    cfg_api_url   = prefs.getString("tap",  "https://smartos-rw.unique-monsters.my.id/api/rfid/tap");
-    cfg_hb_url    = prefs.getString("hb",   "https://smartos-rw.unique-monsters.my.id/api/rfid/heartbeat");
-    cfg_dev_key   = prefs.getString("key",  "smartrw-rfid-device");
-    cfg_dev_id    = prefs.getString("id",   "esp32-scanner-01");
+    cfg_proj_name      = prefs.getString("proj",   "Dimas (Smart RW)");
+    cfg_wifi_ssid      = prefs.getString("ssid",   "Poco F6505");
+    cfg_wifi_pass      = prefs.getString("pass",   "dimas12345");
+    cfg_api_url        = prefs.getString("tap",    "https://smartos-rw.unique-monsters.my.id/api/rfid/tap");
+    cfg_hb_url         = prefs.getString("hb",     "https://smartos-rw.unique-monsters.my.id/api/rfid/heartbeat");
+    cfg_dev_key        = prefs.getString("key",    "smartrw-rfid-device");
+    cfg_dev_id         = prefs.getString("id",     "esp32-scanner-01");
+    cfg_op_mode        = prefs.getString("opmode", "auto");
+    cfg_buzzer_passive = prefs.getBool("buzpas",   false);
+
+    if (cfg_op_mode != "auto" && cfg_op_mode != "gerbang") {
+        cfg_op_mode = "auto";
+    }
 
     prefs.end();
 }
 
 void saveConfig(const String& proj, const String& ssid, const String& pass,
-                const String& tapUrl, const String& hbUrl, const String& key, const String& id) {
+                const String& tapUrl, const String& hbUrl, const String& key, const String& id,
+                const String& opMode, bool buzzerPassive) {
     prefs.begin("rfid_cfg", false);
 
-    prefs.putString("proj", proj);
-    prefs.putString("ssid", ssid);
-    prefs.putString("pass", pass);
-    prefs.putString("tap",  tapUrl);
-    prefs.putString("hb",   hbUrl);
-    prefs.putString("key",  key);
-    prefs.putString("id",   id);
+    prefs.putString("proj",   proj);
+    prefs.putString("ssid",   ssid);
+    prefs.putString("pass",   pass);
+    prefs.putString("tap",    tapUrl);
+    prefs.putString("hb",     hbUrl);
+    prefs.putString("key",    key);
+    prefs.putString("id",     id);
+    prefs.putString("opmode", opMode == "gerbang" ? "gerbang" : "auto");
+    prefs.putBool("buzpas",   buzzerPassive);
 
     prefs.end();
     Serial.println(F("[NVS] Konfigurasi berhasil disimpan permanen ke Flash ESP32!"));
@@ -527,7 +544,7 @@ void handlePortalRoot() {
         ".p-btn{background:#f1f5f9;border:1px solid #cbd5e1;padding:10px 8px;border-radius:8px;font-size:0.84rem;font-weight:600;cursor:pointer;text-align:center;}"
         ".p-btn:hover{background:#22c55e;color:#fff;border-color:#16a34a;}"
         "label{font-size:0.82rem;font-weight:600;color:#475569;display:block;margin-top:10px;margin-bottom:4px;}"
-        "input{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;box-sizing:border-box;}"
+        "input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;box-sizing:border-box;background:#fff;}"
         ".btn-submit{background:#16a34a;color:#fff;border:none;width:100%;padding:12px;border-radius:8px;font-size:0.98rem;font-weight:700;margin-top:18px;cursor:pointer;}"
         ".btn-test{background:#0284c7;color:#fff;border:none;width:100%;padding:10px;border-radius:8px;font-size:0.88rem;font-weight:600;margin-top:8px;cursor:pointer;}"
         ".btn-exit{background:#64748b;color:#fff;border:none;width:100%;padding:10px;border-radius:8px;font-size:0.88rem;font-weight:600;margin-top:8px;cursor:pointer;}"
@@ -544,6 +561,11 @@ void handlePortalRoot() {
     html += F("<br>• LCD I2C: ");
     html += lcdBuf;
     html += F("<br>• Pin GPIO: Buzzer=25, LED=26 (+2), Servo=13, SDA=21, SCL=22, RST=27"
+        "<br>• Mode Kerja: <b>");
+    html += (cfg_op_mode == "gerbang" ? "Gerbang Masuk/Keluar" : "Auto Ikuti Website");
+    html += F("</b> | Buzzer: <b>");
+    html += (cfg_buzzer_passive ? "Pasif (Nada)" : "Aktif (DC)");
+    html += F("</b>"
         "</div>"
         "<label>PILIH SHORTCUT PROJEK (KELOMPOK 1):</label>"
         "<div class='btn-grid'>"
@@ -581,6 +603,24 @@ void handlePortalRoot() {
         "<input type='text' id='id' name='id' value='");
     html += htmlEscape(cfg_dev_id);
     html += F("' required>"
+        "<label>Mode Kerja Reader RFID:</label>"
+        "<select id='opmode' name='opmode'>"
+        "<option value='auto'");
+    if (cfg_op_mode != "gerbang") html += F(" selected");
+    html += F(">Auto Ikuti Website (Pendaftaran KTP / Rapat / Gerbang)</option>"
+        "<option value='gerbang'");
+    if (cfg_op_mode == "gerbang") html += F(" selected");
+    html += F(">Khusus Gerbang Masuk/Keluar Servo (Selalu Aktif)</option>"
+        "</select>"
+        "<label>Jenis Buzzer Terpasang (Pin D25):</label>"
+        "<select id='buztype' name='buztype'>"
+        "<option value='active'");
+    if (!cfg_buzzer_passive) html += F(" selected");
+    html += F(">Buzzer Aktif (DC 3.3V/5V - Umumnya berstiker putih)</option>"
+        "<option value='passive'");
+    if (cfg_buzzer_passive) html += F(" selected");
+    html += F(">Buzzer Pasif (Nada Tone PWM - Bawah PCB terbuka)</option>"
+        "</select>"
         "<button type='submit' class='btn-submit'>💾 SIMPAN & REBOOT ALAT</button>"
         "</form>"
         "<form action='/test-hw' method='POST'>"
@@ -612,15 +652,17 @@ void handlePortalRoot() {
 }
 
 void handlePortalSave() {
-    String proj = webServer.arg("proj");
-    String ssid = webServer.arg("ssid");
-    String pass = webServer.arg("pass");
-    String tap  = webServer.arg("tap");
-    String hb   = webServer.arg("hb");
-    String key  = webServer.arg("key");
-    String id   = webServer.arg("id");
+    String proj    = webServer.arg("proj");
+    String ssid    = webServer.arg("ssid");
+    String pass    = webServer.arg("pass");
+    String tap     = webServer.arg("tap");
+    String hb      = webServer.arg("hb");
+    String key     = webServer.arg("key");
+    String id      = webServer.arg("id");
+    String opMode  = webServer.arg("opmode");
+    String buzType = webServer.arg("buztype");
 
-    saveConfig(proj, ssid, pass, tap, hb, key, id);
+    saveConfig(proj, ssid, pass, tap, hb, key, id, opMode, buzType == "passive");
 
     String resp = F("<!DOCTYPE html><html><head><meta charset='UTF-8'>"
         "<meta name='viewport' content='width=device-width,initial-scale=1.0'>"
@@ -643,9 +685,10 @@ void handlePortalSave() {
 void handlePortalTestHardware() {
     lcdShow("Test Hardware...", "LED+Buz+Servo");
     setLed(true);
-    beepSuccess();
+    beepGateIn();
     gateServo.write(SERVO_OPEN_ANGLE);
     delay(800);
+    beepGateOut();
     gateServo.write(SERVO_CLOSE_ANGLE);
     setLed(false);
     lcdShow("Mode Portal HP", "192.168.4.1");
@@ -787,7 +830,11 @@ void sendTapToServer(const String& uid) {
     http.addHeader("Authorization", "Bearer " + cfg_dev_key);
     http.addHeader("X-Device-Key", cfg_dev_key);
 
-    String payload = "{\"uid\":\"" + uid + "\",\"device_id\":\"" + cfg_dev_id + "\"}";
+    String payload = "{\"uid\":\"" + uid + "\",\"device_id\":\"" + cfg_dev_id + "\"";
+    if (cfg_op_mode == "gerbang") {
+        payload += ",\"mode\":\"gerbang\"";
+    }
+    payload += "}";
 
     Serial.printf("[HTTP] POST %s | Payload: %s\n", cfg_api_url.c_str(), payload.c_str());
     int httpCode = http.POST(payload);
@@ -797,17 +844,24 @@ void sendTapToServer(const String& uid) {
     Serial.printf("[HTTP] Kode Response: %d | Body: %s\n", httpCode, response.c_str());
 
     if (httpCode == 200) {
-        String status   = extractJsonString(response, "status");
-        String feedback = extractJsonString(response, "feedback");
-        String userName = extractJsonString(response, "user_name");
-        bool isDup      = (feedback == "duplicate")
-                       || (status == "already_present")
-                       || (status == "ktp_already_verified")
-                       || (status == "koperasi_already_verified");
+        String status    = extractJsonString(response, "status");
+        String feedback  = extractJsonString(response, "feedback");
+        String userName  = extractJsonString(response, "user_name");
+        String direction = extractJsonString(response, "direction");
+        String buzzerCmd = extractJsonString(response, "buzzer");
+        int openGateVal  = extractJsonBoolState(response, "open_gate");
+        bool isDup       = (feedback == "duplicate")
+                        || (status == "already_present")
+                        || (status == "ktp_already_verified")
+                        || (status == "koperasi_already_verified");
 
         String l1 = userName.length() > 0 ? ("Halo, " + userName) : "Tap Berhasil!";
         String l2 = "Akses Diterima";
-        if (status == "present") l2 = "Hadir Tercatat!";
+        if (status == "gate_opened" || direction == "masuk" || direction == "keluar") {
+            String dirPrefix = (direction == "keluar") ? "KELUAR: " : "MASUK: ";
+            l1 = dirPrefix + (userName.length() > 0 ? userName : "Warga");
+            l2 = "Gerbang Terbuka";
+        } else if (status == "present") l2 = "Hadir Tercatat!";
         else if (status == "already_present") l2 = "Sudah Hadir";
         else if (status == "registered" || status == "ktp_registered" || status == "koperasi_registered") l2 = "Kartu Terdaftar!";
         else if (status == "ktp_verified" || status == "ktp_already_verified") l2 = "KTP Terverifikasi";
@@ -817,13 +871,19 @@ void sendTapToServer(const String& uid) {
         Serial.println(F("🎉 [SUKSES] Data kartu berhasil diterima server!\n"));
 
         setLed(true);
-        if (isDup) {
+        if (buzzerCmd == "gate_in" || (status == "gate_opened" && direction == "masuk")) {
+            beepGateIn();
+        } else if (buzzerCmd == "gate_out" || (status == "gate_opened" && direction == "keluar")) {
+            beepGateOut();
+        } else if (isDup) {
             beepDuplicate();
         } else {
             beepSuccess();
         }
 
-        if (SERVO_OPEN_ON_ALL_200 || !isDup) {
+        bool shouldOpenServo = (openGateVal == 1)
+                            || (openGateVal == -1 && (SERVO_OPEN_ON_ALL_200 || !isDup));
+        if (shouldOpenServo) {
             openGateServo();
         } else {
             delay(1200);
@@ -832,16 +892,28 @@ void sendTapToServer(const String& uid) {
         String l1 = "Tap Ditolak!";
         String l2 = "Kode HTTP: " + String(httpCode);
 
-        if (httpCode == 422) {
-            if (response.indexOf("warga lain") >= 0) {
+        if (httpCode == 422 || httpCode == 403) {
+            if (response.indexOf("luar wilayah") >= 0) {
+                l1 = "Bukan Wilayah!";
+                l2 = "Ditolak Gerbang";
+            } else if (response.indexOf("belum terverifikasi") >= 0) {
+                l1 = "KTP Blm Verif!";
+                l2 = "Hubungi Admin RT";
+            } else if (response.indexOf("tidak aktif") >= 0) {
+                l1 = "Akun Nonaktif";
+                l2 = "Hubungi Admin";
+            } else if (response.indexOf("warga lain") >= 0) {
                 l1 = "Kartu Dipakai!";
                 l2 = "Milik Warga Lain";
             } else if (response.indexOf("kedaluwarsa") >= 0) {
                 l1 = "Sesi Kedaluwarsa";
                 l2 = "Ulangi di Web";
-            } else if (response.indexOf("belum terdaftar") >= 0) {
+            } else if (response.indexOf("belum terdaftar") >= 0 || response.indexOf("tidak terdaftar") >= 0) {
                 l1 = "Belum Terdaftar!";
-                l2 = "Aktifkan di Web";
+                l2 = "Daftar di Web";
+            } else if (httpCode == 403) {
+                l1 = "Akses Ditolak";
+                l2 = "Cek Izin/Key";
             } else {
                 l1 = "Data Ditolak";
                 l2 = "Cek Layar Web";
@@ -849,8 +921,8 @@ void sendTapToServer(const String& uid) {
         } else if (httpCode == 409) {
             l1 = "Kegiatan Tutup";
             l2 = "Belum/Selesai";
-        } else if (httpCode == 401 || httpCode == 403) {
-            l1 = "Key/Izin Salah";
+        } else if (httpCode == 401) {
+            l1 = "Key/Token Salah";
             l2 = "Cek Device Key";
         }
 
@@ -954,48 +1026,63 @@ void showStandbyScreen() {
     String top = cfg_proj_name.length() > 0 ? cfg_proj_name : "Smart RW RFID";
     if (!rc522Ready) {
         lcdShow(top, "RC522 Error! Cek");
+    } else if (cfg_op_mode == "gerbang") {
+        lcdShow(top, "Gerbang: Tap KTP");
     } else {
         lcdShow(top, "Tap Kartu Anda");
     }
 }
 
-void beepSuccess() {
+void buzzerToneMs(uint16_t freqHz, uint16_t durMs) {
+    if (cfg_buzzer_passive) {
+        tone(PIN_BUZZER, freqHz);
+        delay(durMs);
+        noTone(PIN_BUZZER);
+        pinMode(PIN_BUZZER, OUTPUT);
+        digitalWrite(PIN_BUZZER, LOW);
+        return;
+    }
+
     digitalWrite(PIN_BUZZER, HIGH);
-    delay(100);
-    digitalWrite(PIN_BUZZER, LOW);
-    delay(80);
-    digitalWrite(PIN_BUZZER, HIGH);
-    delay(100);
+    delay(durMs);
     digitalWrite(PIN_BUZZER, LOW);
 }
 
+void beepGateIn() {
+    buzzerToneMs(2300, 95);
+    delay(65);
+    buzzerToneMs(2900, 120);
+}
+
+void beepGateOut() {
+    buzzerToneMs(2100, 220);
+    delay(55);
+    buzzerToneMs(1650, 140);
+}
+
+void beepSuccess() {
+    buzzerToneMs(2200, 100);
+    delay(80);
+    buzzerToneMs(2200, 100);
+}
+
 void beepDuplicate() {
-    digitalWrite(PIN_BUZZER, HIGH);
-    delay(90);
-    digitalWrite(PIN_BUZZER, LOW);
+    buzzerToneMs(1800, 90);
     delay(70);
-    digitalWrite(PIN_BUZZER, HIGH);
-    delay(90);
-    digitalWrite(PIN_BUZZER, LOW);
+    buzzerToneMs(1800, 90);
 }
 
 void beepError() {
     for (int i = 0; i < 3; i++) {
-        digitalWrite(PIN_BUZZER, HIGH);
-        delay(150);
-        digitalWrite(PIN_BUZZER, LOW);
+        buzzerToneMs(950, 150);
         if (i < 2) delay(90);
     }
 }
 
 void beepPortal() {
-    digitalWrite(PIN_BUZZER, HIGH);
-    delay(350);
-    digitalWrite(PIN_BUZZER, LOW);
+    buzzerToneMs(1500, 320);
     delay(100);
-    digitalWrite(PIN_BUZZER, HIGH);
-    delay(350);
-    digitalWrite(PIN_BUZZER, LOW);
+    buzzerToneMs(1500, 320);
 }
 
 String extractJsonString(const String& json, const String& key) {
@@ -1016,6 +1103,20 @@ String extractJsonString(const String& json, const String& key) {
     }
     if (endQuote < 0) return "";
     return json.substring(startQuote + 1, endQuote);
+}
+
+int extractJsonBoolState(const String& json, const String& key) {
+    String pattern = "\"" + key + "\"";
+    int keyIdx = json.indexOf(pattern);
+    if (keyIdx < 0) return -1;
+    int colonIdx = json.indexOf(':', keyIdx + pattern.length());
+    if (colonIdx < 0) return -1;
+
+    int pos = colonIdx + 1;
+    while (pos < (int) json.length() && (json[pos] == ' ' || json[pos] == '\t')) pos++;
+    if (json.startsWith("true", pos)) return 1;
+    if (json.startsWith("false", pos)) return 0;
+    return -1;
 }
 
 String htmlEscape(const String& input) {
